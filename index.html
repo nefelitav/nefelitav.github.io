@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>nefeli's website</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body onload='startDate()'>
+
+<div class="container">
+    <h1>Nefeli Tavoulari</h1>
+    <div id='date'></div> 
+    <label class="switch">
+        <input type="checkbox" id="toggle">
+        <span class="slider round"></span>
+    </label>
+</div>
+
+<p>A full-stack engineer.</p>
+<p>Currently based in Amsterdam, The Netherlands, where it's <span id="time"></span>.</p>
+<p>Previously based in Athens, Greece and Rome, Italy.</p> 
+<nav aria-label="links">
+    <a href="https://github.com/nefelitav" target="_blank">GitHub</a>
+    <hr class="inline-hr"><span>&#183;</span>
+    <a href="https://www.linkedin.com/in/nefeli-tavoulari/" target="_blank">LinkedIn</a>
+    <hr class="inline-hr"><span>&#183;</span>
+    <a href="mailto:nefeli.tavoulari123@gmail.com" target="_blank">Gmail</a>
+    <hr class="inline-hr"><span>&#183;</span>
+    <a href="">Journal</a>
+</nav>
+<nav aria-label="links">
+    <a href="https://www.duolingo.com/profile/nefeli-tavoulari" target="_blank">Duolingo</a>
+    <hr class="inline-hr"><span>&#183;</span>
+    <a href="https://vsco.co/nefelitavoulari/gallery" target="_blank">VSCO</a>
+    <hr class="inline-hr"><span>&#183;</span>
+    <a href="https://www.goodreads.com/user/show/158140790-nefeli-tavoulari" target="_blank">Goodreads</a>
+    <hr class="inline-hr"><span>&#183;</span>
+    <a href="https://www.imdb.com/user/ur176703126/" target="_blank">IMDB</a>
+</nav>
+<script>
+    // date
+    function startDate() {
+      var d = new Date();
+      var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+      var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      document.getElementById("date").innerHTML = days[d.getDay()] + " | " + d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear();
+    }
+    startDate();
+
+    // toggle
+    const toggleSwitch = document.getElementById('toggle');
+    toggleSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            document.body.style.backgroundColor = "#151615"; 
+            document.body.style.color = "#FFFFE7"; 
+        } else {
+            document.body.style.backgroundColor = "#FFFFE7"; 
+            document.body.style.color = "#151615"; 
+        }
+    });
+
+    // time
+    function updateTime() {
+    var now = new Date();
+    var hours = now.getHours();
+    var minutes = now.getMinutes();
+    var seconds = now.getSeconds();
+    
+    // Add leading zeros if needed
+    hours = (hours < 10 ? "0" : "") + hours;
+    minutes = (minutes < 10 ? "0" : "") + minutes;
+    seconds = (seconds < 10 ? "0" : "") + seconds;
+    
+    // Display the time in HH:MM:SS format
+    var timeString = hours + ":" + minutes + ":" + seconds;
+    
+    // Update the content of the div
+    document.getElementById("time").innerHTML = timeString;
+    }
+
+    // Update the time every second
+    setInterval(updateTime, 1000);
+
+    // Update the time immediately upon page load
+    updateTime();
+  </script>
+
+<u><h2>experience</h2></u>
+<u><h2>education</h2></u>
+<u><h2>projects</h2></u>
+<u><h2>skills</h2></u>
+<u><h2>interests</h2></u>
+<u><h2>goals</h2></u>
+<u><h2>photos</h2></u>
+<u><h2>travel</h2></u>
+
+</body>
+</html>
+
