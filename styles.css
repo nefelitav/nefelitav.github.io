@@ -239,3 +239,7 @@ hr {
   .projectName span {
     font-family: 'Source Sans Pro', sans-serif;
   }
+
+  .squareList {
+    list-style-type: square;
+  } 
