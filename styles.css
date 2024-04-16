@@ -259,8 +259,12 @@ hr {
   .flex-container {
     display: flex;
     flex-direction: column;
-}
+  }
 
-.flex-container > div {
-    flex: 1; /* Make each container grow to fill the available space */
-}
+  .flex-container > div {
+    margin-bottom: 0; /* Remove margin between each pair of elements */
+  }
+
+  .flex-container hr {
+    margin: 0; /* Remove margin of hr elements */
+  }
