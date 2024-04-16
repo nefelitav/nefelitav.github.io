@@ -255,3 +255,12 @@ hr {
   .squareList {
     list-style-type: square;
   } 
+
+  .flex-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.flex-container > div {
+    flex: 1; /* Make each container grow to fill the available space */
+}
