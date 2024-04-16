@@ -230,6 +230,18 @@ hr {
     width: 0.35cm;
     height: 0.35cm;
   }
+
+  .skills {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    font-size: 18px; /* or specify a specific font-size value */
+  }
+  .flexible {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
   .jobPosition {
     display: flex;
     flex-direction: row;
