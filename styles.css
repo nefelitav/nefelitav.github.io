@@ -235,12 +235,16 @@ hr {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    font-size: 18px; /* or specify a specific font-size value */
+    font-size: 18px;
   }
+  #time {
+    margin-left: 10px;
+  }
+
   .flexible {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    align-items: center;
   }
   .jobPosition {
     display: flex;
