@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>nefeli's website</title>
-<link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <title>nefeli's website</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
 </head>
 <body onload='startDate()'>
 
@@ -165,75 +166,97 @@
 </div>
 <u><h2>Projects</h2></u>
 
-<u><p style="margin-top: 3rem;">Web development:</p></u>
-<ul class="squareList">
-    <li>
-        <a href="https://github.com/Messaging-Application" target="_blank">Cloud-based Chat Application</a>
-        <p class="flexible">
-            A chat application using microservice and event-driven architecture, deployed on AWS, using RDS Postgres, 
-            DocumentDB Mongo, AWS SQS, AWS SNS, MemoryDB Redis, AWS Lambda, DynamoDB, EC2, API Gateway, 
-            CloudWatch, in combination with DevOps best practices.
-        </p>
-        <i><p class="skills">Spring Boot - React - Typescript - Python - Jest - JUnit - Github Actions - AWS - Docker - Kubernetes - Websockets</p></i>
-    </li>
-    <hr style="margin-top: 2rem;">
-    <li>
-        <a href="https://github.com/nefelitav/auctions-website" target="_blank">Auctions Website</a>
-        <p class="flexible">An Ebay clone, featuring live messaging, OpenStreetMap implementation, a recommendation system, search, filters etc.</p>
-        <i><p class="skills">React - NodeJS - Express - PostgreSQL - Docker - REST</p></i>
-    </li>
-    <hr style="margin-top: 2rem;">
-    <li>
-        <a href="https://github.com/nefelitav/email-service" target="_blank">Email service</a>
-        <p class="flexible">A cloud email service using microservice architecture, deployed with Kubernetes.</p>
-        <i><p class="skills">Python - Django - MongoDB - Flask - HTML/CSS - Docker - Kubernetes - REST</p></i>
-    </li>
-</ul>
-<u><p style="margin-top: 3rem;">Machine Learning - Deep Learning:</p></u>
-<ul class="squareList">
-    <li>
-        <a href="https://github.com/nefelitav/vaccine-sentiment-classifier" target="_blank">Vaccine Sentiment Classifier</a>
-        <p class="flexible">A vaccine sentiment classifier using different machine and deep learning models.</p>
-        <i><p class="skills">Python - PyTorch</p></i>
-    </li>
-</ul>
-<u><p style="margin-top: 3rem;">Cybersecurity:</p></u>
-<ul class="squareList">
-    <li>
-        <a href="https://github.com/nefelitav/eclass-penetration-testing" target="_blank">Eclass Penetration Testing</a>
-        <p class="flexible">Penetration testing on a vulnerable version of eClass, using SQL injection, XSS, CSRF, RFI etc.</p>
-        <i><p class="skills">PHP - MySQL</p></i>
-    </li>
-</ul>
-<u><p style="margin-top: 3rem;">Low-level programming:</p></u>
-<ul class="squareList">
-    <li>
-        <a href="https://github.com/nefelitav/sniffer" target="_blank">Sniffer</a>
-        <p class="flexible">File scan and processing using inotifywait with interprocess communication, signals, pipes, named pipes, low level I/O.</p>
-        <i><p class="skills">C - Bash - Makefile</p></i>
-    </li>
-    <hr style="margin-top: 2rem;">
-    <li>
-        <a href="https://github.com/nefelitav/tcp-file-transfer" target="_blank">TCP file transfer</a>
-        <p class="flexible">TCP file transfer simulation from a server to clients using sockets.</p>
-        <i><p class="skills">C - Makefile</p></i>
-    </li>
-    <hr style="margin-top: 2rem;">
-    <li>
-        
-        <a href="https://github.com/nefelitav/inverted-search-engine" target="_blank">Inverted search engine</a>
-        <p class="flexible">Inverted search engine using bk trees, hash tables, multithreading.</p>
-        <i><p class="skills">C++ - Bash - Makefile - Unit Testing - Github Actions</p></i>
-    </li>
-</ul>
-<u><p style="margin-top: 3rem;">Compilers:</p></u>
-<ul class="squareList">
-    <li>
-        <a href="https://github.com/nefelitav/llvm-translator" target="_blank">LLVM translator</a>
-        <p class="flexible">An LLVM translator using visitor pattern, that performs static type checking and intermediate code generation.</p>
-        <i><p class="skills">Java - JavaCC</p></i>
-    </li>
-</ul>
+<div class="tab">
+    <button class="tablinks active" onclick="openTab(event, 'web')">Web Development</button>
+    <button class="tablinks" onclick="openTab(event, 'ai')">Machine Learning</button>
+    <button class="tablinks" onclick="openTab(event, 'security')">Cybersecurity</button>
+    <button class="tablinks" onclick="openTab(event, 'low-level')">Low Level Programming </button>
+    <button class="tablinks" onclick="openTab(event, 'compilers')">Compilers</button>
+</div>
+
+<section class="tabcontent" id="web" style="display: block;">
+    <u><p style="margin-top: 3rem;">Web development:</p></u>
+    <ul class="squareList">
+        <li>
+            <a href="https://github.com/Messaging-Application" target="_blank">Cloud-based Chat Application</a>
+            <p class="flexible">
+                A chat application using microservice and event-driven architecture, deployed on AWS, using RDS Postgres, 
+                DocumentDB Mongo, AWS SQS, AWS SNS, MemoryDB Redis, AWS Lambda, DynamoDB, EC2, API Gateway, 
+                CloudWatch, in combination with DevOps best practices.
+            </p>
+            <i><p class="skills">Spring Boot - React - Typescript - Python - Jest - JUnit - Github Actions - AWS - Docker - Kubernetes - Websockets</p></i>
+        </li>
+        <hr style="margin-top: 2rem;">
+        <li>
+            <a href="https://github.com/nefelitav/auctions-website" target="_blank">Auctions Website</a>
+            <p class="flexible">An Ebay clone, featuring live messaging, OpenStreetMap implementation, a recommendation system, search, filters etc.</p>
+            <i><p class="skills">React - NodeJS - Express - PostgreSQL - Docker - REST</p></i>
+        </li>
+        <hr style="margin-top: 2rem;">
+        <li>
+            <a href="https://github.com/nefelitav/email-service" target="_blank">Email service</a>
+            <p class="flexible">A cloud email service using microservice architecture, deployed with Kubernetes.</p>
+            <i><p class="skills">Python - Django - MongoDB - Flask - HTML/CSS - Docker - Kubernetes - REST</p></i>
+        </li>
+    </ul>
+</section>
+
+<section class="tabcontent" id="ai">
+    <u><p style="margin-top: 3rem;">Machine Learning - Deep Learning:</p></u>
+    <ul class="squareList">
+        <li>
+            <a href="https://github.com/nefelitav/vaccine-sentiment-classifier" target="_blank">Vaccine Sentiment Classifier</a>
+            <p class="flexible">A vaccine sentiment classifier using different machine and deep learning models.</p>
+            <i><p class="skills">Python - PyTorch</p></i>
+        </li>
+    </ul>
+</section>
+
+<section class="tabcontent" id="security">
+    <u><p style="margin-top: 3rem;">Cybersecurity:</p></u>
+    <ul class="squareList">
+        <li>
+            <a href="https://github.com/nefelitav/eclass-penetration-testing" target="_blank">Eclass Penetration Testing</a>
+            <p class="flexible">Penetration testing on a vulnerable version of eClass, using SQL injection, XSS, CSRF, RFI etc.</p>
+            <i><p class="skills">PHP - MySQL</p></i>
+        </li>
+    </ul>
+</section>
+
+<section class="tabcontent" id="low-level">
+    <u><p style="margin-top: 3rem;">Low-level programming:</p></u>
+    <ul class="squareList">
+        <li>
+            <a href="https://github.com/nefelitav/sniffer" target="_blank">Sniffer</a>
+            <p class="flexible">File scan and processing using inotifywait with interprocess communication, signals, pipes, named pipes, low level I/O.</p>
+            <i><p class="skills">C - Bash - Makefile</p></i>
+        </li>
+        <hr style="margin-top: 2rem;">
+        <li>
+            <a href="https://github.com/nefelitav/tcp-file-transfer" target="_blank">TCP file transfer</a>
+            <p class="flexible">TCP file transfer simulation from a server to clients using sockets.</p>
+            <i><p class="skills">C - Makefile</p></i>
+        </li>
+        <hr style="margin-top: 2rem;">
+        <li>
+            <a href="https://github.com/nefelitav/inverted-search-engine" target="_blank">Inverted search engine</a>
+            <p class="flexible">Inverted search engine using bk trees, hash tables, multithreading.</p>
+            <i><p class="skills">C++ - Bash - Makefile - Unit Testing - Github Actions</p></i>
+        </li>
+    </ul>
+</section>
+
+<section class="tabcontent" id="compilers">
+    <u><p style="margin-top: 3rem;">Compilers:</p></u>
+    <ul class="squareList">
+        <li>
+            <a href="https://github.com/nefelitav/llvm-translator" target="_blank">LLVM translator</a>
+            <p class="flexible">An LLVM translator using visitor pattern, that performs static type checking and intermediate code generation.</p>
+            <i><p class="skills">Java - JavaCC</p></i>
+        </li>
+    </ul>
+</section>
+
 
 <u><h2>Photos</h2></u>
 
