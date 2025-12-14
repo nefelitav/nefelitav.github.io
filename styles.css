@@ -304,3 +304,45 @@ body.dark-mode hr {
     border-color: #444;
 }
 
+.certifications {
+    max-width: 800px;
+    margin-top: 2rem;
+}
+
+.cert-group {
+    margin-bottom: 2.5rem;
+}
+
+.cert-group h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+}
+
+.cert-group ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.cert-group li {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0.6rem;
+}
+
+.cert-title {
+    font-weight: 500;
+}
+
+.cert-issuer {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.cert-group li:hover .cert-title {
+    text-decoration: underline;
+}
+
+.dark-mode .cert-issuer {
+    opacity: 0.6;
+}
