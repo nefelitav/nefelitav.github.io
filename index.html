@@ -29,13 +29,11 @@
     <hr class="inline-hr"><span>&#183;</span>
     <a href="https://www.duolingo.com/profile/nefeli-tavoulari" target="_blank">Duolingo</a>
     <hr class="inline-hr"><span>&#183;</span>
-    <!-- <hr class="inline-hr"><span>&#183;</span> -->
     <a href="https://www.goodreads.com/user/show/158140790-nefeli-tavoulari" target="_blank">Goodreads</a>
     <hr class="inline-hr"><span>&#183;</span>
     <a href="https://www.imdb.com/user/ur176703126/" target="_blank">IMDB</a>
 </nav>
 <script>
-    // date
     function startDate() {
       var d = new Date();
       var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -44,41 +42,23 @@
     }
     startDate();
 
-    // toggle
     const toggleSwitch = document.getElementById('toggle');
-    toggleSwitch.addEventListener('change', function() {
-        if (this.checked) {
-            document.body.style.backgroundColor = "#151615"; 
-            document.body.style.color = "#FFFFE7"; 
-        } else {
-            document.body.style.backgroundColor = "#FFFFE7"; 
-            document.body.style.color = "#151615"; 
-        }
+    toggleSwitch.addEventListener('change', function () {
+        document.body.classList.toggle('dark-mode', this.checked);
     });
 
-    // time
     function updateTime() {
-    var now = new Date();
-    var hours = now.getHours();
-    var minutes = now.getMinutes();
-    var seconds = now.getSeconds();
-    
-    // Add leading zeros if needed
-    hours = (hours < 10 ? "0" : "") + hours;
-    minutes = (minutes < 10 ? "0" : "") + minutes;
-    seconds = (seconds < 10 ? "0" : "") + seconds;
-    
-    // Display the time in HH:MM:SS format
-    var timeString = hours + ":" + minutes + ":" + seconds;
-    
-    // Update the content of the div
-    document.getElementById("time").innerHTML = timeString;
+        const now = new Date();
+
+        document.getElementById("time").innerHTML = now.toLocaleTimeString("en-GB", {
+            timeZone: "Europe/Amsterdam",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+        });
     }
 
-    // Update the time every second
     setInterval(updateTime, 1000);
-
-    // Update the time immediately upon page load
     updateTime();
   </script>
 
@@ -99,7 +79,7 @@
             </div>
         </li>
     </ul>
-    <i><p class="skills">PHP, MySQL, HTML, CSS, JavaScript, JQuery</p></i>
+    <i><p class="skills">PHP, MySQL, HTML, CSS, TypeScript, React, Redux, React Native, GCP</p></i>
 
     <p>
         <a href="https://www.linkedin.com/company/solid-sands-b-v-/" target="_blank" style="color: inherit;">Solid Sands</a> 
@@ -158,11 +138,11 @@
 
 <u><h2>Education</h2></u>
 <div class="flex-container">
-    <p><i style="background-color: lightgrey; border-radius: 10px; padding: 4px">Master's:</i> Software Engineering, Universiteit van Amsterdam.</p>
+    <p><i style="background-color: lightgrey; color: black; border-radius: 10px; padding: 4px">Master's:</i> Software Engineering, Universiteit van Amsterdam.</p>
     <hr style="margin-top: 2rem;">
-    <p><i style="background-color: lightgrey; border-radius: 10px; padding: 4px">Erasmus:</i> Master courses from Computer Science, Data Science, Cybersecurity programs, Sapienza Università di Roma.</p>
+    <p><i style="background-color: lightgrey; color: black; border-radius: 10px; padding: 4px">Erasmus:</i> Master courses from Computer Science, Data Science, Cybersecurity programs, Sapienza Università di Roma.</p>
     <hr style="margin-top: 2rem;">
-    <p><i style="background-color: lightgrey; border-radius: 10px; padding: 4px">Bachelor's:</i> Informatics & Telecommunications, National & Kapodistrian University of Athens.</p>
+    <p><i style="background-color: lightgrey; color: black; border-radius: 10px; padding: 4px">Bachelor's:</i> Informatics & Telecommunications, National & Kapodistrian University of Athens.</p>
 </div>
 <u><h2>Projects</h2></u>
 
@@ -303,7 +283,7 @@
 
 
 <u><h2>Travel</h2></u>
-<div style="max-width:980px;margin:5px auto 10px auto;font-size:14px;"><div style="position:relative;padding: 0 0 67% 0;height:0;overflow:hidden;"><iframe style="position:absolute;top:0;left:0;width:100%;height:100%;" src="//www.fla-shop.com/visited-countries/embed/?st=BE%2CDE%2CDK%2CFR%2CGR%2CHU%2CIT%2CNL%2CPL&vc=1ca032&uc=b3c3ca&hc=40bfa6&bc=ffffff" frameborder="0" scrolling="no"></iframe></div>Visited countries</div>
+<div style="max-width:980px;margin:5px auto 10px auto;font-size:14px;"><div style="position:relative;padding: 0 0 67% 0;height:0;overflow:hidden;"><iframe style="position:absolute;top:0;left:0;width:100%;height:100%;" src="//www.fla-shop.com/visited-countries/embed/?st=BE%2CDE%2CDK%2CES%2CFR%2CGR%2CHU%2CIT%2CMX%2CNL%2CPL&vc=1ca032&uc=b3c3ca&hc=40bfa6&bc=ffffff" frameborder="0" scrolling="no"></iframe></div></div>
 </body>
 </html>
 
