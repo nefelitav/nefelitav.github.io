@@ -3,11 +3,14 @@ body {
     color: #151615;
     font-family: 'Menlo', monospace;
     padding: 0 2.5em;
-    margin-top: 6em!important;
     max-width: 50em;
-    margin: auto;
+    margin: 6em auto 0;
     word-wrap: break-word;
     line-height: 2rem;
+}
+
+:root {
+    --borderColor: #ccc;
 }
 
 h1, h2 {
@@ -22,16 +25,9 @@ a {
   color: #2d5d8c;
 }
 
-.flexible {
-    display: inline;
-    font-size: 16px;
-    line-height: 1.5;
-}
 
 #time {
     display: inline;
-    vertical-align: baseline;
-    margin-left: 4px;
     font-size: 16px;
 }
 
@@ -88,19 +84,27 @@ hr {
 }
 
 .container {
-  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.container-text {
+  display: flex;
+  flex-direction: column;
 }
 
 
 .switch {
-    position: absolute;
     display: inline-block;
-    top: 0;
-    right: 0;
-    margin-top: 20px;
+    position: relative;
     width: 60px;
     height: 34px;
-  }
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 20px;
+}
 
 .switch input {
     opacity: 0;
@@ -158,20 +162,15 @@ h2 {
     margin-top: 10rem;
 }
 
-#time {
-    margin-left: 10px;
+.section-heading {
+    text-decoration: underline;
+    text-underline-offset: 4px;
 }
 
 .flexible {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-}
-
-.jobPosition {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+    display: block;
+    font-size: 16px;
+    line-height: 1.5;
 }
 
 .squareList {
@@ -273,7 +272,20 @@ body.dark-mode .roles {
 
 body.dark-mode .issuer {
     background-color: #151615;
-    color: white;
+    color: #ccc;
+}
+
+body.dark-mode .jobDates {
+    color: #aaa;
+}
+
+body.dark-mode .skills-box {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+}
+
+body.dark-mode .certifications-grid > div {
+    border-bottom-color: #444;
 }
 
 body.dark-mode hr {
@@ -394,7 +406,7 @@ body.dark-mode hr {
 
 .jobDates {
     font-style: italic;
-    color: #666;
+    color: #555;
     white-space: nowrap;
 }
 
@@ -406,10 +418,90 @@ body.dark-mode hr {
     margin-top: 0.5rem;
     border-radius: 999px;
     line-height: 1.4;
+    display: inline-block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
 }
 
-.workExperience {
+.company-description {
+    font-size: 0.9rem;
+    margin: 0.25rem 0 0.5rem;
+    color: #444;
+}
+
+body.dark-mode .company-description {
+    color: #ccc;
+}
     margin-top: 1rem;
     color: #222;
     line-height: 1.5;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #2d5d8c;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.row img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 0 1rem;
+    margin-top: 2.5rem !important;
+  }
+
+  .container {
+    align-items: center;
+  }
+
+
+  nav {
+    line-height: 2rem;
+    row-gap: 0.2rem;
+  }
+
+  .tab {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tab button {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  .tabcontent {
+    padding: 10px;
+  }
+
+  .column {
+    width: 100%;
+    float: none;
+  }
+
+  .jobPosition {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+  }
+
+  .education-grid,
+  .certifications-grid {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slider,
+  .slider:before {
+    transition: none;
+  }
 }
