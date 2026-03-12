@@ -23,6 +23,7 @@
 </head>
 <body>
 
+<header>
 <div class="container">
     <div class="container-text">
         <h1>Nefeli Tavoulari</h1>
@@ -33,21 +34,24 @@
         <span class="slider round" aria-hidden="true"></span>
     </label>
 </div>
+</header>
+
+<main>
 
 <p class="flexible">A full-stack engineer.</p>
 <p class="flexible">Currently based in Groningen, The Netherlands, where it's  <span id="time"></span>.</p>
 <p class="flexible">Previously based in Amsterdam, Athens, and Rome.</p>
 <nav aria-label="links">
     <a class="flexible" href="https://github.com/nefelitav" target="_blank" rel="noopener noreferrer">GitHub</a>
-    <hr class="inline-hr"><span>&#183;</span>
+    <span aria-hidden="true"></span>
     <a class="flexible" href="https://www.linkedin.com/in/nefeli-tavoulari/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-    <hr class="inline-hr"><span>&#183;</span>
+    <span aria-hidden="true"></span>
     <a class="flexible" href="mailto:nefeli.tavoulari123@gmail.com">Gmail</a>
-    <hr class="inline-hr"><span>&#183;</span>
+    <span aria-hidden="true"></span>
     <a class="flexible" href="https://www.duolingo.com/profile/nefeli-tavoulari" target="_blank" rel="noopener noreferrer">Duolingo</a>
-    <hr class="inline-hr"><span>&#183;</span>
+    <span aria-hidden="true"></span>
     <a class="flexible" href="https://www.goodreads.com/user/show/158140790-nefeli-tavoulari" target="_blank" rel="noopener noreferrer">Goodreads</a>
-    <hr class="inline-hr"><span>&#183;</span>
+    <span aria-hidden="true"></span>
     <a class="flexible" href="https://www.imdb.com/user/ur176703126/" target="_blank" rel="noopener noreferrer">IMDB</a>
 </nav>
 <script>
@@ -194,7 +198,7 @@
 </div>
 
 <section class="tabcontent" id="web" style="display: block;">
-    <u><p style="margin-top: 3rem;">Web development:</p></u>
+    <p style="margin-top: 3rem;">Web development:</p>
     <ul class="squareList">
         <li>
             <a href="https://github.com/nefelitav/identity-and-access-management-api" target="_blank">IAM API</a>
@@ -204,8 +208,8 @@
                 password reset and hashing, account lockout, profile management, and CAPTCHA-based bot protection.
             </p>
             <i><p class="skills-box">TypeScript - Twilio - Nodemailer - PostgreSQL - Redis</p></i>
+            <hr class="list-divider">
         </li>
-        <hr style="margin-top: 2rem;">
         <li>
             <a href="https://github.com/nefelitav/e-commerce-api" target="_blank">E-commerce API</a>
             <p class="flexible">
@@ -215,6 +219,7 @@
                 and comprehensive automated testing.
             </p>
             <i><p class="skills-box">Laravel - PostgreSQL - Redis - Nginx</p></i>
+            <hr class="list-divider">
         </li>
         <li>
             <a href="https://github.com/Messaging-Application" target="_blank">Cloud-based Chat Application</a>
@@ -224,8 +229,8 @@
                 CloudWatch, in combination with DevOps best practices.
             </p>
             <i><p class="skills-box">Spring Boot - React - Typescript - Python - Jest - JUnit - Github Actions - AWS - Docker - Kubernetes - Websockets</p></i>
+            <hr class="list-divider">
         </li>
-        <hr style="margin-top: 2rem;">
         <li>
             <a href="https://github.com/nefelitav/auctions-website" target="_blank">Auctions Website</a>
             <p class="flexible">An Ebay clone, featuring live messaging, OpenStreetMap implementation, a recommendation system, search, filters etc.</p>
@@ -235,7 +240,7 @@
 </section>
 
 <section class="tabcontent" id="ai">
-    <u><p style="margin-top: 3rem;">Machine Learning - Deep Learning:</p></u>
+    <p style="margin-top: 3rem;">Machine Learning - Deep Learning:</p>
     <ul class="squareList">
         <li>
             <a href="https://github.com/nefelitav/vaccine-sentiment-classifier" target="_blank">Vaccine Sentiment Classifier</a>
@@ -246,7 +251,7 @@
 </section>
 
 <section class="tabcontent" id="security">
-    <u><p style="margin-top: 3rem;">Cybersecurity:</p></u>
+    <p style="margin-top: 3rem;">Cybersecurity:</p>
     <ul class="squareList">
         <li>
             <a href="https://github.com/nefelitav/eclass-penetration-testing" target="_blank">Eclass Penetration Testing</a>
@@ -257,20 +262,20 @@
 </section>
 
 <section class="tabcontent" id="low-level">
-    <u><p style="margin-top: 3rem;">Low-level programming:</p></u>
+    <p style="margin-top: 3rem;">Low-level programming:</p>
     <ul class="squareList">
         <li>
             <a href="https://github.com/nefelitav/sniffer" target="_blank">Sniffer</a>
             <p class="flexible">File scan and processing using inotifywait with interprocess communication, signals, pipes, named pipes, low level I/O.</p>
             <i><p class="skills-box">C - Bash - Makefile</p></i>
+            <hr class="list-divider">
         </li>
-        <hr style="margin-top: 2rem;">
         <li>
             <a href="https://github.com/nefelitav/tcp-file-transfer" target="_blank">TCP file transfer</a>
             <p class="flexible">TCP file transfer simulation from a server to clients using sockets.</p>
             <i><p class="skills-box">C - Makefile</p></i>
+            <hr class="list-divider">
         </li>
-        <hr style="margin-top: 2rem;">
         <li>
             <a href="https://github.com/nefelitav/inverted-search-engine" target="_blank">Inverted search engine</a>
             <p class="flexible">Inverted search engine using bk trees, hash tables, multithreading.</p>
@@ -280,7 +285,7 @@
 </section>
 
 <section class="tabcontent" id="compilers">
-    <u><p style="margin-top: 3rem;">Compilers:</p></u>
+    <p style="margin-top: 3rem;">Compilers:</p>
     <ul class="squareList">
         <li>
             <a href="https://github.com/nefelitav/llvm-translator" target="_blank">LLVM translator</a>
@@ -291,13 +296,13 @@
 </section>
 
 <section class="tabcontent" id="best-practices">
-    <u><p style="margin-top: 3rem;">Best Practices:</p></u>
+    <p style="margin-top: 3rem;">Best Practices:</p>
     <ul class="squareList">
         <li>
             <a href="https://github.com/nefelitav/coding-best-practices" target="_blank">Coding Best Practices</a>
             <p class="flexible">A practical guide documenting the small things that make a big difference, covering code organization, testing, security, and performance, with lessons learned from the first years as a software engineer.</p>
+            <hr class="list-divider">
         </li>
-        <hr style="margin-top: 2rem;">
         <li>
             <a href="https://github.com/nefelitav/software-architecture-and-design-best-practices" target="_blank">Software Architecture and Design Best Practices</a>
             <p class="flexible">A comprehensive reference covering design principles (SOLID, KISS, DRY, YAGNI), 14 architecture patterns (microservices, event-driven, DDD, pub-sub and more), 25 design patterns across behavioral, creational and structural categories, and common anti-patterns to avoid, each with practical code examples and trade-off analysis.</p>
@@ -330,27 +335,27 @@
 </div>
 <div class="row">
     <div class="column">
-        <img src="photos/milos-1.jpg" alt="Milos" loading="lazy" decoding="async" style="width:100%">
+        <img src="photos/milos-1.jpg" alt="" loading="lazy" decoding="async" style="width:100%">
         <span>Milos island.</span>
     </div>
     <div class="column">
-        <img src="photos/milos-2.jpg" alt="Milos" loading="lazy" decoding="async" style="width:100%">
+        <img src="photos/milos-2.jpg" alt="" loading="lazy" decoding="async" style="width:100%">
         <span>Slow living.</span>
     </div>
 </div>
 <div class="row">
     <div class="column">
-        <img src="photos/amsterdam-1.jpg" alt="Amsterdam" loading="lazy" decoding="async" style="width:100%">
+        <img src="photos/amsterdam-1.jpg" alt="" loading="lazy" decoding="async" style="width:100%">
         <span>Amsterdam, NL.</span>
     </div>
     <div class="column">
-        <img src="photos/louvre.jpeg" alt="Louvre, Paris" loading="lazy" decoding="async" style="width:100%">
+        <img src="photos/louvre.jpeg" alt="" loading="lazy" decoding="async" style="width:100%">
         <span>Louvre, Paris.</span>
     </div>
 </div>
 <div class="row">
     <div class="column">
-        <img src="photos/duomo.jpeg" alt="Duomo di Milano" loading="lazy" decoding="async" style="width:100%">
+        <img src="photos/duomo.jpeg" alt="" loading="lazy" decoding="async" style="width:100%">
         <span>Duomo di Milano.</span>
     </div>
     <div class="column">
@@ -360,11 +365,11 @@
 </div>
 <div class="row">
     <div class="column">
-        <img src="photos/cube-houses.jpeg" alt="Cube Houses, Rotterdam" loading="lazy" decoding="async" style="width:100%">
+        <img src="photos/cube-houses.jpeg" alt="" loading="lazy" decoding="async" style="width:100%">
         <span>Cube Houses, Rotterdam.</span>
     </div>
     <div class="column">
-        <img src="photos/hamburg.jpeg" alt="Hamburg, Germany" loading="lazy" decoding="async" style="width:100%">
+        <img src="photos/hamburg.jpeg" alt="" loading="lazy" decoding="async" style="width:100%">
         <span>Hamburg, Germany solo trip.</span>
     </div>
 </div>
@@ -389,6 +394,12 @@
 
 <h2 class="section-heading">Travel</h2>
 <div style="max-width:980px;margin:5px auto 10px auto;font-size:14px;"><div style="position:relative;padding: 0 0 67% 0;height:0;overflow:hidden;"><iframe title="Visited countries map" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;overflow:hidden;" src="//www.fla-shop.com/visited-countries/embed/?st=BE%2CDE%2CDK%2CES%2CFR%2CGR%2CHU%2CIT%2CMX%2CNL%2CPL&vc=1ca032&uc=b3c3ca&hc=40bfa6&bc=ffffff"></iframe></div></div>
+
+</main>
+
+<footer class="site-footer">
+    <span>Accessible · WCAG 2.1 AA</span>
+</footer>
 </body>
 </html>
 

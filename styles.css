@@ -38,7 +38,7 @@ a {
 nav {
   display: flex;
   flex-wrap: wrap;
-  column-gap: 0.8em;
+  gap: 0.4rem 1.2rem;
   margin: 0.6em 0;
   line-height: 3rem;
 }
@@ -432,6 +432,8 @@ body.dark-mode hr {
 body.dark-mode .company-description {
     color: #ccc;
 }
+
+.workExperience {
     margin-top: 1rem;
     color: #222;
     line-height: 1.5;
@@ -497,6 +499,25 @@ input:focus-visible {
     grid-template-columns: 1fr;
     gap: 0.4rem;
   }
+}
+
+.list-divider {
+    margin-top: 2rem;
+    margin-bottom: 0;
+}
+
+.site-footer {
+    margin-top: 4rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid #ddd;
+    font-size: 0.8rem;
+    color: #767676;
+    text-align: center;
+}
+
+body.dark-mode .site-footer {
+    border-top-color: #444;
+    color: #999;
 }
 
 @media (prefers-reduced-motion: reduce) {
