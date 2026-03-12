@@ -2,43 +2,60 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>nefeli's website</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Nefeli Tavoulari – Full-stack software engineer. Portfolio of projects, experience, certifications, and more.">
+    <link rel="canonical" href="https://nefelitav.github.io/">
+
+    <meta property="og:title" content="Nefeli Tavoulari – Portfolio">
+    <meta property="og:description" content="Full-stack engineer portfolio with backend, web, and systems projects.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nefelitav.github.io/">
+    <meta property="og:image" content="https://nefelitav.github.io/photos/amsterdam-1.jpg">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Nefeli Tavoulari – Portfolio">
+    <meta name="twitter:description" content="Full-stack engineer portfolio with backend, web, and systems projects.">
+    <meta name="twitter:image" content="https://nefelitav.github.io/photos/amsterdam-1.jpg">
+
+    <title>Nefeli Tavoulari – Portfolio</title>
     <link rel="stylesheet" href="styles.css">
     <script src="script.js" defer></script>
 </head>
-<body onload='startDate()'>
+<body>
 
 <div class="container">
-    <h1>Nefeli Tavoulari</h1>
-    <div id='date'></div> 
-    <label class="switch">
-        <input type="checkbox" id="toggle">
-        <span class="slider round"></span>
+    <div class="container-text">
+        <h1>Nefeli Tavoulari</h1>
+        <div id='date'></div>
+    </div>
+    <label class="switch" aria-label="Toggle dark mode">
+        <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+        <span class="slider round" aria-hidden="true"></span>
     </label>
 </div>
 
 <p class="flexible">A full-stack engineer.</p>
 <p class="flexible">Currently based in Groningen, The Netherlands, where it's  <span id="time"></span>.</p>
 <p class="flexible">Previously based in Amsterdam, Athens, and Rome.</p>
-<nav aria-label="links" >
-    <a class="flexible" href="https://github.com/nefelitav" target="_blank">GitHub</a>
+<nav aria-label="links">
+    <a class="flexible" href="https://github.com/nefelitav" target="_blank" rel="noopener noreferrer">GitHub</a>
     <hr class="inline-hr"><span>&#183;</span>
-    <a class="flexible" href="https://www.linkedin.com/in/nefeli-tavoulari/" target="_blank">LinkedIn</a>
+    <a class="flexible" href="https://www.linkedin.com/in/nefeli-tavoulari/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
     <hr class="inline-hr"><span>&#183;</span>
-    <a class="flexible" href="mailto:nefeli.tavoulari123@gmail.com" target="_blank">Gmail</a>
+    <a class="flexible" href="mailto:nefeli.tavoulari123@gmail.com">Gmail</a>
     <hr class="inline-hr"><span>&#183;</span>
-    <a class="flexible" href="https://www.duolingo.com/profile/nefeli-tavoulari" target="_blank">Duolingo</a>
+    <a class="flexible" href="https://www.duolingo.com/profile/nefeli-tavoulari" target="_blank" rel="noopener noreferrer">Duolingo</a>
     <hr class="inline-hr"><span>&#183;</span>
-    <a class="flexible" href="https://www.goodreads.com/user/show/158140790-nefeli-tavoulari" target="_blank">Goodreads</a>
+    <a class="flexible" href="https://www.goodreads.com/user/show/158140790-nefeli-tavoulari" target="_blank" rel="noopener noreferrer">Goodreads</a>
     <hr class="inline-hr"><span>&#183;</span>
-    <a class="flexible" href="https://www.imdb.com/user/ur176703126/" target="_blank">IMDB</a>
+    <a class="flexible" href="https://www.imdb.com/user/ur176703126/" target="_blank" rel="noopener noreferrer">IMDB</a>
 </nav>
 <script>
     function startDate() {
-      var d = new Date();
-      var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-      var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-      document.getElementById("date").innerHTML = days[d.getDay()] + " | " + d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear();
+        const d = new Date();
+        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById("date").innerHTML = days[d.getDay()] + " | " + d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear();
     }
     startDate();
 
@@ -62,7 +79,7 @@
     updateTime();
   </script>
 
-<u><h2>Experience</h2></u>
+<h2 class="section-heading">Experience</h2>
 <div class="workExperience">
 
     <div class="company">
@@ -126,7 +143,7 @@
 
 </div>
 
-<u><h2>Education</h2></u>
+<h2 class="section-heading">Education</h2>
 <div class="education-grid">
     <div class="degree">Master's</div>
     <div class="details">Software Engineering, Universiteit van Amsterdam.</div>
@@ -138,7 +155,7 @@
     <div class="details">Informatics & Telecommunications, National & Kapodistrian University of Athens.</div>
 </div>
 
-<u><h2>Certifications</h2></u>
+<h2 class="section-heading">Certifications</h2>
 <div class="certifications-grid">
     <div class="issuer">University of Alberta</div>
     <div class="cert-title">Software Design and Architecture Specialization</div>
@@ -165,7 +182,7 @@
     <div class="cert-title">Foundations of Project Management</div>
 </div>
 
-<u><h2>Projects</h2></u>
+<h2 class="section-heading">Projects</h2>
 
 <div class="tab">
     <button class="tablinks active" onclick="openTab(event, 'web')">Web Development</button>
@@ -173,6 +190,7 @@
     <button class="tablinks" onclick="openTab(event, 'security')">Cybersecurity</button>
     <button class="tablinks" onclick="openTab(event, 'low-level')">Low Level Programming </button>
     <button class="tablinks" onclick="openTab(event, 'compilers')">Compilers</button>
+    <button class="tablinks" onclick="openTab(event, 'best-practices')">Best Practices</button>
 </div>
 
 <section class="tabcontent" id="web" style="display: block;">
@@ -272,72 +290,105 @@
     </ul>
 </section>
 
+<section class="tabcontent" id="best-practices">
+    <u><p style="margin-top: 3rem;">Best Practices:</p></u>
+    <ul class="squareList">
+        <li>
+            <a href="https://github.com/nefelitav/coding-best-practices" target="_blank">Coding Best Practices</a>
+            <p class="flexible">A practical guide documenting the small things that make a big difference, covering code organization, testing, security, and performance, with lessons learned from the first years as a software engineer.</p>
+        </li>
+        <hr style="margin-top: 2rem;">
+        <li>
+            <a href="https://github.com/nefelitav/software-architecture-and-design-best-practices" target="_blank">Software Architecture and Design Best Practices</a>
+            <p class="flexible">A comprehensive reference covering design principles (SOLID, KISS, DRY, YAGNI), 14 architecture patterns (microservices, event-driven, DDD, pub-sub and more), 25 design patterns across behavioral, creational and structural categories, and common anti-patterns to avoid, each with practical code examples and trade-off analysis.</p>
+        </li>
+    </ul>
+</section>
 
-<u><h2>Photos</h2></u>
+
+<h2 class="section-heading">Photos</h2>
 
 <div class="row">
     <div class="column">
-        <img src="photos/trikala.jpg" alt="Τρίκαλα" style="width:100%">
+        <img src="photos/trikala.jpg" alt="Τρίκαλα" loading="lazy" decoding="async" style="width:100%">
         <span>Autumn in a greek village.</span>
     </div>
     <div class="column">
-        <img src="photos/meteora.jpg" alt="Μετέωρα" style="width:100%">
+        <img src="photos/meteora.jpg" alt="Μετέωρα" loading="lazy" decoding="async" style="width:100%">
         <span>Visiting Meteora.</span>
     </div>
 </div>
 <div class="row">
     <div class="column">
-        <img src="photos/copenhagen-1.jpg" alt="Copenhagen" style="width:100%">
+        <img src="photos/copenhagen-1.jpg" alt="Copenhagen" loading="lazy" decoding="async" style="width:100%">
         <span>Business Trip 1: Copenhagen, Denmark.</span>
     </div>
     <div class="column">
-        <img src="photos/warsaw-1.jpg" alt="Warsaw" style="width:100%">
+        <img src="photos/warsaw-1.jpg" alt="Warsaw" loading="lazy" decoding="async" style="width:100%">
         <span>Business Trip 2: Warsaw, Poland.</span>
     </div>
 </div>
 <div class="row">
     <div class="column">
-        <img src="photos/milos-1.jpg" alt="Milos" style="width:100%">
+        <img src="photos/milos-1.jpg" alt="Milos" loading="lazy" decoding="async" style="width:100%">
         <span>Milos island.</span>
     </div>
     <div class="column">
-        <img src="photos/milos-2.jpg" alt="Milos" style="width:100%">
+        <img src="photos/milos-2.jpg" alt="Milos" loading="lazy" decoding="async" style="width:100%">
         <span>Slow living.</span>
     </div>
 </div>
 <div class="row">
     <div class="column">
-        <img src="photos/amsterdam-1.jpg" alt="Amsterdam" style="width:100%">
+        <img src="photos/amsterdam-1.jpg" alt="Amsterdam" loading="lazy" decoding="async" style="width:100%">
         <span>Amsterdam, NL.</span>
     </div>
     <div class="column">
-        <img src="photos/louvre.jpeg" alt="Louvre" style="width:100%">
+        <img src="photos/louvre.jpeg" alt="Louvre, Paris" loading="lazy" decoding="async" style="width:100%">
         <span>Louvre, Paris.</span>
     </div>
 </div>
 <div class="row">
     <div class="column">
-        <img src="photos/duomo.jpeg" alt="Duomo Di Milano" style="width:100%">
+        <img src="photos/duomo.jpeg" alt="Duomo di Milano" loading="lazy" decoding="async" style="width:100%">
         <span>Duomo di Milano.</span>
     </div>
     <div class="column">
-        <img src="photos/amsterdam-2.jpg" alt="Amsterdam" style="width:100%">
+        <img src="photos/amsterdam-2.jpg" alt="Amsterdam" loading="lazy" decoding="async" style="width:100%">
         <span>The start of an era.</span>
     </div>
 </div>
 <div class="row">
     <div class="column">
-        <img src="photos/cube-houses.jpeg" alt="Cube house" style="width:100%">
+        <img src="photos/cube-houses.jpeg" alt="Cube Houses, Rotterdam" loading="lazy" decoding="async" style="width:100%">
         <span>Cube Houses, Rotterdam.</span>
     </div>
     <div class="column">
-        <img src="photos/hamburg.jpeg" alt="Hmaburg" style="width:100%">
+        <img src="photos/hamburg.jpeg" alt="Hamburg, Germany" loading="lazy" decoding="async" style="width:100%">
         <span>Hamburg, Germany solo trip.</span>
     </div>
 </div>
 
-<u><h2>Travel</h2></u>
-<div style="max-width:980px;margin:5px auto 10px auto;font-size:14px;"><div style="position:relative;padding: 0 0 67% 0;height:0;overflow:hidden;"><iframe style="position:absolute;top:0;left:0;width:100%;height:100%;" src="//www.fla-shop.com/visited-countries/embed/?st=BE%2CDE%2CDK%2CES%2CFR%2CGR%2CHU%2CIT%2CMX%2CNL%2CPL&vc=1ca032&uc=b3c3ca&hc=40bfa6&bc=ffffff" frameborder="0" scrolling="no"></iframe></div></div>
+<h2 class="section-heading">Volunteering</h2>
+<div class="workExperience">
+    <div class="company">
+        <a href="https://rainbowschool.gr/" target="_blank" rel="noopener noreferrer" class="company-name">Rainbow School</a>
+        <ul class="roles">
+            <li>
+                <div class="jobPosition">
+                    <span>Web &amp; Social Media</span>
+                    <span class="jobDates">Feb 2026 - Present</span>
+                </div>
+            </li>
+        </ul>
+        <p class="company-description">
+            An organization that promotes diversity and inclusion at Greek schools.
+        </p>
+    </div>
+</div>
+
+<h2 class="section-heading">Travel</h2>
+<div style="max-width:980px;margin:5px auto 10px auto;font-size:14px;"><div style="position:relative;padding: 0 0 67% 0;height:0;overflow:hidden;"><iframe title="Visited countries map" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;overflow:hidden;" src="//www.fla-shop.com/visited-countries/embed/?st=BE%2CDE%2CDK%2CES%2CFR%2CGR%2CHU%2CIT%2CMX%2CNL%2CPL&vc=1ca032&uc=b3c3ca&hc=40bfa6&bc=ffffff"></iframe></div></div>
 </body>
 </html>
 
