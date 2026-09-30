@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Blog by Nefeli Tavoulari – notes on software engineering and more.">
+    <link rel="canonical" href="https://nefelitav.github.io/blog/">
+    <meta property="og:title" content="Blog – Nefeli Tavoulari">
+    <meta property="og:description" content="Notes on software engineering and more.">
+    <meta property="og:type" content="website">
+    <title>Blog – Nefeli Tavoulari</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="posts.js" defer></script>
+    <script src="../script.js" defer></script>
+</head>
+<body>
+<script>if (localStorage.getItem('darkMode') === '1') document.body.classList.add('dark-mode');</script>
+
+<header>
+<div class="container">
+    <div class="container-text">
+        <a class="site-name" href="../index.html">Nefeli Tavoulari</a>
+    </div>
+    <label class="switch" aria-label="Toggle dark mode">
+        <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+        <span class="slider round" aria-hidden="true"></span>
+    </label>
+</div>
+</header>
+
+<main>
+<a class="back-link" href="../index.html">← Back home</a>
+
+<h1 class="blog-title">Blog</h1>
+<ul class="post-list" id="post-list" data-base="posts/"></ul>
+</main>
+
+<footer class="site-footer"></footer>
+</body>
+</html>
