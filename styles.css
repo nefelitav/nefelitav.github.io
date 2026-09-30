@@ -192,22 +192,24 @@ h2 {
 
 .tab {
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .tab button {
-    border: none;
-    padding: 10px;
+    font: inherit;
+    font-size: 16px;
+    color: inherit;
+    padding: 0.6rem 1.2rem;
+    border: 1px solid #2d5d8c;
+    border-radius: 999px;
     cursor: pointer;
     background-color: transparent;
-    border-radius: 999px;
 }
 
-.tab button:hover {
-    background-color: #ddd;
-}
-
+.tab button:hover,
 .tab button.active {
-    background-color: #e0e0e0;
+    background-color: #ddd;
 }
 
 .tabcontent {
@@ -224,10 +226,6 @@ h2 {
     display: none;
 }
 
-.tablinks.active {
-  background-color: #ddd;
-}
-
 body.dark-mode {
     background-color: #151615;
     color: white;
@@ -238,18 +236,12 @@ body.dark-mode .tab {
 }
 
 body.dark-mode .tab button {
-    background-color: #1f1f1f;
-    color: white;
-    border: 1px solid #444;
+    border-color: #b3c3ca;
 }
 
-body.dark-mode .tab button:hover {
-    background-color: #2a2a2a;
-}
-
+body.dark-mode .tab button:hover,
 body.dark-mode .tab button.active {
-    background-color: #333;
-    border-bottom: 2px solid white;
+    background-color: #2a2a2a;
 }
 
 body.dark-mode .tabcontent {
@@ -476,7 +468,7 @@ input:focus-visible {
 
   .tab button {
     font-size: 14px;
-    padding: 8px 10px;
+    padding: 0.5rem 1rem;
   }
 
   .tabcontent {

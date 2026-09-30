@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Webhooks, queues, Pub/Sub and events — understanding asynchronous communication, message brokers, event-driven systems and reliable message processing.">
+    <meta property="og:title" content="Webhooks, Queues & Events – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to webhooks, queues, Pub/Sub and events, including how they work, when to use them and how they differ.">
+    <meta property="og:type" content="article">
+
+    <title>Webhooks, Queues &amp; Events – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        ```
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+    ```
+
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    ```
+    <article class="post">
+
+        <h1>Webhooks, Queues &amp; Events</h1>
+
+        <time class="post-date" datetime="2026-09-30">
+            30 September 2026
+        </time>
+
+        <p>
+            Webhooks, queues, Pub/Sub and events are common building blocks
+            for asynchronous and distributed systems. They allow systems to
+            communicate without requiring every operation to happen inside
+            a single synchronous request.
+        </p>
+
+        <p>
+            Although these concepts are related, they solve different problems.
+            Understanding the distinction is important when designing
+            integrations and distributed systems.
+        </p>
+
+
+        <h2>The Big Picture</h2>
+
+        <p>
+            A useful way to think about them is:
+        </p>
+
+        <ul>
+            <li>
+                <strong>Webhook</strong> — "Tell this specific system when something happens."
+            </li>
+            <li>
+                <strong>Queue</strong> — "Give this work to a consumer to process."
+            </li>
+            <li>
+                <strong>Pub/Sub</strong> — "Tell everyone interested that something happened."
+            </li>
+            <li>
+                <strong>Event</strong> — "Something happened."
+            </li>
+        </ul>
+
+        <p>
+            These concepts can also be combined. For example, an event can
+            be published through a Pub/Sub system, consumed by a service,
+            and eventually delivered to another system through a webhook.
+        </p>
+
+
+        <h2>Webhooks</h2>
+
+        <p>
+            A webhook is an HTTP callback. Instead of a client repeatedly
+            asking whether something has happened, a server sends an HTTP
+            request to a URL provided by the client.
+        </p>
+
+        <pre><code>Client                    Server
+```
+
+│                          │
+│  POST /payments          │
+├─────────────────────────►│
+│                          │
+│       200 OK              │
+│◄─────────────────────────┤
+│                          │
+│                          │ payment completed
+│                          │
+│  POST /webhook            │
+│◄─────────────────────────┤
+│                          │</code></pre>
+
+        ```
+        <p>
+            For example, a payment provider might notify a merchant when
+            a payment changes status.
+        </p>
+
+        <pre><code>POST /webhooks/payment
+```
+
+{
+"event": "payment.completed",
+"payment_id": "pay_123"
+}</code></pre>
+
+        ```
+        <p>
+            The merchant does not need to continuously poll the payment
+            provider. The provider sends the notification when the event
+            occurs.
+        </p>
+
+
+        <h3>Webhooks Are HTTP</h3>
+
+        <p>
+            A webhook is not a special transport protocol. It is usually
+            just an HTTP request sent by one system to another.
+        </p>
+
+        <pre><code>POST https://merchant.example.com/webhooks/payment</code></pre>
+
+        <p>
+            Because webhooks use HTTP, they inherit many of the same
+            concerns as normal APIs:
+        </p>
+
+        <ul>
+            <li>Authentication</li>
+            <li>Authorization</li>
+            <li>Retries</li>
+            <li>Timeouts</li>
+            <li>Idempotency</li>
+            <li>Monitoring</li>
+            <li>Signature verification</li>
+        </ul>
+
+
+        <h3>Webhook Signatures</h3>
+
+        <p>
+            A webhook endpoint is often publicly reachable, so the receiving
+            system needs a way to verify that the request actually came from
+            the expected sender.
+        </p>
+
+        <p>
+            A common approach is to include a cryptographic signature.
+        </p>
+
+        <pre><code>Webhook-Signature: t=1727683200,v1=abc123...</code></pre>
+
+        <p>
+            The receiver can calculate the expected signature using a shared
+            secret and compare it with the signature sent by the provider.
+        </p>
+
+        <p>
+            This prevents an arbitrary client from simply sending a fake
+            <code>payment.completed</code> request to the webhook endpoint.
+        </p>
+
+
+        <h2>Queues</h2>
+
+        <p>
+            A message queue allows one system to send work without requiring
+            another system to process that work immediately.
+        </p>
+
+        <pre><code>Producer
+```
+
+│
+▼
+Queue
+│
+▼
+Consumer</code></pre>
+
+        ```
+        <p>
+            For example, an API might receive a request to generate an invoice.
+            Instead of generating the invoice during the HTTP request, it can
+            put a message onto a queue.
+        </p>
+
+        <pre><code>{
+"invoice_id": "inv_123"
+```
+
+}</code></pre>
+
+        ```
+        <p>
+            A worker can then consume the message and generate the invoice.
+        </p>
+
+        <pre><code>API
+```
+
+│
+│ publish
+▼
+Queue
+│
+│ consume
+▼
+Invoice Worker
+│
+▼
+Invoice</code></pre>
+
+        ```
+        <h3>Why Use a Queue?</h3>
+
+        <p>
+            Queues provide several useful properties.
+        </p>
+
+        <h4>Decoupling</h4>
+
+        <p>
+            The producer does not need to know exactly when or where the
+            consumer will process the message.
+        </p>
+
+        <h4>Buffering</h4>
+
+        <p>
+            If 10,000 requests arrive at once but workers can only process
+            1,000 at a time, the queue can temporarily hold the remaining work.
+        </p>
+
+        <pre><code>10,000 requests
+   │
+   ▼
+ Queue
+   │
+   ├── Worker
+   ├── Worker
+   ├── Worker
+   └── Worker</code></pre>
+
+        <h4>Retries</h4>
+
+        <p>
+            If processing fails, a message can often be retried rather than
+            being lost immediately.
+        </p>
+
+        <h4>Scaling</h4>
+
+        <p>
+            Multiple workers can consume from the same queue. They can
+            process different messages in parallel, allowing the system
+            to scale horizontally.
+        </p>
+
+        <pre><code>Queue
+```
+
+│
+├── Worker 1
+├── Worker 2
+├── Worker 3
+└── Worker 4</code></pre>
+
+        ```
+        <p>
+            In this model, the workers are often called <strong>competing
+            consumers</strong>: a particular message is generally processed
+            by one of the available workers rather than by all of them.
+        </p>
+
+
+        <h2>Events</h2>
+
+        <p>
+            An event represents something that happened in a system.
+        </p>
+
+        <p>
+            For example:
+        </p>
+
+        <pre><code>payment.created
+```
+
+payment.completed
+invoice.generated
+customer.updated
+order.cancelled</code></pre>
+
+        ```
+        <p>
+            An event describes a fact rather than a command.
+        </p>
+
+        <p>
+            Compare:
+        </p>
+
+        <pre><code>CreatePayment</code></pre>
+
+        <p>
+            with:
+        </p>
+
+        <pre><code>PaymentCreated</code></pre>
+
+        <p>
+            The first is a command:
+            <strong>"Please create this payment."</strong>
+        </p>
+
+        <p>
+            The second is an event:
+            <strong>"This payment was created."</strong>
+        </p>
+
+
+        <h2>Pub/Sub</h2>
+
+        <p>
+            Pub/Sub, short for <strong>Publish/Subscribe</strong>, is a
+            messaging pattern where a publisher sends a message to a topic
+            and multiple independent subscribers can receive it.
+        </p>
+
+        <pre><code>                    ┌──► Billing Service
+                │
+```
+
+Payment Service ───►│
+│
+├──► Notification Service
+Topic
+│
+└──► Analytics Service</code></pre>
+
+        ```
+        <p>
+            The publisher does not need to know which subscribers exist.
+            It simply publishes a message to the topic.
+        </p>
+
+        <pre><code>Publisher
+│
+│ PaymentCompleted
+▼
+```
+
+Topic
+│
+├──────────► Subscriber A
+│
+├──────────► Subscriber B
+│
+└──────────► Subscriber C</code></pre>
+
+        ```
+        <p>
+            Each subscriber can independently process the message. This
+            makes Pub/Sub particularly useful for distributing events to
+            multiple interested systems.
+        </p>
+
+
+        <h3>Queue vs Pub/Sub</h3>
+
+        <p>
+            Queues and Pub/Sub are both messaging patterns, but they usually
+            have different goals.
+        </p>
+
+        <pre><code>Queue:
+
+         ┌──► Worker A
+         │
+```
+
+Producer ───► Queue
+│
+└──► Worker B
+
+Each message is generally processed
+by one competing consumer.
+
+Pub/Sub:
+
+```
+             ┌──► Billing
+             │
+```
+
+Producer ───► Topic ──► Notifications
+│
+└──► Analytics
+
+Each subscription can receive
+its own copy of the message.</code></pre>
+
+        ```
+        <p>
+            A useful mental model is:
+        </p>
+
+        <ul>
+            <li>
+                <strong>Queue:</strong> "Here is work. Someone process it."
+            </li>
+            <li>
+                <strong>Pub/Sub:</strong> "Something happened. Everyone
+                interested can react."
+            </li>
+        </ul>
+
+
+        <h3>Topics and Subscriptions</h3>
+
+        <p>
+            In many Pub/Sub systems, a topic and a subscription are separate
+            concepts.
+        </p>
+
+        <pre><code>                 PaymentCompleted
+                  Topic
+                    │
+         ┌──────────┴──────────┐
+         │                     │
+   Subscription A        Subscription B
+         │                     │
+         ▼                     ▼
+   Notification            Accounting</code></pre>
+
+        <p>
+            This allows each subscriber to have its own processing state,
+            retry behavior and backlog.
+        </p>
+
+        <p>
+            For example, if the Accounting service is temporarily unavailable,
+            its subscription can retain messages until the service is able
+            to process them.
+        </p>
+
+
+        <h2>Event-Driven Architecture</h2>
+
+        <p>
+            In an event-driven architecture, systems communicate by producing
+            and consuming events.
+        </p>
+
+        <pre><code>Payment Service
+  │
+  │ PaymentCompleted
+  ▼
+```
+
+Event Broker
+│
+├──────────────► Billing Service
+│
+├──────────────► Notification Service
+│
+└──────────────► Analytics Service</code></pre>
+
+        ```
+        <p>
+            The payment service does not necessarily need to know that these
+            other services exist.
+        </p>
+
+        <p>
+            Each consumer can independently decide whether it is interested
+            in the event.
+        </p>
+
+        <p>
+            This can reduce coupling between services and make it easier to
+            add new consumers.
+        </p>
+
+
+        <h2>Events, Queues and Pub/Sub Are Not the Same Thing</h2>
+
+        <p>
+            These concepts are related, but they describe different things.
+        </p>
+
+        <ul>
+            <li>
+                An <strong>event</strong> describes <strong>what happened</strong>.
+            </li>
+            <li>
+                A <strong>queue</strong> describes a way of delivering
+                <strong>work</strong> to consumers.
+            </li>
+            <li>
+                <strong>Pub/Sub</strong> describes a way of distributing
+                messages to <strong>multiple subscribers</strong>.
+            </li>
+            <li>
+                A <strong>webhook</strong> is typically an HTTP request used
+                to notify a specific external system.
+            </li>
+        </ul>
+
+        <p>
+            For example:
+        </p>
+
+        <pre><code>Event:
+```
+
+"PaymentCompleted"
+
+Delivery:
+Pub/Sub topic
+
+Subscribers:
+Billing Service
+Notification Service
+Analytics Service</code></pre>
+
+        ```
+        <h2>Webhook vs Queue vs Pub/Sub vs Event</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th></th>
+                <th>Webhook</th>
+                <th>Queue</th>
+                <th>Pub/Sub</th>
+                <th>Event</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>What is it?</td>
+                <td>HTTP callback</td>
+                <td>Messaging pattern</td>
+                <td>Messaging pattern</td>
+                <td>A fact that happened</td>
+            </tr>
+            <tr>
+                <td>Main purpose</td>
+                <td>Notify a specific system</td>
+                <td>Distribute work</td>
+                <td>Notify multiple subscribers</td>
+                <td>Communicate something that happened</td>
+            </tr>
+            <tr>
+                <td>Typical consumer</td>
+                <td>Specific HTTP endpoint</td>
+                <td>Worker</td>
+                <td>Multiple subscribers</td>
+                <td>One or more consumers</td>
+            </tr>
+            <tr>
+                <td>Transport</td>
+                <td>HTTP</td>
+                <td>Message broker</td>
+                <td>Message broker</td>
+                <td>Often a message broker</td>
+            </tr>
+            <tr>
+                <td>Example</td>
+                <td><code>POST /webhook</code></td>
+                <td><code>GenerateInvoice</code></td>
+                <td><code>PaymentCompleted</code> → multiple subscribers</td>
+                <td><code>PaymentCompleted</code></td>
+            </tr>
+            </tbody>
+        </table>
+
+
+        <h2>Message Brokers</h2>
+
+        <p>
+            A message broker is infrastructure that receives, stores and
+            delivers messages between producers and consumers.
+        </p>
+
+        <pre><code>Producer
+│
+▼
+```
+
+┌──────────────┐
+│    Broker    │
+└──────────────┘
+│
+▼
+Consumer</code></pre>
+
+        ```
+        <p>
+            Message brokers can support different messaging patterns,
+            including queues and Pub/Sub.
+        </p>
+
+        <p>
+            Common examples include RabbitMQ, Apache Kafka, Google Cloud
+            Pub/Sub, Amazon SQS and Azure Service Bus. These technologies
+            have different models and capabilities, so they should not be
+            treated as interchangeable.
+        </p>
+
+
+        <h2>How They Can Work Together</h2>
+
+        <p>
+            These concepts are not alternatives that must always be chosen
+            independently. A real system can use all of them.
+        </p>
+
+        <pre><code>Payment API
+ │
+ │ payment completed
+ ▼
+```
+
+Event Broker
+│
+├──────────► Billing Service
+│
+├──────────► Notification Service
+│
+└──────────► Webhook Service
+│
+▼
+Merchant API</code></pre>
+
+        ```
+        <p>
+            For example:
+        </p>
+
+        <ol>
+            <li>A payment is completed.</li>
+            <li>The payment service publishes a <code>PaymentCompleted</code> event.</li>
+            <li>The event is delivered through a messaging system.</li>
+            <li>The billing service consumes it and creates an invoice.</li>
+            <li>The webhook service sends a notification to the merchant.</li>
+        </ol>
+
+
+        <h2>Important Challenges</h2>
+
+        <p>
+            Distributed asynchronous systems introduce failure modes that do
+            not usually exist in a simple synchronous request-response flow.
+        </p>
+
+        <h3>Duplicate Messages</h3>
+
+        <p>
+            A message may sometimes be delivered more than once. Consumers
+            should therefore often be designed to handle duplicate processing
+            safely.
+        </p>
+
+        <h3>Retries</h3>
+
+        <p>
+            Temporary failures should often trigger a retry. However,
+            unlimited retries can make a problem worse.
+        </p>
+
+        <h3>Dead-Letter Queues</h3>
+
+        <p>
+            Messages that repeatedly fail can be moved to a dead-letter queue
+            for investigation or later processing.
+        </p>
+
+        <pre><code>Queue
+```
+
+│
+├── success ─────► Consumer
+│
+└── repeated failure
+│
+▼
+Dead-Letter Queue</code></pre>
+
+        ```
+        <h3>Ordering</h3>
+
+        <p>
+            Sometimes the order of events matters.
+        </p>
+
+        <pre><code>PaymentCreated
+  ↓
+```
+
+PaymentAuthorized
+↓
+PaymentCompleted</code></pre>
+
+        ```
+        <p>
+            Processing these events in the wrong order could produce an
+            inconsistent state.
+        </p>
+
+        <h3>Idempotency</h3>
+
+        <p>
+            Consumers should often be able to process the same message more
+            than once without producing an incorrect result.
+        </p>
+
+
+        <h2>What Should I Remember?</h2>
+
+        <ul>
+            <li>
+                A <strong>webhook</strong> is typically an HTTP callback used
+                to notify a specific system.
+            </li>
+            <li>
+                A <strong>queue</strong> is a messaging pattern for buffering
+                and distributing work to consumers.
+            </li>
+            <li>
+                <strong>Pub/Sub</strong> is a messaging pattern for
+                distributing messages to multiple independent subscribers.
+            </li>
+            <li>
+                An <strong>event</strong> represents something that happened.
+            </li>
+            <li>
+                A <strong>command</strong> asks a system to do something,
+                while an <strong>event</strong> describes something that
+                already happened.
+            </li>
+            <li>
+                Message brokers can implement or support different messaging
+                patterns, including queues and Pub/Sub.
+            </li>
+            <li>
+                Webhooks, queues, Pub/Sub and events can be combined to build
+                asynchronous, loosely coupled systems.
+            </li>
+            <li>
+                Retries, duplicates, ordering and idempotency are important
+                considerations in distributed systems.
+            </li>
+        </ul>
+
+
+    </article>
+    ```
+
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

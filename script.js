@@ -55,11 +55,7 @@ function renderPosts() {
         date.dateTime = post.date;
         date.textContent = formatPostDate(post.date);
 
-        const summary = document.createElement('p');
-        summary.className = 'flexible';
-        summary.textContent = post.summary;
-
-        li.append(link, date, summary);
+        li.append(link, date);
         list.appendChild(li);
     });
 }
