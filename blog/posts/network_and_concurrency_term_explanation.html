@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    
+    <meta name="description" content="A quick guide to essential networking and concurrency concepts, including TCP, UDP, IPv4, IPv6, DNS, DHCP, processes, threads, concurrency, parallelism, race conditions, deadlocks, mutexes, semaphores, locks and HTTPS.">
+    <meta property="og:title" content="Networking &amp; Concurrency – Nefeli Tavoulari">
+    <meta property="og:description" content="A concise guide to essential networking and concurrency concepts and how they differ.">
+    <meta property="og:type" content="article">
+
+    <title>Confused Terminology: Networking &amp; Concurrency – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+    
+
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+    
+
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    
+    <article class="post">
+
+        <h1>Confused Terminology: Networking &amp; Concurrency</h1>
+
+        <time class="post-date" datetime="2026-10-06">
+            6 October 2026
+        </time>
+
+        <p>
+            A quick reference for some fundamental networking, operating system
+            and concurrency concepts. The goal is not to explain everything,
+            but to remember what each concept is for and how they differ.
+        </p>
+
+        <h2>TCP vs UDP</h2>
+
+        <p>
+            Both are transport-layer protocols. The main difference is the
+            guarantees they provide.
+        </p>
+
+        <ul>
+            <li>
+                <strong>TCP</strong> — reliable, ordered delivery with retransmissions.
+            </li>
+            <li>
+                <strong>UDP</strong> — lightweight datagrams without guaranteed
+                delivery or ordering.
+            </li>
+        </ul>
+
+        <pre><code>TCP:
+"Make sure everything arrives correctly."
+
+UDP:
+"Send it quickly; handle loss if necessary."</code></pre>
+
+        
+        <p>
+            TCP is commonly used for traditional HTTP traffic, databases and
+            file transfers. UDP is useful for things such as DNS, gaming and
+            real-time communication. Modern protocols such as QUIC can provide
+            reliability on top of UDP.
+        </p>
+
+        <h2>IPv4 vs IPv6</h2>
+
+        <p>
+            Both are Internet Protocol versions used to address and route
+            packets between devices.
+        </p>
+
+        <ul>
+            <li>
+                <strong>IPv4</strong> — 32-bit addresses such as
+                <code>192.168.1.10</code>.
+            </li>
+            <li>
+                <strong>IPv6</strong> — 128-bit addresses such as
+                <code>2001:db8::1</code>.
+            </li>
+        </ul>
+
+        <pre><code>IPv4 → ~4.3 billion addresses
+IPv6 → ~3.4 × 10³⁸ addresses</code></pre>
+
+        
+        <p>
+            IPv6 mainly exists because the Internet outgrew the available IPv4
+            address space.
+        </p>
+
+        <h2>DNS vs DHCP</h2>
+
+        <p>
+            Both are network services, but they solve completely different problems.
+        </p>
+
+        <ul>
+            <li>
+                <strong>DNS</strong> — translates names into network addresses.
+            </li>
+            <li>
+                <strong>DHCP</strong> — automatically gives devices their
+                network configuration.
+            </li>
+        </ul>
+
+        <pre><code>DNS:
+google.com → IP address
+
+DHCP:
+"Here is your IP, gateway and DNS server."</code></pre>
+
+        
+        <p>
+            A device can therefore use DHCP to learn which DNS server to use,
+            and then use DNS to resolve a domain name.
+        </p>
+
+        <h2>Processes vs Threads</h2>
+
+        <ul>
+            <li>
+                <strong>Process</strong> — a running program with its own
+                isolated memory and resources.
+            </li>
+            <li>
+                <strong>Thread</strong> — a unit of execution inside a process
+                that shares the process's memory and resources.
+            </li>
+        </ul>
+
+        <pre><code>Process
+│
+├── Thread
+├── Thread
+└── Thread</code></pre>
+
+        
+        <p>
+            Processes provide stronger isolation. Threads are lighter and make
+            it easier to share data, but shared memory introduces synchronization
+            problems.
+        </p>
+
+        <h2>Concurrency vs Parallelism</h2>
+
+        <ul>
+            <li>
+                <strong>Concurrency</strong> — multiple tasks make progress
+                during overlapping periods of time.
+            </li>
+            <li>
+                <strong>Parallelism</strong> — multiple tasks execute
+                literally at the same time.
+            </li>
+        </ul>
+
+        <pre><code>Concurrency:
+Task A ███     ███
+Task B     ███     ███
+
+Parallelism:
+Core 1: Task A ███████
+Core 2: Task B ███████</code></pre>
+
+        
+        <p>
+            Concurrency is useful for managing many tasks, especially while
+            some are waiting for I/O. Parallelism uses multiple execution
+            resources to perform work simultaneously.
+        </p>
+
+        <h2>Race Conditions</h2>
+
+        <p>
+            A <strong>race condition</strong> occurs when the result of
+            concurrent operations depends on their timing or execution order.
+        </p>
+
+        <pre><code>counter = 0
+Thread A: read → 0
+Thread B: read → 0
+
+Thread A: write → 1
+Thread B: write → 1
+
+Expected: 2
+Actual:   1</code></pre>
+
+        
+        <p>
+            Shared mutable state is a common source of race conditions.
+        </p>
+
+        <h2>Locks, Mutexes &amp; Semaphores</h2>
+
+        <h3>Lock</h3>
+
+        <p>
+            A <strong>lock</strong> controls access to a shared resource so
+            concurrent operations do not interfere with each other.
+        </p>
+
+        <h3>Mutex</h3>
+
+        <p>
+            A <strong>mutex</strong> provides mutual exclusion: only one thread
+            can hold it and access the protected resource at a time.
+        </p>
+
+        <pre><code>Mutex
+│
+├── Thread A → 🔒 access
+│
+└── Thread B → waits</code></pre>
+
+        
+        <h3>Semaphore</h3>
+
+        <p>
+            A <strong>semaphore</strong> controls access using a number of
+            permits, allowing a limited number of threads to access a resource
+            concurrently.
+        </p>
+
+        <pre><code>Semaphore = 3
+Thread A → permit
+Thread B → permit
+Thread C → permit
+Thread D → waits</code></pre>
+
+        
+        <p>
+            A simple way to remember the difference:
+        </p>
+
+        <ul>
+            <li><strong>Mutex</strong> → one at a time.</li>
+            <li><strong>Semaphore</strong> → up to N at a time.</li>
+        </ul>
+
+        <h2>Deadlocks</h2>
+
+        <p>
+            A <strong>deadlock</strong> occurs when concurrent operations wait
+            for each other indefinitely, so none of them can continue.
+        </p>
+
+        <pre><code>Thread A                  Thread B
+│                         │
+locks A                   locks B
+│                         │
+waits for B               waits for A
+│                         │
+└───────── DEADLOCK ──────┘</code></pre>
+
+        
+        <p>
+            Locks can prevent race conditions, but incorrect locking can
+            introduce deadlocks.
+        </p>
+
+        <h2>How DNS Works</h2>
+
+        <p>
+            DNS is a distributed naming system that resolves domain names
+            into IP addresses.
+        </p>
+
+        <pre><code>Browser
+↓
+DNS Resolver
+↓
+Root
+↓
+TLD (.com)
+↓
+Authoritative DNS
+↓
+IP address</code></pre>
+
+        
+        <p>
+            In practice, results are often cached, so the entire lookup does
+            not need to happen every time.
+        </p>
+
+        <h2>How HTTPS Works</h2>
+
+        <p>
+            <strong>HTTPS = HTTP + TLS.</strong>
+        </p>
+
+        <p>
+            TLS provides encryption, integrity and authentication for HTTP
+            communication.
+        </p>
+
+        <pre><code>Client
+│
+│ TLS handshake
+▼
+Server
+│
+│ encrypted connection
+▼
+HTTP request / response</code></pre>
+
+        
+        <p>
+            During the TLS handshake, the server presents a certificate,
+            the client verifies it, and both sides establish cryptographic
+            keys for the connection.
+        </p>
+
+        <h2>How They Fit Together</h2>
+
+        <p>
+            These concepts are different layers of the same overall process.
+        </p>
+
+        <pre><code>https://example.com
+│
+▼
+  DNS
+│
+▼
+IP address
+│
+▼
+TCP / QUIC
+│
+▼
+TLS
+│
+▼
+HTTP
+│
+▼
+Server</code></pre>
+
+        
+        <p>
+            Meanwhile, inside the operating system and applications,
+            <strong>processes and threads</strong> execute the work, while
+            <strong>concurrency, parallelism, locks and synchronization</strong>
+            determine how that work happens safely and efficiently.
+        </p>
+
+        <h2>What Should I Remember?</h2>
+
+        <ul>
+            <li>
+                <strong>TCP</strong> → reliable and ordered transport.
+            </li>
+            <li>
+                <strong>UDP</strong> → lightweight transport without delivery guarantees.
+            </li>
+            <li>
+                <strong>IPv4</strong> → 32-bit addressing.
+            </li>
+            <li>
+                <strong>IPv6</strong> → 128-bit addressing and a vastly larger address space.
+            </li>
+            <li>
+                <strong>DNS</strong> → names to IP addresses.
+            </li>
+            <li>
+                <strong>DHCP</strong> → gives devices their network configuration.
+            </li>
+            <li>
+                <strong>Process</strong> → isolated running program.
+            </li>
+            <li>
+                <strong>Thread</strong> → execution unit inside a process.
+            </li>
+            <li>
+                <strong>Concurrency</strong> → multiple tasks making progress.
+            </li>
+            <li>
+                <strong>Parallelism</strong> → multiple tasks executing simultaneously.
+            </li>
+            <li>
+                <strong>Race condition</strong> → result depends on timing/order.
+            </li>
+            <li>
+                <strong>Lock / Mutex</strong> → controls exclusive access to shared state.
+            </li>
+            <li>
+                <strong>Semaphore</strong> → limits concurrent access to N operations.
+            </li>
+            <li>
+                <strong>Deadlock</strong> → tasks wait for each other indefinitely.
+            </li>
+            <li>
+                <strong>HTTPS</strong> → HTTP secured with TLS.
+            </li>
+        </ul>
+
+    </article>
+    
+
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

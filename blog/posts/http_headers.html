@@ -47,385 +47,161 @@
             30 September 2026
         </time>
 
-
-        <!-- ========================================================= -->
-        <!-- INTRODUCTION -->
-        <!-- ========================================================= -->
-
-        <h2>What are HTTP Headers?</h2>
-
         <p>
-            HTTP headers are key-value pairs that allow the client and server
-            to exchange additional information about an HTTP request or response.
+            HTTP headers are key-value pairs that allow clients and servers to exchange
+            metadata about an HTTP request or response.
         </p>
 
-        <p>
-            For example:
-        </p>
-
-        <pre><code>Content-Type: application/json
-Accept: application/json
-Authorization: Bearer &lt;token&gt;</code></pre>
+        <pre><code>
+            Content-Type: application/json
+            Accept: application/json
+            Authorization: Bearer
+        </code></pre>
 
         <p>
-            Headers can communicate information about authentication, the format
-            of the request or response, caching, cookies, security policies,
-            client capabilities, tracing and much more.
+            Headers provide information about authentication, content formats, caching,
+            cookies, security, tracing and more.
         </p>
+
+        <h2>Request vs Response Headers</h2>
 
         <p>
-            They are separate from the actual data being sent in the request or
-            response body.
+            Request headers provide information or instructions to the server.
+            Response headers provide information or instructions to the client.
         </p>
-
-
-        <!-- ========================================================= -->
-        <!-- REQUEST VS RESPONSE -->
-        <!-- ========================================================= -->
-
-        <h2>Request Headers vs Response Headers</h2>
-
-        <p>
-            HTTP headers exist on both requests and responses.
-        </p>
-
-        <h3>Request</h3>
 
         <pre><code>POST /users HTTP/1.1
-Host: api.example.com
+
 Content-Type: application/json
 Accept: application/json
 Authorization: Bearer eyJ...
 
 {
-    "name": "Nefeli"
+"name": "Nefeli"
 }</code></pre>
-
-        <p>
-            The client is sending information to the server about the request.
-        </p>
-
-        <h3>Response</h3>
 
         <pre><code>HTTP/1.1 201 Created
+
 Content-Type: application/json
 Location: /users/123
-Cache-Control: no-cache
 
 {
-    "id": "123",
-    "name": "Nefeli"
+"id": "123",
+"name": "Nefeli"
 }</code></pre>
-
-        <p>
-            The server is sending information back to the client about the response.
-        </p>
-
-        <p>
-            Some headers are primarily used on requests, some on responses,
-            and some can appear on both.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- CONTENT -->
-        <!-- ========================================================= -->
 
         <h2>Content &amp; Representation</h2>
 
         <h3>Content-Type</h3>
 
         <p>
-            <code>Content-Type</code> describes the media type of the message
-            body being sent.
+            Describes the format of the request or response body.
         </p>
 
         <pre><code>Content-Type: application/json</code></pre>
 
-        <p>
-            Common values include:
-        </p>
-
-        <pre><code>application/json
-text/html
-text/plain
-application/xml
-multipart/form-data
-application/x-www-form-urlencoded</code></pre>
-
-        <p>
-            For example, if a client sends JSON:
-        </p>
-
-        <pre><code>POST /users
-
-Content-Type: application/json
-
-{
-    "name": "Nefeli"
-}</code></pre>
-
-
         <h3>Accept</h3>
 
         <p>
-            <code>Accept</code> tells the server which response media types
-            the client understands or prefers.
+            Specifies which response formats the client accepts.
         </p>
 
         <pre><code>Accept: application/json</code></pre>
 
         <p>
-            This is an important distinction:
+            Remember:
+            <strong>Content-Type = what is being sent</strong>,
+            <strong>Accept = what the client wants back</strong>.
         </p>
-
-        <ul>
-            <li>
-                <code>Content-Type</code> describes the data being sent.
-            </li>
-            <li>
-                <code>Accept</code> describes the response format the client wants.
-            </li>
-        </ul>
-
-        <p>
-            These headers are part of a broader concept called
-            <strong>content negotiation</strong>.
-        </p>
-
-
-        <h3>Content-Length</h3>
-
-        <p>
-            <code>Content-Length</code> indicates the size of the message body
-            in bytes.
-        </p>
-
-        <pre><code>Content-Length: 1234</code></pre>
-
-        <p>
-            In modern HTTP, message framing can also use mechanisms such as
-            chunked transfer encoding, so you should not assume every response
-            necessarily contains a Content-Length header.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- AUTHENTICATION -->
-        <!-- ========================================================= -->
 
         <h2>Authentication</h2>
 
         <h3>Authorization</h3>
 
-        <p>
-            The <code>Authorization</code> header is commonly used to send
-            authentication credentials or an access token.
-        </p>
-
         <pre><code>Authorization: Bearer eyJhbGciOi...</code></pre>
 
         <p>
-            The <code>Bearer</code> scheme is commonly used with OAuth 2.0
-            access tokens.
+            Commonly used to send access tokens. Authentication answers
+            <strong>who are you?</strong>, while authorization answers
+            <strong>what are you allowed to do?</strong>
         </p>
-
-        <p>
-            Other authentication schemes exist, such as Basic authentication:
-        </p>
-
-        <pre><code>Authorization: Basic base64-encoded-credentials</code></pre>
-
-        <p>
-            Authentication and authorization are different concepts:
-        </p>
-
-        <ul>
-            <li>
-                <strong>Authentication:</strong> Who are you?
-            </li>
-            <li>
-                <strong>Authorization:</strong> What are you allowed to do?
-            </li>
-        </ul>
-
-
-        <!-- ========================================================= -->
-        <!-- COOKIES -->
-        <!-- ========================================================= -->
 
         <h2>Cookies</h2>
 
         <p>
-            Cookies allow servers to store small pieces of state in a user's
-            browser. They are commonly used for sessions and authentication.
+            Cookies allow browsers to store and send small pieces of state.
         </p>
 
-        <h3>Set-Cookie</h3>
+        <pre><code>Set-Cookie: session_id=abc123; Secure; HttpOnly; SameSite=Lax
 
-        <p>
-            A server can ask the browser to store a cookie using
-            <code>Set-Cookie</code>.
-        </p>
+Cookie: session_id=abc123</code></pre>
 
-        <pre><code>Set-Cookie: session_id=abc123; Secure; HttpOnly; SameSite=Lax</code></pre>
-
-        <h3>Cookie</h3>
-
-        <p>
-            The browser can then send the cookie back to the server:
-        </p>
-
-        <pre><code>Cookie: session_id=abc123</code></pre>
-
-        <h3>Important cookie attributes</h3>
-
-        <ul>
-            <li>
-                <strong>Secure</strong> — only send the cookie over HTTPS.
-            </li>
-            <li>
-                <strong>HttpOnly</strong> — prevents JavaScript from accessing
-                the cookie through <code>document.cookie</code>.
-            </li>
-            <li>
-                <strong>SameSite</strong> — controls when cookies are sent in
-                cross-site requests.
-            </li>
-            <li>
-                <strong>Domain</strong> — controls which domains receive the cookie.
-            </li>
-            <li>
-                <strong>Path</strong> — controls which paths receive the cookie.
-            </li>
-            <li>
-                <strong>Max-Age / Expires</strong> — controls cookie lifetime.
-            </li>
+                <ul>
+            <li><strong>Secure</strong> — only send over HTTPS.</li>
+            <li><strong>HttpOnly</strong> — prevents JavaScript access.</li>
+            <li><strong>SameSite</strong> — controls cross-site cookie sending.</li>
+            <li><strong>Domain / Path</strong> — controls where the cookie is sent.</li>
+            <li><strong>Max-Age / Expires</strong> — controls its lifetime.</li>
         </ul>
 
-
-        <!-- ========================================================= -->
-        <!-- CACHING -->
-        <!-- ========================================================= -->
-
         <h2>Caching</h2>
-
-        <p>
-            HTTP has built-in mechanisms that allow clients and intermediary
-            caches to avoid downloading the same resource repeatedly.
-        </p>
 
         <h3>Cache-Control</h3>
 
         <p>
-            <code>Cache-Control</code> controls caching behavior.
+            Controls how responses can be cached.
         </p>
 
-        <pre><code>Cache-Control: max-age=3600</code></pre>
+        <pre><code>Cache-Control: max-age=3600
 
-        <p>Other directives include:</p>
-
-        <pre><code>Cache-Control: no-cache
+Cache-Control: no-cache
 Cache-Control: no-store
 Cache-Control: private
-Cache-Control: public
-Cache-Control: max-age=3600</code></pre>
+Cache-Control: public</code></pre>
 
-        <p>
-            These directives have different meanings. In particular,
-            <code>no-cache</code> does not simply mean "don't cache"; it means
-            that a stored response generally must be revalidated before reuse.
+                <p>
+            <code>no-cache</code> does not mean "don't cache". It generally means
+            the cached response must be revalidated before reuse.
         </p>
-
 
         <h3>ETag</h3>
 
         <p>
-            An <code>ETag</code> identifies a particular representation of a resource.
+            Identifies a specific representation of a resource and can be used
+            for efficient caching and concurrency control.
         </p>
 
-        <pre><code>ETag: "abc123"</code></pre>
+        <pre><code>ETag: "abc123"
 
-        <p>
-            The client can later ask whether that representation has changed:
-        </p>
+If-None-Match: "abc123"
 
-        <pre><code>If-None-Match: "abc123"</code></pre>
+→ 304 Not Modified</code></pre>
 
-        <p>
-            If the resource has not changed, the server can respond with:
-        </p>
+                <h3>Last-Modified</h3>
 
-        <pre><code>304 Not Modified</code></pre>
+        <pre><code>Last-Modified: Wed, 30 Sep 2026 10:00:00 GMT
 
-        <p>
-            This allows the client to reuse its cached copy instead of downloading
-            the resource again.
-        </p>
-
-
-        <h3>Last-Modified</h3>
-
-        <p>
-            Another way of describing when a resource was last changed is:
-        </p>
-
-        <pre><code>Last-Modified: Wed, 30 Sep 2026 10:00:00 GMT</code></pre>
-
-        <p>
-            A client can then send:
-        </p>
-
-        <pre><code>If-Modified-Since: Wed, 30 Sep 2026 10:00:00 GMT</code></pre>
-
-
-        <!-- ========================================================= -->
-        <!-- CONDITIONAL REQUESTS -->
-        <!-- ========================================================= -->
+If-Modified-Since: Wed, 30 Sep 2026 10:00:00 GMT</code></pre>
 
         <h2>Conditional Requests</h2>
 
         <p>
-            Headers such as <code>If-None-Match</code> and <code>If-Match</code>
-            allow a request to depend on the current state of a resource.
-        </p>
-
-        <p>
-            This is useful for both caching and concurrency control.
-        </p>
-
-        <h3>Optimistic concurrency</h3>
-
-        <p>
-            Imagine two clients retrieve the same resource:
+            Headers such as <code>If-Match</code> allow requests to depend on
+            the current version of a resource.
         </p>
 
         <pre><code>GET /users/123
 
-ETag: "version-42"</code></pre>
+ETag: "version-42"
 
-        <p>
-            Client A updates the resource first. The server now has:
+PUT /users/123
+If-Match: "version-42"</code></pre>
+
+                <p>
+            If another client already changed the resource to version 43,
+            the server can reject the update instead of overwriting the newer data.
+            This is a form of <strong>optimistic concurrency control</strong>.
         </p>
-
-        <pre><code>ETag: "version-43"</code></pre>
-
-        <p>
-            Client B can prevent accidentally overwriting the newer version by
-            sending:
-        </p>
-
-        <pre><code>If-Match: "version-42"</code></pre>
-
-        <p>
-            Because the resource is now version 43, the server can reject the
-            update instead of silently overwriting someone else's changes.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- CORS -->
-        <!-- ========================================================= -->
 
         <h2>CORS</h2>
 
@@ -434,401 +210,199 @@ ETag: "version-42"</code></pre>
             web pages from one origin to make requests to another origin.
         </p>
 
-        <p>
-            An origin is defined by its:
-        </p>
-
-        <pre><code>scheme + host + port</code></pre>
-
-        <p>
-            For example:
-        </p>
-
-        <pre><code>https://example.com
-https://api.example.com</code></pre>
-
-        <p>
-            These are different origins because the hosts differ.
-        </p>
-
-
-        <h3>Origin</h3>
-
-        <p>
-            Browsers can send an <code>Origin</code> header:
-        </p>
-
-        <pre><code>Origin: https://example.com</code></pre>
-
-
-        <h3>Access-Control-Allow-Origin</h3>
-
-        <p>
-            The server can indicate which origins are allowed:
-        </p>
-
-        <pre><code>Access-Control-Allow-Origin: https://example.com</code></pre>
-
-
-        <h3>Other CORS headers</h3>
-
-        <pre><code>Access-Control-Allow-Methods: GET, POST, PUT
+        <pre><code>Origin: https://example.com
+Access-Control-Allow-Origin: https://example.com
+Access-Control-Allow-Methods: GET, POST, PUT
 Access-Control-Allow-Headers: Authorization, Content-Type
 Access-Control-Allow-Credentials: true</code></pre>
 
         <p>
-            CORS is primarily a browser security mechanism. It is important to
-            understand that CORS does not prevent servers from receiving requests
-            from non-browser clients such as curl or backend services.
+            An origin consists of <strong>scheme + host + port</strong>.
+            CORS is primarily a browser security mechanism; it does not prevent
+            non-browser clients such as backend services or curl from making requests.
         </p>
-
-
-        <!-- ========================================================= -->
-        <!-- SECURITY -->
-        <!-- ========================================================= -->
 
         <h2>Security Headers</h2>
 
-        <p>
-            Some response headers allow a server to communicate security policies
-            to a browser.
-        </p>
+        <p>Common browser security headers include:</p>
 
+        <pre><code>Strict-Transport-Security: max-age=31536000
 
-        <h3>Strict-Transport-Security</h3>
+Content-Security-Policy: default-src 'self'
 
-        <p>
-            HTTP Strict Transport Security (HSTS) tells browsers to use HTTPS
-            for a site.
-        </p>
+X-Content-Type-Options: nosniff
 
-        <pre><code>Strict-Transport-Security: max-age=31536000</code></pre>
+X-Frame-Options: DENY
 
+Referrer-Policy: strict-origin-when-cross-origin</code></pre>
 
-        <h3>Content-Security-Policy</h3>
-
-        <p>
-            Content Security Policy (CSP) controls which sources a browser is
-            allowed to load or execute.
-        </p>
-
-        <pre><code>Content-Security-Policy: default-src 'self'</code></pre>
-
-        <p>
-            CSP is particularly useful for reducing the impact of certain
-            cross-site scripting attacks.
-        </p>
-
-
-        <h3>X-Content-Type-Options</h3>
-
-        <pre><code>X-Content-Type-Options: nosniff</code></pre>
-
-        <p>
-            This tells browsers not to try to guess a different content type
-            from the one declared by the server.
-        </p>
-
-
-        <h3>X-Frame-Options</h3>
-
-        <pre><code>X-Frame-Options: DENY</code></pre>
-
-        <p>
-            This can control whether a page can be embedded in a frame and can
-            help protect against clickjacking.
-        </p>
-
-
-        <h3>Referrer-Policy</h3>
-
-        <p>
-            Controls how much referrer information browsers send with requests.
-        </p>
-
-        <pre><code>Referrer-Policy: strict-origin-when-cross-origin</code></pre>
-
-
-        <!-- ========================================================= -->
-        <!-- REDIRECTS -->
-        <!-- ========================================================= -->
+                <ul>
+            <li><strong>HSTS</strong> — tells browsers to use HTTPS.</li>
+            <li><strong>CSP</strong> — controls allowed resources and scripts.</li>
+            <li><strong>X-Content-Type-Options</strong> — prevents MIME sniffing.</li>
+            <li><strong>X-Frame-Options</strong> — helps protect against clickjacking.</li>
+            <li><strong>Referrer-Policy</strong> — controls referrer information.</li>
+        </ul>
 
         <h2>Redirects</h2>
 
-        <h3>Location</h3>
-
         <p>
-            The <code>Location</code> header tells the client where a resource
-            or redirect points.
+            <code>Location</code> tells the client where a resource or redirect points.
         </p>
 
         <pre><code>HTTP/1.1 302 Found
+
 Location: https://example.com/new-location</code></pre>
 
-        <p>
-            It is also commonly used after creating a resource:
+                <p>
+            It is also commonly returned after creating a resource:
         </p>
 
         <pre><code>HTTP/1.1 201 Created
+
 Location: /users/123</code></pre>
 
-
-        <!-- ========================================================= -->
-        <!-- RATE LIMITING -->
-        <!-- ========================================================= -->
-
-        <h2>Rate Limiting</h2>
+                <h2>Rate Limiting</h2>
 
         <p>
-            APIs often limit how many requests a client can make in a given
-            period.
+            APIs can limit how many requests a client can make.
+            When the limit is exceeded:
         </p>
 
-        <p>
-            When a client exceeds the limit, the server can return:
+        <pre><code>HTTP/1.1 429 Too Many Requests
+
+Retry-After: 60</code></pre>
+
+                <p>
+            <code>Retry-After</code> tells the client when it should retry.
         </p>
-
-        <pre><code>HTTP/1.1 429 Too Many Requests</code></pre>
-
-        <h3>Retry-After</h3>
-
-        <p>
-            <code>Retry-After</code> can tell the client when it should try again.
-        </p>
-
-        <pre><code>Retry-After: 60</code></pre>
-
-        <p>
-            This means the client should wait before retrying.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- REQUEST IDs -->
-        <!-- ========================================================= -->
 
         <h2>Tracing &amp; Request IDs</h2>
 
         <p>
-            Request identifiers are useful when debugging distributed systems.
+            Request IDs help connect logs across distributed services.
         </p>
 
         <pre><code>X-Request-ID: 7f8c9d...</code></pre>
 
-        <p>
-            A request can pass through several services:
-        </p>
-
         <pre><code>Client
-   ↓
+
+↓
 API Gateway
-   ↓
+↓
 Payment Service
-   ↓
+↓
 Ledger Service
-   ↓
+↓
 Notification Service</code></pre>
 
-        <p>
-            If the same request identifier is propagated through these services,
-            the logs can be connected together.
-        </p>
-
-        <p>
-            Modern distributed systems may also use standardized tracing
-            mechanisms such as the W3C Trace Context headers:
+                <p>
+            Modern systems may also use W3C Trace Context:
         </p>
 
         <pre><code>traceparent
+
 tracestate</code></pre>
 
+                <h2>Client &amp; Request Information</h2>
 
-        <!-- ========================================================= -->
-        <!-- HOST / USER AGENT / ORIGIN -->
-        <!-- ========================================================= -->
-
-        <h2>Client &amp; Request Information</h2>
-
-        <h3>Host</h3>
-
-        <p>
-            The <code>Host</code> header identifies the host and, when relevant,
-            port targeted by the request.
-        </p>
-
-        <pre><code>Host: api.example.com</code></pre>
+        <ul>
+            <li><code>Host</code> — identifies the target host.</li>
+            <li><code>User-Agent</code> — provides information about the client.</li>
+            <li><code>Referer</code> — indicates the page that initiated a request.</li>
+            <li><code>Origin</code> — identifies the origin of a browser request.</li>
+        </ul>
 
         <p>
-            In HTTP/2 and HTTP/3, the <code>:authority</code> pseudo-header
-            serves the corresponding role.
+            Client-provided headers such as <code>User-Agent</code> should not
+            generally be treated as trustworthy security information.
         </p>
-
-
-        <h3>User-Agent</h3>
-
-        <p>
-            <code>User-Agent</code> identifies information about the client
-            making the request.
-        </p>
-
-        <pre><code>User-Agent: Mozilla/5.0 ...</code></pre>
-
-        <p>
-            It can be useful for logging and analytics, but it should not
-            generally be treated as trustworthy security information because
-            clients can modify it.
-        </p>
-
-
-        <h3>Referer</h3>
-
-        <p>
-            The <code>Referer</code> header can indicate the page from which
-            a request originated.
-        </p>
-
-        <pre><code>Referer: https://example.com/products</code></pre>
-
-        <p>
-            Note that the spelling of the header is historically
-            <code>Referer</code>, not <code>Referrer</code>.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- IDEMPOTENCY -->
-        <!-- ========================================================= -->
 
         <h2>Idempotency</h2>
 
         <p>
-            Some APIs use an <code>Idempotency-Key</code> header to make retries
-            of non-idempotent operations safe.
+            APIs can use <code>Idempotency-Key</code> to make retries of
+            non-idempotent operations safe.
         </p>
 
         <pre><code>POST /payments
-Idempotency-Key: 8f3c9a...</code></pre>
 
-        <p>
-            For example, if a client submits a payment and doesn't receive the
-            response because of a network failure, it can retry using the same
-            key.
+Idempotency-Key: abc123</code></pre>
+
+                <p>
+            If a request is retried after a network failure, the server can recognize
+            the same key and avoid performing the operation twice.
         </p>
 
         <p>
-            The server can recognize that the operation has already been processed
-            and return the previous result instead of performing it twice.
+            This is especially important for payments, orders and other operations
+            with important side effects.
         </p>
-
-        <p>
-            Idempotency keys are especially important for APIs involving payments,
-            orders and other operations with important side effects.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- CUSTOM HEADERS -->
-        <!-- ========================================================= -->
 
         <h2>Custom Headers</h2>
 
         <p>
-            Applications can define their own headers when necessary.
+            Applications can define custom headers when standard HTTP mechanisms
+            don't solve the problem.
         </p>
 
         <pre><code>Idempotency-Key: abc123
+
 X-Request-ID: 7f8c9d...</code></pre>
 
-        <p>
-            Historically, custom headers were often prefixed with
-            <code>X-</code>. This convention is no longer generally recommended
-            for new headers.
+                <p>
+            The historical <code>X-</code> prefix is no longer generally recommended
+            for new custom headers.
         </p>
-
-        <p>
-            Before creating a custom header, check whether a standard HTTP
-            mechanism already solves the problem.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- PROXIES -->
-        <!-- ========================================================= -->
 
         <h2>Proxies &amp; Forwarded Headers</h2>
 
         <p>
-            Requests often pass through reverse proxies, load balancers,
-            API gateways or CDNs before reaching the application.
+            Requests often pass through CDNs, load balancers, reverse proxies or
+            API gateways before reaching the application.
         </p>
 
         <pre><code>Client
-   ↓
+
+↓
 CDN
-   ↓
+↓
 Load Balancer
-   ↓
+↓
 Reverse Proxy
-   ↓
+↓
 Application</code></pre>
 
-        <p>
-            The application may therefore need information about the original
-            client or protocol.
-        </p>
-
-        <p>
-            Commonly encountered headers include:
-        </p>
+                <p>Common headers include:</p>
 
         <pre><code>Forwarded
+
 X-Forwarded-For
 X-Forwarded-Proto
 X-Forwarded-Host</code></pre>
 
-        <p>
-            These headers require careful handling because applications should
-            not blindly trust values supplied by untrusted clients. Whether they
-            can be trusted depends on the network architecture and which proxy
-            inserted or sanitized them.
+                <p>
+            These should not be blindly trusted. Their trustworthiness depends
+            on which proxies are allowed to set or sanitize them.
         </p>
-
-
-        <!-- ========================================================= -->
-        <!-- HTTP/2 & HTTP/3 -->
-        <!-- ========================================================= -->
 
         <h2>HTTP/2 &amp; HTTP/3</h2>
-
-        <p>
-            HTTP/2 and HTTP/3 introduce some concepts that are useful to recognize
-            when looking at network traffic.
-        </p>
 
         <p>
             HTTP/2 uses pseudo-headers such as:
         </p>
 
         <pre><code>:method
+
 :path
 :scheme
 :authority
 :status</code></pre>
 
-        <p>
-            These are not ordinary HTTP headers. They provide information that
-            was represented differently in HTTP/1.1.
+                <p>
+            These are not ordinary HTTP headers. HTTP/2 and HTTP/3 also use
+            binary protocols rather than HTTP/1.1's textual wire format.
         </p>
-
-        <p>
-            HTTP/2 and HTTP/3 also use binary protocols rather than the textual
-            wire format used by HTTP/1.1.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- COMMON HEADERS CHEAT SHEET -->
-        <!-- ========================================================= -->
 
         <h2>Common Headers Cheat Sheet</h2>
 
@@ -843,113 +417,93 @@ X-Forwarded-Host</code></pre>
             <tbody>
             <tr>
                 <td><code>Authorization</code></td>
-                <td>Authentication credentials or access token</td>
+                <td>Credentials or access token</td>
                 <td>Request</td>
             </tr>
             <tr>
                 <td><code>Content-Type</code></td>
-                <td>Format of the message body</td>
+                <td>Format of the body</td>
                 <td>Both</td>
             </tr>
             <tr>
                 <td><code>Accept</code></td>
-                <td>Response formats the client accepts</td>
+                <td>Accepted response formats</td>
                 <td>Request</td>
             </tr>
             <tr>
                 <td><code>Cookie</code></td>
-                <td>Sends cookies to the server</td>
+                <td>Sends cookies</td>
                 <td>Request</td>
             </tr>
             <tr>
                 <td><code>Set-Cookie</code></td>
-                <td>Instructs browser to store a cookie</td>
+                <td>Sets browser cookies</td>
                 <td>Response</td>
             </tr>
             <tr>
                 <td><code>Cache-Control</code></td>
-                <td>Controls caching behavior</td>
+                <td>Controls caching</td>
                 <td>Both</td>
             </tr>
             <tr>
                 <td><code>ETag</code></td>
-                <td>Identifies a resource representation</td>
+                <td>Identifies a representation</td>
                 <td>Response</td>
             </tr>
             <tr>
                 <td><code>If-None-Match</code></td>
-                <td>Conditional request based on ETag</td>
+                <td>Conditional cache request</td>
                 <td>Request</td>
             </tr>
             <tr>
                 <td><code>If-Match</code></td>
-                <td>Conditional update based on ETag</td>
+                <td>Conditional update</td>
                 <td>Request</td>
             </tr>
             <tr>
                 <td><code>Location</code></td>
-                <td>Redirect or newly created resource location</td>
+                <td>Redirect or resource location</td>
                 <td>Response</td>
             </tr>
             <tr>
                 <td><code>Retry-After</code></td>
-                <td>How long to wait before retrying</td>
+                <td>When to retry</td>
                 <td>Response</td>
             </tr>
             <tr>
                 <td><code>Origin</code></td>
-                <td>Origin of a browser request</td>
-                <td>Request</td>
-            </tr>
-            <tr>
-                <td><code>User-Agent</code></td>
-                <td>Information about the client</td>
-                <td>Request</td>
-            </tr>
-            <tr>
-                <td><code>Referer</code></td>
-                <td>Page that initiated the request</td>
+                <td>Origin of browser request</td>
                 <td>Request</td>
             </tr>
             <tr>
                 <td><code>Strict-Transport-Security</code></td>
-                <td>Enforces HTTPS in browsers</td>
+                <td>Enforces HTTPS</td>
                 <td>Response</td>
             </tr>
             <tr>
                 <td><code>Content-Security-Policy</code></td>
-                <td>Controls allowed browser resources</td>
+                <td>Controls browser resources</td>
                 <td>Response</td>
             </tr>
             <tr>
                 <td><code>Idempotency-Key</code></td>
-                <td>Allows safe retries of certain operations</td>
+                <td>Helps make retries safe</td>
                 <td>Request</td>
             </tr>
             <tr>
                 <td><code>X-Request-ID</code></td>
-                <td>Correlates a request across services</td>
+                <td>Correlates requests across services</td>
                 <td>Request / Response</td>
             </tr>
             <tr>
                 <td><code>Forwarded</code></td>
-                <td>Information about proxies and the original request</td>
+                <td>Proxy/request information</td>
                 <td>Request</td>
             </tr>
             </tbody>
         </table>
 
-
-        <!-- ========================================================= -->
-        <!-- MENTAL MODEL -->
-        <!-- ========================================================= -->
-
         <h2>A Useful Mental Model</h2>
-
-        <p>
-            When looking at an HTTP request, ask yourself what each part is
-            responsible for:
-        </p>
 
         <pre><code>POST /payments?currency=EUR HTTP/1.1
 
@@ -960,95 +514,38 @@ Idempotency-Key: abc123
 X-Request-ID: 7f8c9d...
 
 {
-    "amount": 1000,
-    "currency": "EUR"
+"amount": 1000,
+"currency": "EUR"
 }</code></pre>
 
-        <ul>
-            <li>
-                <strong>URL/path:</strong> What resource are we interacting with?
-            </li>
-            <li>
-                <strong>Query parameters:</strong> How should the request be filtered
-                or modified?
-            </li>
-            <li>
-                <strong>Headers:</strong> What metadata or instructions accompany
-                the request?
-            </li>
-            <li>
-                <strong>Body:</strong> What data are we actually sending?
-            </li>
-            <li>
-                <strong>Method:</strong> What kind of operation are we performing?
-            </li>
+                <ul>
+            <li><strong>Method:</strong> What operation are we performing?</li>
+            <li><strong>URL / path:</strong> What resource are we interacting with?</li>
+            <li><strong>Query parameters:</strong> How should the request be filtered or modified?</li>
+            <li><strong>Headers:</strong> What metadata or instructions accompany the request?</li>
+            <li><strong>Body:</strong> What data are we sending?</li>
         </ul>
-
-        <p>
-            Understanding this distinction makes HTTP APIs much easier to reason about.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- WHAT TO REMEMBER -->
-        <!-- ========================================================= -->
 
         <h2>What Should I Remember?</h2>
 
         <ul>
-            <li>
-                HTTP headers are metadata exchanged between clients and servers.
-            </li>
-            <li>
-                Request headers describe the request or provide instructions to
-                the server.
-            </li>
-            <li>
-                Response headers describe the response or provide instructions
-                to the client.
-            </li>
-            <li>
-                <code>Content-Type</code> describes the body being sent.
-            </li>
-            <li>
-                <code>Accept</code> describes the response formats the client
-                can handle.
-            </li>
-            <li>
-                <code>Authorization</code> is commonly used for authentication.
-            </li>
-            <li>
-                <code>Cookie</code> and <code>Set-Cookie</code> are used for
-                browser cookies.
-            </li>
-            <li>
-                Caching relies heavily on headers such as
-                <code>Cache-Control</code> and <code>ETag</code>.
-            </li>
-            <li>
-                Conditional headers such as <code>If-Match</code> can help
-                prevent concurrent updates from overwriting each other.
-            </li>
-            <li>
-                CORS uses several headers to control browser cross-origin requests.
-            </li>
-            <li>
-                Security headers allow servers to communicate browser security policies.
-            </li>
-            <li>
-                <code>Retry-After</code> can help clients handle rate limiting
-                and temporary unavailability.
-            </li>
-            <li>
-                Request and tracing headers help debug distributed systems.
-            </li>
-            <li>
-                Custom headers should be used carefully when standard HTTP mechanisms
-                don't already solve the problem.
-            </li>
+            <li>HTTP headers are metadata exchanged between clients and servers.</li>
+            <li><code>Content-Type</code> describes the body being sent.</li>
+            <li><code>Accept</code> describes the response formats the client accepts.</li>
+            <li><code>Authorization</code> is commonly used for authentication credentials.</li>
+            <li><code>Cookie</code> and <code>Set-Cookie</code> handle browser cookies.</li>
+            <li><code>Cache-Control</code> and <code>ETag</code> are important for caching.</li>
+            <li><code>If-Match</code> can help prevent concurrent updates from overwriting newer data.</li>
+            <li>CORS controls browser cross-origin requests.</li>
+            <li>Security headers communicate browser security policies.</li>
+            <li><code>Retry-After</code> helps clients handle rate limits.</li>
+            <li>Request and tracing headers help debug distributed systems.</li>
+            <li>Idempotency keys make certain retries safe.</li>
+            <li>Use custom headers carefully when standard HTTP mechanisms aren't enough.</li>
         </ul>
-
+        
     </article>
+
 </main>
 
 <footer class="site-footer"></footer>

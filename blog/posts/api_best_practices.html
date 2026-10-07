@@ -48,9 +48,8 @@
         </time>
 
         <p>
-            Good API design is less about memorizing rules and more about creating
-            an interface that is predictable, consistent, secure and easy for other
-            developers to use.
+            Good API design is about creating an interface that is
+            <strong>predictable, consistent, secure and easy to use.</strong>
         </p>
 
         <p>
@@ -58,214 +57,69 @@
             <strong>design APIs around resources and intent, not implementation details.</strong>
         </p>
 
-        <p>
-            This post is an overview of the practices I find useful when designing
-            or reviewing APIs. Some of these topics deserve their own deeper articles,
-            so this post focuses on the big picture.
-        </p>
+        <h2>1. Resource &amp; URL Design</h2>
 
-
-        <!-- ========================================================= -->
-        <!-- 1. RESOURCE & URL DESIGN -->
-        <!-- ========================================================= -->
-
-        <h2>1. Resource & URL Design</h2>
-
-        <h3>Use nouns, not actions</h3>
-
-        <p>
-            API endpoints should generally represent resources rather than actions.
-            The HTTP method already describes what we want to do with the resource.
-        </p>
+        <p>Use nouns for resources rather than actions.</p>
 
         <pre><code>GET /customers
 GET /customers/123</code></pre>
 
-        <p>is generally preferable to:</p>
-
-        <pre><code>GET /getCustomers
-GET /getCustomerById?id=123</code></pre>
-
-        <h3>Use path parameters for specific resources</h3>
-
         <p>
-            Path parameters are useful when identifying a specific resource.
+            Use path parameters for specific resources and query parameters
+            for filtering, sorting and pagination.
         </p>
 
-        <pre><code>GET /users/123</code></pre>
+        <pre><code>GET /users/123
+GET /users?status=active&amp;page=2</code></pre>
 
         <p>
-            Query parameters are better suited for filtering, sorting and pagination.
+            Have a clear versioning and deprecation strategy for breaking changes.
         </p>
-
-        <pre><code>GET /users?country=NL
-GET /users?status=active
-GET /users?sort=created_at
-GET /users?page=2&amp;limit=50</code></pre>
-
-
-        <h3>Version your API deliberately</h3>
-
-        <p>
-            APIs evolve. Breaking changes can make existing clients stop working,
-            so a clear versioning and deprecation strategy is important.
-        </p>
-
-        <pre><code>/api/v1/customers
-/api/v2/customers</code></pre>
-
-        <p>
-            URL versioning is only one possible approach. APIs can also use headers
-            or other versioning mechanisms.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- 2. HTTP SEMANTICS -->
-        <!-- ========================================================= -->
 
         <h2>2. HTTP Semantics</h2>
 
-        <h3>Use HTTP methods consistently</h3>
-
-        <p>
-            HTTP methods have defined semantics. Following them makes an API easier
-            to understand and allows clients and infrastructure to behave correctly.
-        </p>
-
-        <h3>GET</h3>
-
-        <p>
-            GET should retrieve data without causing state-changing side effects.
-        </p>
-
-        <pre><code>GET /customers/123</code></pre>
-
-        <p>
-            Repeating a GET request should not create another customer, charge a
-            payment or otherwise modify application state.
-        </p>
-
-
-        <h3>POST</h3>
-
-        <p>
-            POST is commonly used to create resources, but it is not limited to
-            creation. It can also be used for operations that don't map naturally
-            to a resource or that are not idempotent.
-        </p>
-
-        <pre><code>POST /payments</code></pre>
-
-
-        <h3>PUT vs PATCH</h3>
-
-        <p>
-            PUT is generally used to replace a resource, while PATCH is used for
-            partial modifications.
-        </p>
-
-        <pre><code>PUT /users/123</code></pre>
-
-        <pre><code>PATCH /users/123
-
-{
-    "email": "new@example.com"
-}</code></pre>
-
-        <p>
-            The exact semantics should be clearly defined and used consistently
-            throughout the API.
-        </p>
-
-
-        <h3>Use meaningful status codes</h3>
-
-        <p>
-            Status codes communicate the result of a request. They should not all
-            be treated as interchangeable.
-        </p>
+        <p>Use HTTP methods according to their intended purpose:</p>
 
         <ul>
-            <li><strong>200 OK</strong> — request succeeded and a response is returned.</li>
-            <li><strong>201 Created</strong> — a resource was created.</li>
-            <li><strong>204 No Content</strong> — request succeeded without a response body.</li>
-            <li><strong>400 Bad Request</strong> — request is invalid.</li>
-            <li><strong>401 Unauthorized</strong> — authentication is required or invalid.</li>
-            <li><strong>403 Forbidden</strong> — the caller is authenticated but not allowed.</li>
-            <li><strong>404 Not Found</strong> — requested resource does not exist.</li>
-            <li><strong>409 Conflict</strong> — request conflicts with the current state.</li>
-            <li><strong>422 Unprocessable Content</strong> — request is syntactically valid but cannot be processed.</li>
-            <li><strong>429 Too Many Requests</strong> — rate limit has been exceeded.</li>
-            <li><strong>500 Internal Server Error</strong> — unexpected server-side failure.</li>
+            <li><strong>GET</strong> — retrieve data</li>
+            <li><strong>POST</strong> — create or perform an operation</li>
+            <li><strong>PUT</strong> — replace a resource</li>
+            <li><strong>PATCH</strong> — partially update a resource</li>
+            <li><strong>DELETE</strong> — remove a resource</li>
         </ul>
 
-
-        <h3>Understand idempotency</h3>
-
-        <p>
-            An operation is idempotent when performing it multiple times has the
-            same intended effect as performing it once.
-        </p>
-
-        <p>
-            This is especially important for APIs that perform financial or other
-            important operations.
-        </p>
-
-        <pre><code>POST /payments
-Idempotency-Key: abc123</code></pre>
-
-        <p>
-            If the client sends the request, the server processes it, and the
-            network fails before the response reaches the client, the client may
-            retry. An idempotency key allows the server to recognize the retry
-            and avoid performing the operation twice.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- 3. REQUEST & RESPONSE DESIGN -->
-        <!-- ========================================================= -->
-
-        <h2>3. Request &amp; Response Design</h2>
-
-        <h3>Validate all external input</h3>
-
-        <p>
-            Never assume that data received by an API is valid.
-        </p>
-
-        <p>Validate:</p>
+        <p>Use meaningful HTTP status codes:</p>
 
         <ul>
-            <li>path parameters</li>
-            <li>query parameters</li>
-            <li>request bodies</li>
-            <li>headers</li>
-            <li>uploaded data</li>
+            <li><strong>200</strong> — OK</li>
+            <li><strong>201</strong> — Created</li>
+            <li><strong>204</strong> — No Content</li>
+            <li><strong>400</strong> — Bad Request</li>
+            <li><strong>401</strong> — Unauthorized</li>
+            <li><strong>403</strong> — Forbidden</li>
+            <li><strong>404</strong> — Not Found</li>
+            <li><strong>409</strong> — Conflict</li>
+            <li><strong>422</strong> — Unprocessable Content</li>
+            <li><strong>429</strong> — Too Many Requests</li>
+            <li><strong>500</strong> — Internal Server Error</li>
         </ul>
 
         <p>
-            Validation should happen at the API boundary before invalid data
-            propagates deeper into the system.
+            Understand <strong>idempotency</strong>, especially for important
+            operations such as payments. Idempotency keys can prevent duplicate
+            operations when requests are retried.
         </p>
 
+        <h2>3. Requests &amp; Responses</h2>
 
-        <h3>Return useful error responses</h3>
-
-        <p>
-            A generic error such as this doesn't tell the client much:
-        </p>
-
-        <pre><code>{
-    "error": "Bad request"
-}</code></pre>
-
-        <p>
-            A more useful response could provide a machine-readable code and
-            information about what went wrong:
-        </p>
+        <ul>
+            <li>Validate all external input.</li>
+            <li>Return consistent and useful error responses.</li>
+            <li>Never expose internal implementation details.</li>
+            <li>Paginate large collections.</li>
+            <li>Support filtering and sorting.</li>
+            <li>Consider bulk operations when appropriate.</li>
+        </ul>
 
         <pre><code>{
     "error": {
@@ -275,371 +129,75 @@ Idempotency-Key: abc123</code></pre>
     }
 }</code></pre>
 
-        <p>
-            Error responses should be consistent, understandable and safe to expose.
-            Don't expose stack traces, database errors or other internal implementation
-            details.
-        </p>
-
-
-        <h3>Paginate large collections</h3>
-
-        <p>
-            Avoid endpoints that can return an unlimited number of records.
-        </p>
-
-        <pre><code>GET /transactions</code></pre>
-
-        <p>
-            If there are millions of transactions, returning everything in one
-            response can be expensive for both the server and the client.
-        </p>
-
-        <p>Offset-based pagination:</p>
-
-        <pre><code>GET /transactions?page=2&amp;limit=100</code></pre>
-
-        <p>or cursor-based pagination:</p>
-
-        <pre><code>GET /transactions?cursor=eyJpZCI6MTIzfQ</code></pre>
-
-        <p>
-            Cursor-based pagination can be useful for large or frequently changing
-            datasets. The choice between pagination strategies depends on the use case.
-        </p>
-
-
-        <h3>Support filtering and sorting</h3>
-
-        <p>
-            Query parameters can make collection endpoints flexible without creating
-            a separate endpoint for every possible query.
-        </p>
-
-        <pre><code>GET /transactions?status=paid
-GET /transactions?currency=EUR
-GET /transactions?sort=created_at
-GET /transactions?created_after=2026-01-01</code></pre>
-
-
-        <h3>Consider bulk operations</h3>
-
-        <p>
-            When clients need to perform the same operation on many resources,
-            individual requests may be inefficient.
-        </p>
-
-        <pre><code>POST /users/bulk</code></pre>
-
-        <p>
-            Bulk APIs introduce additional questions, such as whether the operation
-            is atomic, how partial failures are reported and what the maximum batch
-            size should be.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- 4. SECURITY -->
-        <!-- ========================================================= -->
-
         <h2>4. Security</h2>
 
-        <h3>Authentication vs authorization</h3>
-
-        <p>
-            Authentication answers:
-            <strong>Who are you?</strong>
-        </p>
-
-        <p>
-            Authorization answers:
-            <strong>What are you allowed to do?</strong>
-        </p>
-
-        <p>
-            These are related but different concerns. Common API authentication
-            mechanisms include API keys, OAuth 2.0, OpenID Connect and service-to-service
-            credentials.
-        </p>
-
-        <p>
-            Authentication and authorization deserve their own deeper article.
-        </p>
-
-
-        <h3>Never trust the client</h3>
-
-        <p>
-            Anything sent by a browser or another external client should be treated
-            as untrusted input.
-        </p>
-
-        <p>
-            Client-side validation is useful for user experience, but it is not a
-            security boundary. Authorization and validation must be enforced
-            server-side.
-        </p>
-
-
-        <h3>Don't put sensitive data in URLs</h3>
-
-        <p>
-            URLs can end up in browser history, proxy logs, server logs, analytics
-            systems and monitoring tools.
-        </p>
-
-        <p>For example, avoid:</p>
-
-        <pre><code>GET /users?password=secret</code></pre>
-
-        <p>
-            Sensitive information should be handled using appropriate request bodies,
-            headers or other secure mechanisms.
-        </p>
-
-
-        <h3>Use rate limiting</h3>
-
-        <p>
-            Rate limiting protects APIs from excessive traffic, accidental overload
-            and certain types of abuse.
-        </p>
-
-        <pre><code>429 Too Many Requests</code></pre>
-
-        <p>
-            Limits should be designed according to the API's consumers and use case
-            rather than using a universal number.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- 5. RELIABILITY -->
-        <!-- ========================================================= -->
+        <ul>
+            <li>
+                <strong>Authentication</strong> answers "Who are you?"
+            </li>
+            <li>
+                <strong>Authorization</strong> answers "What are you allowed to do?"
+            </li>
+            <li>Never trust client-side validation.</li>
+            <li>Keep sensitive information out of URLs.</li>
+            <li>Enforce security rules server-side.</li>
+            <li>Use rate limiting where appropriate.</li>
+        </ul>
 
         <h2>5. Reliability</h2>
 
-        <h3>Set timeouts</h3>
-
-        <p>
-            Never assume that another service will respond immediately.
-        </p>
-
-        <p>
-            Without timeouts, a slow dependency can cause requests to remain open
-            indefinitely and consume resources.
-        </p>
-
-
-        <h3>Retry carefully</h3>
-
-        <p>
-            Temporary failures can sometimes be handled with retries.
-        </p>
-
-        <p>
-            A common strategy is exponential backoff:
-        </p>
-
-        <pre><code>Attempt 1 → wait 100 ms
-Attempt 2 → wait 200 ms
-Attempt 3 → wait 400 ms
-Attempt 4 → wait 800 ms</code></pre>
-
-        <p>
-            Retries should not be applied blindly. Retrying a non-idempotent operation
-            can create duplicate side effects.
-        </p>
-
-
-        <h3>Use backoff and jitter</h3>
-
-        <p>
-            If thousands of clients retry at exactly the same time, they can create
-            another traffic spike.
-        </p>
-
-        <p>
-            Adding randomness, known as <strong>jitter</strong>, helps spread retries
-            over time.
-        </p>
-
-
-        <h3>Think about concurrency</h3>
-
-        <p>
-            Multiple requests can modify the same resource at the same time.
-            This can lead to race conditions.
-        </p>
-
-        <p>
-            Techniques such as optimistic locking, pessimistic locking, version
-            fields and conditional requests can help manage concurrent updates.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- 6. API EVOLUTION -->
-        <!-- ========================================================= -->
+        <ul>
+            <li>Set timeouts for external calls.</li>
+            <li>Retry temporary failures carefully.</li>
+            <li>Use exponential backoff and jitter.</li>
+            <li>Avoid blindly retrying non-idempotent operations.</li>
+            <li>Consider concurrency and race conditions.</li>
+        </ul>
 
         <h2>6. API Evolution</h2>
 
-        <h3>Maintain backwards compatibility</h3>
+        <p>Try to avoid breaking existing clients.</p>
 
-        <p>
-            Existing clients should not unexpectedly break when the API changes.
-        </p>
-
-        <p>Be particularly careful when:</p>
+        <p>Be careful when:</p>
 
         <ul>
-            <li>removing fields</li>
-            <li>renaming fields</li>
-            <li>changing field types</li>
-            <li>changing enum values</li>
-            <li>changing the meaning of existing values</li>
-            <li>making optional fields required</li>
+            <li>Removing or renaming fields</li>
+            <li>Changing field types</li>
+            <li>Changing enum values</li>
+            <li>Making optional fields required</li>
+            <li>Changing the meaning of existing values</li>
         </ul>
 
         <p>
-            Adding a new optional field is generally less disruptive than changing
-            the meaning or structure of an existing field.
+            Use API contracts and schemas such as <strong>OpenAPI</strong>,
+            and have a clear deprecation strategy.
         </p>
-
-
-        <h3>Use contracts and schemas</h3>
-
-        <p>
-            An API contract defines what consumers can expect from an API:
-            request formats, response formats, fields, types, errors and other
-            behavior.
-        </p>
-
-        <p>
-            OpenAPI is commonly used to describe HTTP APIs and can also be used
-            to generate documentation, clients and validation.
-        </p>
-
-
-        <h3>Have a deprecation strategy</h3>
-
-        <p>
-            Eventually APIs need to evolve or remove old functionality.
-            Deprecation should be deliberate and communicated clearly.
-        </p>
-
-        <p>
-            Consumers should have enough information and time to migrate before
-            a deprecated API is removed.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- 7. OBSERVABILITY -->
-        <!-- ========================================================= -->
 
         <h2>7. Observability</h2>
 
-        <p>
-            When something goes wrong in production, you need to understand what
-            happened without reproducing the problem locally.
-        </p>
-
-        <h3>Logs</h3>
-
-        <p>
-            Structured logs make it easier to search and analyze application behavior.
-        </p>
-
-
-        <h3>Metrics</h3>
-
-        <p>
-            Metrics can show things such as:
-        </p>
+        <p>Make APIs easy to understand and debug in production.</p>
 
         <ul>
-            <li>request count</li>
-            <li>error rate</li>
-            <li>latency</li>
-            <li>throughput</li>
-            <li>resource usage</li>
+            <li><strong>Logs</strong> — what happened?</li>
+            <li><strong>Metrics</strong> — how often and how much?</li>
+            <li><strong>Traces</strong> — where did the request go?</li>
+            <li><strong>Request IDs</strong> — connect logs across services.</li>
         </ul>
-
-
-        <h3>Tracing</h3>
-
-        <p>
-            In a distributed system, one request can travel through many services.
-            Distributed tracing helps you understand that journey.
-        </p>
-
-        <pre><code>Client
-  ↓
-API
-  ↓
-Payment Service
-  ↓
-Ledger Service
-  ↓
-Notification Service</code></pre>
-
-
-        <h3>Use request IDs</h3>
-
-        <p>
-            A request or correlation ID can make it much easier to connect logs
-            across different services.
-        </p>
-
-        <pre><code>X-Request-ID: 7f8c9d...</code></pre>
-
-        <p>
-            The same identifier can be included in relevant logs and propagated
-            through downstream services.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- 8. ASYNCHRONOUS APIS -->
-        <!-- ========================================================= -->
 
         <h2>8. Asynchronous APIs</h2>
 
         <p>
-            Not every operation needs to complete during the original HTTP request.
-            For long-running or event-driven operations, asynchronous communication
-            can be more appropriate.
+            Long-running or event-driven operations don't always need to
+            complete during the original HTTP request.
         </p>
 
-        <h3>Webhooks</h3>
+        <p>Common approaches include:</p>
 
-        <p>
-            A webhook allows one system to notify another system when an event occurs.
-        </p>
-
-        <pre><code>Your system
-    ↓
-External API
-
-External event
-    ↓
-Webhook
-    ↓
-Your system</code></pre>
-
-        <p>
-            Reliable webhooks need to consider signature verification, retries,
-            duplicate events, ordering and idempotency.
-        </p>
-
-
-        <h3>Asynchronous jobs</h3>
-
-        <p>
-            For long-running operations, an API can return immediately and allow
-            the client to check the status later.
-        </p>
+        <ul>
+            <li>Webhooks</li>
+            <li>Queues</li>
+            <li>Asynchronous jobs</li>
+        </ul>
 
         <pre><code>POST /reports
 
@@ -651,23 +209,15 @@ Your system</code></pre>
 }</code></pre>
 
         <p>
-            The client can then retrieve the job status separately.
+            Reliable webhooks should consider signatures, retries,
+            duplicate events, ordering and idempotency.
         </p>
-
-
-        <!-- ========================================================= -->
-        <!-- 9. CACHING -->
-        <!-- ========================================================= -->
 
         <h2>9. Caching</h2>
 
         <p>
-            Caching can reduce latency and server load, but it needs to be designed
-            carefully so that clients don't receive stale or incorrect data.
-        </p>
-
-        <p>
-            HTTP provides mechanisms such as:
+            Caching can reduce latency and server load, but requires careful
+            consideration of data freshness and invalidation.
         </p>
 
         <ul>
@@ -677,123 +227,48 @@ Your system</code></pre>
             <li><code>If-None-Match</code></li>
         </ul>
 
-        <p>
-            Caching should always be considered together with cache invalidation
-            and data freshness requirements.
-        </p>
-
-
-        <!-- ========================================================= -->
-        <!-- 10. DOCUMENTATION -->
-        <!-- ========================================================= -->
-
         <h2>10. Documentation</h2>
 
-        <p>
-            An API can be technically correct and still be difficult to use if
-            its documentation is poor.
-        </p>
-
-        <p>Useful API documentation should explain:</p>
+        <p>Good API documentation should explain:</p>
 
         <ul>
-            <li>authentication</li>
-            <li>available endpoints</li>
-            <li>request parameters</li>
-            <li>request and response examples</li>
-            <li>error responses</li>
-            <li>pagination</li>
-            <li>rate limits</li>
-            <li>webhooks</li>
-            <li>versioning and deprecations</li>
+            <li>Authentication</li>
+            <li>Endpoints</li>
+            <li>Parameters</li>
+            <li>Request and response examples</li>
+            <li>Errors</li>
+            <li>Pagination</li>
+            <li>Rate limits</li>
+            <li>Webhooks</li>
+            <li>Versioning and deprecations</li>
         </ul>
 
         <p>
-            Tools such as OpenAPI can help keep the API contract and documentation
-            aligned.
+            Tools such as <strong>OpenAPI</strong> can help keep the API
+            contract and documentation aligned.
         </p>
-
-
-        <!-- ========================================================= -->
-        <!-- CHECKLIST -->
-        <!-- ========================================================= -->
 
         <h2>API Design Checklist</h2>
 
-        <h3>Endpoints</h3>
-
         <ul>
-            <li>Does each endpoint represent a resource or clear operation?</li>
-            <li>Are path parameters used for resource identification?</li>
-            <li>Are query parameters used for filtering, sorting and pagination?</li>
-            <li>Is the versioning strategy clear?</li>
-        </ul>
-
-
-        <h3>HTTP semantics</h3>
-
-        <ul>
-            <li>Is the HTTP method appropriate?</li>
-            <li>Are GET requests free of state-changing side effects?</li>
-            <li>Are PUT and PATCH semantics clear?</li>
-            <li>Are status codes meaningful?</li>
-            <li>Are important operations idempotent?</li>
-        </ul>
-
-
-        <h3>Requests &amp; responses</h3>
-
-        <ul>
-            <li>Is all external input validated?</li>
-            <li>Are error responses consistent and useful?</li>
+            <li>Are endpoints predictable and resource-oriented?</li>
+            <li>Are HTTP methods and status codes used correctly?</li>
+            <li>Is input validated and are errors consistent?</li>
             <li>Are large collections paginated?</li>
-            <li>Are filtering and sorting predictable?</li>
-            <li>Are bulk operations handled deliberately?</li>
-        </ul>
-
-
-        <h3>Security</h3>
-
-        <ul>
             <li>Are authentication and authorization enforced server-side?</li>
-            <li>Is sensitive information kept out of URLs?</li>
-            <li>Is rate limiting used where appropriate?</li>
-            <li>Are internal implementation details hidden from clients?</li>
-        </ul>
-
-
-        <h3>Reliability</h3>
-
-        <ul>
-            <li>Are timeouts configured?</li>
-            <li>Are retries limited and safe?</li>
-            <li>Is exponential backoff used where appropriate?</li>
-            <li>Are race conditions considered?</li>
-            <li>Are asynchronous operations handled appropriately?</li>
-        </ul>
-
-
-        <h3>Evolution &amp; observability</h3>
-
-        <ul>
-            <li>Are breaking changes avoided or explicitly versioned?</li>
-            <li>Is there a deprecation strategy?</li>
+            <li>Are timeouts and safe retries configured?</li>
+            <li>Is the API backwards compatible?</li>
             <li>Is the API contract documented?</li>
             <li>Can requests be traced through the system?</li>
-            <li>Are useful logs and metrics available?</li>
+            <li>Are asynchronous operations handled appropriately?</li>
         </ul>
 
         <h2>Final Thought</h2>
 
         <p>
-            Good API design ultimately makes an API predictable.
-        </p>
-
-        <p>
-            A developer should be able to interact with an API without needing
-            to understand how the underlying system is implemented. Consistent
-            conventions, clear contracts and well-defined behavior make APIs
-            easier to build, integrate, operate and evolve.
+            Good API design ultimately makes an API <strong>predictable</strong>.
+            Developers should be able to use an API without needing to understand
+            how the underlying system is implemented.
         </p>
 
     </article>

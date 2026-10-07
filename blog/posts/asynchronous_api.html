@@ -48,208 +48,103 @@
         </time>
 
         <p>
-            When designing an API, one of the first questions to answer is:
+            When designing an API, ask:
             <strong>does the client need to wait for the operation to finish?</strong>
         </p>
 
         <p>
-            In a synchronous API, the client sends a request and waits for the
-            operation to complete. In an asynchronous API, the client starts an
-            operation and can continue without waiting for the operation itself
-            to finish.
+            In a <strong>synchronous</strong> API, the client waits for the result.
+            In an <strong>asynchronous</strong> API, the client can continue while
+            the operation is processed in the background.
         </p>
-
-        <p>
-            The choice affects API design, error handling, retries, scalability,
-            queues, webhooks and the overall user experience.
-        </p>
-
 
         <h2>Synchronous APIs</h2>
 
         <p>
-            A synchronous API follows the traditional request-response model:
-            the client sends a request and waits for the server to return the
-            result.
+            The client sends a request and waits for the server to return the result.
         </p>
 
-        <pre><code>Client ────── Request ──────► Server
-Client ◄───── Response ────── Server
+        <pre><code>Client ─── Request ───► Server
+Client ◄── Response ─── Server
               waits</code></pre>
 
-        <p>
-            For example, retrieving a user is usually a synchronous operation:
-        </p>
-
-        <pre><code>GET /users/123</code></pre>
-
-        <p>The server processes the request and returns the result:</p>
-
-        <pre><code>HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-    "id": 123,
-    "name": "Alice"
-}</code></pre>
-
-        <p>
-            The client gets the result as part of the same interaction.
-        </p>
-
-
-        <h3>When is synchronous appropriate?</h3>
-
-        <p>
-            Synchronous APIs work well when the operation is relatively quick
-            and the client needs the result immediately.
-        </p>
+        <p>Good for operations that are quick and need an immediate result:</p>
 
         <ul>
             <li>Fetching a resource</li>
             <li>Updating a resource</li>
             <li>Creating a simple resource</li>
             <li>Validating data</li>
-            <li>Performing a short calculation</li>
+            <li>Short calculations</li>
         </ul>
 
-        <p>For example:</p>
-
         <pre><code>GET /customers/123
-
 PUT /customers/123
-
 POST /payments</code></pre>
-
 
         <h2>Asynchronous APIs</h2>
 
         <p>
-            An asynchronous API allows the client to start an operation without
-            waiting for the operation itself to complete.
+            The client starts an operation without waiting for it to complete.
+            This is useful for long-running or resource-intensive work.
         </p>
 
-        <pre><code>Client ────── Request ──────► Server
-Client ◄───── Accepted ────── Server
+        <pre><code>Client ─── Request ───► Server
+Client ◄── 202 Accepted ─ Server
 
-              ... work happens later ...
+        ... work happens later ...
 
-Worker ──────► Processing</code></pre>
+             Worker
+                ↓
+             Processing</code></pre>
 
-        <p>
-            This is useful when an operation can take a significant amount of
-            time or does not need to produce its final result immediately.
-        </p>
-
-        <p>
-            For example, imagine an API that generates a large report.
-            Generating the report could take several minutes.
-        </p>
-
-        <pre><code>POST /reports</code></pre>
-
-        <p>
-            Instead of keeping the HTTP request open while the report is
-            generated, the API can immediately respond:
-        </p>
-
-        <pre><code>HTTP/1.1 202 Accepted
-Content-Type: application/json
-
-{
-    "job_id": "job_123",
-    "status": "processing"
-}</code></pre>
-
-        <p>
-            The operation has been accepted, but it has not necessarily
-            completed yet.
-        </p>
-
-
-        <h2>What Does 202 Accepted Mean?</h2>
-
-        <p>
-            <code>202 Accepted</code> is commonly used when an API has accepted
-            a request for processing, but the processing has not necessarily
-            completed.
-        </p>
-
-        <p>
-            This is different from:
-        </p>
-
-        <ul>
-            <li>
-                <code>200 OK</code> — the request was successfully processed and
-                the response contains the result.
-            </li>
-            <li>
-                <code>201 Created</code> — a resource was successfully created.
-            </li>
-            <li>
-                <code>202 Accepted</code> — the request was accepted for
-                processing, but the operation may still be running.
-            </li>
-        </ul>
-
-
-        <h2>How Does the Client Get the Result?</h2>
-
-        <p>
-            Once an operation becomes asynchronous, the API needs a way for the
-            client to find out what happened.
-        </p>
-
-        <p>
-            There are several common approaches.
-        </p>
-
-
-        <h3>1. Polling</h3>
-
-        <p>
-            The client periodically asks the server for the status of the
-            operation.
-        </p>
+        <p>For example, generating a large report:</p>
 
         <pre><code>POST /reports
 
-202 Accepted
+HTTP/1.1 202 Accepted
 
 {
     "job_id": "job_123",
     "status": "processing"
 }</code></pre>
 
-        <p>The client can then request:</p>
+        <h2>What Does 202 Accepted Mean?</h2>
 
-        <pre><code>GET /reports/job_123</code></pre>
+        <ul>
+            <li><strong>200 OK</strong> — request completed and a result is returned.</li>
+            <li><strong>201 Created</strong> — a resource was created.</li>
+            <li><strong>202 Accepted</strong> — request was accepted, but processing may still be running.</li>
+        </ul>
 
-        <p>While the operation is running:</p>
+        <h2>Getting the Result</h2>
 
-        <pre><code>{
-    "status": "processing"
-}</code></pre>
+        <p>Common approaches for asynchronous operations include:</p>
 
-        <p>And eventually:</p>
-
-        <pre><code>{
-    "status": "completed",
-    "download_url": "/reports/job_123/download"
-}</code></pre>
+        <h3>Polling</h3>
 
         <p>
-            Polling is simple and works well when clients can tolerate some
-            delay between the operation completing and discovering the result.
+            The client periodically checks the status of the operation.
         </p>
 
+        <pre><code>POST /reports
+→ 202 Accepted
 
-        <h3>2. Webhooks</h3>
+GET /reports/job_123
+→ { "status": "processing" }
+
+GET /reports/job_123
+→ { "status": "completed" }</code></pre>
 
         <p>
-            Instead of the client repeatedly asking whether the operation has
-            finished, the server can notify the client when something happens.
+            Polling is simple, but the client may discover completion with some delay.
+        </p>
+
+        <h3>Webhooks</h3>
+
+        <p>
+            Instead of repeatedly checking, the server notifies the client when
+            something happens.
         </p>
 
         <pre><code>Client
@@ -262,67 +157,44 @@ Server
    ▼
 Client
 
-       ... later ...
+... later ...
 
-Server ───── POST /webhooks/report-completed ─────► Client</code></pre>
+Server ─── POST /webhooks/report-completed ───► Client</code></pre>
 
         <p>
-            The client provides a webhook endpoint, and the server sends a
-            request to that endpoint when the operation completes.
+            Webhooks are particularly useful when another backend service needs
+            to react to an event.
         </p>
 
-        <p>
-            Webhooks are especially useful when the client is another backend
-            service that needs to react to an event.
-        </p>
-
-
-        <h3>3. Message Queues</h3>
+        <h3>Message Queues</h3>
 
         <p>
-            Another common approach is to put the work onto a message queue and
-            process it in the background.
+            Work can be placed on a queue and processed by a background worker.
         </p>
 
         <pre><code>Client
-   │
-   ▼
-API
-   │
-   ▼
+   ↓
+ API
+   ↓
 Queue
-   │
-   ▼
+   ↓
 Worker
-   │
-   ▼
+   ↓
 Database</code></pre>
 
         <p>
-            The API can acknowledge the request quickly while a worker processes
-            the job independently.
+            Queues help handle large workloads, traffic spikes, retries and
+            independent worker scaling.
         </p>
+
+        <h2>Asynchronous ≠ Queue</h2>
 
         <p>
-            Queues are useful when you need to handle large amounts of work,
-            smooth out traffic spikes, retry failed processing, or scale workers
-            independently from the API.
+            An asynchronous API describes <strong>when the client receives the result</strong>.
+            A queue is only one possible implementation.
         </p>
 
-
-        <h2>Asynchronous Does Not Mean "Using a Queue"</h2>
-
-        <p>
-            These concepts are related, but they are not the same thing.
-        </p>
-
-        <p>
-            An asynchronous API is about <strong>when the client receives the
-            result</strong>. A queue is one possible implementation mechanism
-            for processing work asynchronously.
-        </p>
-
-        <p>An asynchronous workflow could use:</p>
+        <p>Asynchronous workflows can use:</p>
 
         <ul>
             <li>Polling</li>
@@ -332,44 +204,24 @@ Database</code></pre>
             <li>Event-driven processing</li>
         </ul>
 
-
         <h2>When Should You Use Asynchronous APIs?</h2>
 
-        <p>
-            Asynchronous processing is particularly useful when an operation:
-        </p>
+        <p>Asynchronous processing is useful when an operation:</p>
 
         <ul>
-            <li>Can take a long time to complete</li>
+            <li>Takes a long time</li>
             <li>Is computationally expensive</li>
-            <li>Processes a large amount of data</li>
-            <li>Does not require an immediate result</li>
-            <li>Can be processed in the background</li>
-            <li>Benefits from retries or independent workers</li>
+            <li>Processes large amounts of data</li>
+            <li>Doesn't require an immediate result</li>
+            <li>Can run in the background</li>
+            <li>Benefits from independent workers or retries</li>
         </ul>
 
-        <p>Examples might include:</p>
-
-        <pre><code>Generate a large report
-        ↓
-Asynchronous
-
-Process millions of transactions
-        ↓
-Asynchronous
-
-Send an email
-        ↓
-Often asynchronous
-
-Process an uploaded video
-        ↓
-Asynchronous
-
-Fetch a customer
-        ↓
-Usually synchronous</code></pre>
-
+        <pre><code>Generate a large report   → Asynchronous
+Process millions of records → Asynchronous
+Send an email              → Often asynchronous
+Process a video            → Asynchronous
+Fetch a customer           → Usually synchronous</code></pre>
 
         <h2>Synchronous vs Asynchronous</h2>
 
@@ -383,27 +235,22 @@ Usually synchronous</code></pre>
             </thead>
             <tbody>
             <tr>
-                <td>Client waits for operation</td>
+                <td>Client waits</td>
                 <td>Yes</td>
                 <td>No</td>
             </tr>
             <tr>
-                <td>Result immediately available</td>
+                <td>Immediate result</td>
                 <td>Usually</td>
                 <td>Not necessarily</td>
             </tr>
             <tr>
-                <td>Long-running operations</td>
+                <td>Long-running work</td>
                 <td>Less suitable</td>
                 <td>Well suited</td>
             </tr>
             <tr>
-                <td>Polling</td>
-                <td>Usually unnecessary</td>
-                <td>Sometimes used</td>
-            </tr>
-            <tr>
-                <td>Webhooks</td>
+                <td>Polling / webhooks</td>
                 <td>Usually unnecessary</td>
                 <td>Common</td>
             </tr>
@@ -413,120 +260,58 @@ Usually synchronous</code></pre>
                 <td>Often used</td>
             </tr>
             <tr>
-                <td>Implementation complexity</td>
+                <td>Complexity</td>
                 <td>Lower</td>
                 <td>Higher</td>
-            </tr>
-            <tr>
-                <td>Failure handling</td>
-                <td>Relatively simple</td>
-                <td>More involved</td>
             </tr>
             </tbody>
         </table>
 
-
-        <h2>Retries and Idempotency</h2>
-
-        <p>
-            Asynchronous systems introduce additional failure scenarios.
-            For example, a client might send a request and never receive the
-            response because of a network failure.
-        </p>
+        <h2>Retries &amp; Idempotency</h2>
 
         <p>
-            The client may then retry the request.
+            Asynchronous systems can introduce additional failure scenarios.
+            A request may be retried if the client doesn't receive a response.
         </p>
 
         <pre><code>POST /payments
-
 Idempotency-Key: abc123</code></pre>
 
         <p>
-            An idempotency key allows the server to recognize that multiple
-            requests represent the same operation.
+            An idempotency key allows the server to recognize duplicate requests
+            representing the same operation.
         </p>
 
         <p>
-            This is particularly important for operations such as payments,
-            where accidentally processing the same request twice could have
-            serious consequences.
+            This is especially important for operations such as payments, where
+            processing the same request twice can have serious consequences.
         </p>
 
-
-        <h2>Other Challenges of Asynchronous Systems</h2>
-
-        <p>
-            Asynchronous processing provides flexibility and scalability, but it
-            also introduces additional complexity.
-        </p>
+        <h2>Challenges of Asynchronous Systems</h2>
 
         <ul>
             <li><strong>Retries</strong> — what happens when processing fails?</li>
-            <li><strong>Duplicate messages</strong> — can the same operation be processed twice?</li>
-            <li><strong>Ordering</strong> — does the order of operations matter?</li>
-            <li><strong>Timeouts</strong> — how long should an operation be allowed to run?</li>
+            <li><strong>Duplicates</strong> — can the same operation run twice?</li>
+            <li><strong>Ordering</strong> — does operation order matter?</li>
             <li><strong>Dead-letter queues</strong> — where do repeatedly failing messages go?</li>
-            <li><strong>Eventual consistency</strong> — when will all systems see the same state?</li>
-            <li><strong>Backpressure</strong> — what happens when work arrives faster than it can be processed?</li>
+            <li><strong>Eventual consistency</strong> — when do systems see the same state?</li>
+            <li><strong>Backpressure</strong> — what happens when work arrives too quickly?</li>
         </ul>
-
-
-        <h2>Choosing Between Them</h2>
-
-        <p>
-            A useful starting point is to ask whether the client actually needs
-            the result before it can continue.
-        </p>
-
-        <pre><code>Does the client need the result immediately?
-            │
-       ┌────┴────┐
-      Yes        No
-       │          │
-       ▼          ▼
-Synchronous   Consider
-              asynchronous</code></pre>
-
-        <p>
-            This is not an absolute rule. A synchronous API can still be
-            appropriate for an operation that takes some time, and an
-            asynchronous API can be useful even for relatively quick operations
-            when decoupling or background processing provides other benefits.
-        </p>
-
 
         <h2>What Should I Remember?</h2>
 
         <ul>
-            <li>
-                <strong>Synchronous</strong> means the client waits for the
-                operation's result.
-            </li>
-            <li>
-                <strong>Asynchronous</strong> means the client can continue
-                without waiting for the operation itself to finish.
-            </li>
-            <li>
-                <code>202 Accepted</code> is commonly used when work has been
-                accepted but is not yet complete.
-            </li>
-            <li>
-                Polling, webhooks and queues are common ways to handle
-                asynchronous workflows.
-            </li>
-            <li>
-                Asynchronous processing introduces additional concerns such as
-                retries, duplicate processing, ordering and eventual
-                consistency.
-            </li>
-            <li>
-                <strong>Idempotency</strong> becomes particularly important when
-                requests or messages can be retried.
-            </li>
+            <li><strong>Synchronous</strong> — the client waits for the result.</li>
+            <li><strong>Asynchronous</strong> — the client doesn't wait for completion.</li>
+            <li><strong>202 Accepted</strong> — work was accepted but may not be complete.</li>
+            <li>Polling, webhooks and queues are common asynchronous patterns.</li>
+            <li>Asynchronous systems require careful handling of retries, duplicates and ordering.</li>
+            <li><strong>Idempotency</strong> is important when operations can be retried.</li>
         </ul>
 
     </article>
+    
+
 </main>
 
 <footer class="site-footer"></footer>

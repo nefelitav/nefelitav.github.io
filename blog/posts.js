@@ -7,22 +7,27 @@ const POSTS = [
     },
     {
         title: "API Best Practices",
-        date: "2026-09-30",
+        date: "2026-09-31",
         file: "api_best_practices.html"
     },
     {
         title: "HTTP Headers Explained",
-        date: "2026-09-30",
+        date: "2026-10-01",
         file: "http_headers.html"
     },
     {
         title: "Synchronous VS Asynchronous API",
-        date: "2026-09-30",
+        date: "2026-10-02",
         file: "asynchronous_api.html"
     },
     {
         title: "Webhooks, queues, events",
-        date: "2026-09-30",
+        date: "2026-10-03",
         file: "webhooks_queues_events.html"
+    },
+    {
+        title: "Confused terminology",
+        date: "2026-10-04",
+        file: "network_and_concurrency_term_explanation.html"
     }
 ];
