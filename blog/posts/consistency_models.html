@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    
+    <meta name="description" content="Consistency Models — understanding strong, eventual, causal and other consistency guarantees in distributed systems.">
+    <meta property="og:title" content="Consistency Models – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical explanation of consistency models and the guarantees distributed systems provide for reads and writes.">
+    <meta property="og:type" content="article">
+
+    <title>Consistency Models – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+    
+
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+    
+
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    
+    <article class="post">
+
+        <h1>Consistency Models</h1>
+
+        <time class="post-date" datetime="2026-10-07">
+            7 October 2026
+        </time>
+
+        <p>
+            <strong>Consistency models</strong> describe the guarantees a
+            distributed system provides about what data reads can see and
+            how operations are ordered.
+        </p>
+
+        <p>
+            In a distributed system, the same data may exist on multiple
+            servers. Because updates can take time to propagate between
+            replicas, different clients may temporarily see different values.
+        </p>
+
+        <pre><code>Server A                 Server B
+X = 20                   X = 10
+
+        &lt;----------&gt;
+   replication</code></pre>
+
+        <p>
+            A consistency model defines what behavior is considered valid
+            when this happens.
+        </p>
+
+        <h2>1. Strong Consistency</h2>
+
+        <p>
+            With <strong>strong consistency</strong>, a read always returns
+            the latest successful write.
+        </p>
+
+        <pre><code>WRITE X = 20
+    ↓
+READ X
+→ 20</code></pre>
+
+        
+        <p>
+            A client should never observe an older value after a newer write
+            has become visible.
+        </p>
+
+        <p>
+            Strong consistency makes systems easier to reason about, but
+            maintaining it across distributed nodes can require coordination,
+            which can increase latency and reduce availability during failures.
+        </p>
+
+        <h2>2. Linearizability</h2>
+
+        <p>
+            <strong>Linearizability</strong> is a particularly strong
+            consistency guarantee.
+        </p>
+
+        <p>
+            It makes operations appear as though they happened atomically
+            at a single point in time, while respecting real-time ordering.
+        </p>
+
+        <pre><code>Client A:
+WRITE X = 20
+↓
+done
+
+Client B:
+READ X
+↓
+20</code></pre>
+
+        
+        <p>
+            Once the write has completed, a later read cannot return the old
+            value.
+        </p>
+
+        <p>
+            Linearizability is often what people mean when they say that a
+            system provides <strong>strong consistency</strong>.
+        </p>
+
+        <h2>3. Eventual Consistency</h2>
+
+        <p>
+            With <strong>eventual consistency</strong>, replicas are allowed
+            to temporarily contain different values.
+        </p>
+
+        <pre><code>After a write:
+
+Server A → X = 20
+Server B → X = 10
+    ↓
+synchronization
+
+Server A → X = 20
+Server B → X = 20</code></pre>
+
+        
+        <p>
+            The guarantee is that if no new updates occur, the replicas will
+            eventually converge to the same value.
+        </p>
+
+        <p>
+            This can allow systems to remain highly available and continue
+            serving requests while replicas synchronize.
+        </p>
+
+        <p>
+            The trade-off is that a client may temporarily receive stale data.
+        </p>
+
+        <h2>4. Read-Your-Writes Consistency</h2>
+
+        <p>
+            <strong>Read-your-writes consistency</strong> guarantees that
+            after a client successfully writes data, that same client will
+            subsequently see its own update.
+        </p>
+
+        <pre><code>Client:
+WRITE profile.name = "Nefeli"
+↓
+done
+
+READ profile.name
+↓
+"Nefeli"</code></pre>
+
+        
+        <p>
+            Without this guarantee, a user could update their profile and
+            immediately refresh the page only to see the old value because
+            the read was served by a replica that had not synchronized yet.
+        </p>
+
+        <h2>5. Monotonic Reads</h2>
+
+        <p>
+            <strong>Monotonic read consistency</strong> guarantees that once
+            a client has seen a particular version of data, subsequent reads
+            will not return an older version.
+        </p>
+
+        <pre><code>First read:
+X = 20
+
+Second read:
+X = 20
+or newer
+
+Never:
+X = 10</code></pre>
+
+        
+        <p>
+            Without monotonic reads, a user could observe data moving
+            backwards in time:
+        </p>
+
+        <pre><code>READ → X = 20
+
+READ → X = 10  ❌</code></pre>
+
+        
+        <p>
+            This can happen when requests are routed to different replicas
+            that are at different points in the replication process.
+        </p>
+
+        <h2>6. Causal Consistency</h2>
+
+        <p>
+            <strong>Causal consistency</strong> preserves the ordering of
+            operations that are causally related.
+        </p>
+
+        <p>
+            Consider a social media application:
+        </p>
+
+        <pre><code>1. User creates a post
+      ↓
+2. User comments on the post</code></pre>
+
+        <p>
+            The comment depends on the post existing first.
+        </p>
+
+        <p>
+            A causally consistent system ensures that another user does not
+            observe the comment before observing the post it refers to.
+        </p>
+
+        <pre><code>Valid:
+
+Post
+↓
+Comment
+
+Invalid:
+
+Comment
+↓
+Post</code></pre>
+
+        <p>
+            Operations that are unrelated do not necessarily need to be
+            observed in the same order by every client.
+        </p>
+
+        <h2>7. Session Consistency</h2>
+
+        <p>
+            <strong>Session consistency</strong> describes guarantees
+            provided within a client's session.
+        </p>
+
+        <p>
+            It is often discussed using guarantees such as:
+        </p>
+
+        <ul>
+            <li>Read-your-writes</li>
+            <li>Monotonic reads</li>
+            <li>Monotonic writes</li>
+            <li>Writes-follow-reads</li>
+        </ul>
+
+        <p>
+            These guarantees can provide a more predictable user experience
+            without requiring every operation across the entire system to
+            have the strongest possible consistency.
+        </p>
+
+        <h2>9. Choosing a Consistency Model</h2>
+
+        <p>
+            The strongest consistency model is not always necessary.
+            The appropriate model depends on the requirements of the system.
+        </p>
+
+        <p>Strong consistency may be important for:</p>
+
+        <ul>
+            <li>Financial balances</li>
+            <li>Inventory where overselling must be prevented</li>
+            <li>Distributed locks</li>
+            <li>Critical configuration</li>
+        </ul>
+
+        <p>Eventual consistency may be acceptable for:</p>
+
+        <ul>
+            <li>Social media feeds</li>
+            <li>View counts</li>
+            <li>Search indexes</li>
+            <li>Recommendations</li>
+            <li>Analytics</li>
+        </ul>
+
+        <p>
+            The goal is not always to maximize consistency. It is to choose
+            the <strong>weakest consistency model that still satisfies the
+            application's requirements</strong>.
+        </p>
+
+        <h2>10. Consistency Models vs CAP</h2>
+
+        <p>
+            Consistency models and the CAP theorem are related, but they
+            describe different things.
+        </p>
+
+        <ul>
+            <li>
+                <strong>CAP theorem:</strong> describes the trade-off between
+                consistency and availability when a network partition occurs.
+            </li>
+            <li>
+                <strong>Consistency models:</strong> describe the guarantees
+                provided to clients about reads, writes and operation ordering.
+            </li>
+        </ul>
+
+        <pre><code>CAP
+│
+└── What happens during a network partition?
+│
+├── Consistency
+└── Availability
+
+Consistency Models
+│
+└── What can clients observe?
+│
+├── Linearizability
+├── Eventual consistency
+├── Read-your-writes
+├── Monotonic reads
+└── Causal consistency</code></pre>
+
+        <h2>Final Thought</h2>
+
+        <p>
+            Consistency is not simply about whether data is "correct" or
+            "incorrect". It is about <strong>what guarantees a system makes
+            about what clients can observe</strong>.
+        </p>
+
+        <p>
+            Different applications need different guarantees, so distributed
+            systems often choose a consistency model that provides the right
+            balance between correctness, performance, latency and availability.
+        </p>
+
+    </article>
+    
+
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

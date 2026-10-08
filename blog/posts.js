@@ -29,5 +29,20 @@ const POSTS = [
         title: "Confused terminology",
         date: "2026-10-04",
         file: "network_and_concurrency_term_explanation.html"
+    },
+    {
+        title: "CAP Theorem",
+        date: "2026-10-07",
+        file: "cap_theorem.html"
+    },
+    {
+        title: "Consistency Models",
+        date: "2026-10-07",
+        file: "consistency_models.html"
+    },
+    {
+        title: "Concurrency & Distributed Systems",
+        date: "2026-10-08",
+        file: "concurrency.html"
     }
 ];

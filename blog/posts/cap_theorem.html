@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="CAP Theorem — understanding consistency, availability and partition tolerance in distributed systems with a practical example.">
+    <meta property="og:title" content="CAP Theorem – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical explanation of the CAP theorem, network partitions, consistency, availability and distributed systems.">
+    <meta property="og:type" content="article">
+
+    <title>CAP Theorem – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+
+        <h1>CAP Theorem</h1>
+
+        <time class="post-date" datetime="2026-10-07">
+            7 October 2026
+        </time>
+
+        <p>
+            The <strong>CAP theorem</strong> describes a fundamental trade-off
+            in distributed systems: when a network partition occurs, a system
+            cannot guarantee both strong consistency and availability at the same time.
+        </p>
+
+        <p>
+            CAP stands for <strong>Consistency, Availability and Partition Tolerance</strong>.
+        </p>
+
+        <h2>1. What is CAP?</h2>
+
+        <p>
+            A distributed system often has multiple servers or nodes that communicate
+            with each other and may contain copies of the same data.
+        </p>
+
+        <pre><code>        Network
+┌───────────────┐
+│               │
+Server A  <------>  Server B
+X = 10              X = 10</code></pre>
+
+        <p>
+            CAP describes what happens when these servers can no longer communicate.
+        </p>
+
+        <p>
+            The important point is that the theorem is specifically about what
+            happens <strong>during a network partition</strong>.
+        </p>
+
+        <h2>2. The Three Properties</h2>
+
+        <h3>Consistency</h3>
+
+        <p>
+            <strong>Consistency</strong> means that every read receives the most
+            recent successful write, or an error.
+        </p>
+
+        <p>
+            After writing <code>X = 20</code>, a read should not return the old
+            value <code>X = 10</code>.
+        </p>
+
+        <pre><code>WRITE X = 20
+Server A
+X = 20
+
+READ X → 20</code></pre>
+
+        <h3>Availability</h3>
+
+        <p>
+            <strong>Availability</strong> means that every request to a
+            non-failing node receives a response, even if that response may
+            not contain the latest data.
+        </p>
+
+        <p>
+            The system continues serving requests instead of refusing them
+            because another node is unreachable.
+        </p>
+
+        <h3>Partition Tolerance</h3>
+
+        <p>
+            <strong>Partition tolerance</strong> means that the system can
+            continue operating despite a network failure that prevents some
+            nodes from communicating with each other.
+        </p>
+
+        <p>
+            A network partition does not necessarily mean that a server has
+            crashed. The servers may still be running, but they cannot
+            communicate.
+        </p>
+
+        <pre><code>Server A       ❌       Server B
+
+🟢          Network      🟢
+            partition
+
+Both servers are running,
+but they cannot communicate.</code></pre>
+
+        <h2>3. A Practical Example</h2>
+
+        <p>
+            Imagine an application with two database replicas:
+        </p>
+
+        <pre><code>Server A                 Server B
+
+X = 10                   X = 10
+
+        &lt;----------&gt;
+      network</code></pre>
+
+        <p>
+            A user updates the value:
+        </p>
+
+        <pre><code>WRITE X = 20</code></pre>
+
+        <p>
+            Server A now has:
+        </p>
+
+        <pre><code>Server A                 Server B
+
+X = 20                   X = 10</code></pre>
+
+        <p>
+            Normally, Server A would communicate the change to Server B.
+            But now the network connection between them fails.
+        </p>
+
+        <pre><code>Server A       ❌       Server B
+
+X = 20                  X = 10</code></pre>
+
+        <p>
+            This is a <strong>network partition</strong>.
+        </p>
+
+        <p>
+            Now a user sends:
+        </p>
+
+        <pre><code>GET X</code></pre>
+
+        <p>
+            to Server B.
+        </p>
+
+        <p>
+            Server B has an important decision to make.
+        </p>
+
+        <h2>4. Consistency vs Availability</h2>
+
+        <h3>Choose Consistency</h3>
+
+        <p>
+            Server B could refuse to return the value because it cannot
+            guarantee that its data is up to date.
+        </p>
+
+        <pre><code>GET X
+
+→ Error / wait
+
+"I cannot guarantee that my data is current."</code></pre>
+
+        <p>
+            This preserves <strong>consistency</strong>, but the system is
+            sacrificing <strong>availability</strong>.
+        </p>
+
+        <h3>Choose Availability</h3>
+
+        <p>
+            Alternatively, Server B could return the value it currently has:
+        </p>
+
+        <pre><code>GET X
+
+→ 10</code></pre>
+
+        <p>
+            The request was successfully served, so the system remains
+            <strong>available</strong>.
+        </p>
+
+        <p>
+            However, the value is stale because another server already has
+            <code>X = 20</code>. Strong <strong>consistency</strong> has been
+            sacrificed.
+        </p>
+
+        <h2>5. The CAP Trade-off</h2>
+
+        <p>
+            When a network partition occurs, the system has to choose between
+            maintaining strong consistency and maintaining availability.
+        </p>
+
+        <pre><code>             Network Partition
+                │
+         ┌──────┴──────┐
+         │             │
+   Consistency    Availability
+         │             │
+    reject/wait      respond
+    requests         with data</code></pre>
+
+        <p>
+            This is the core idea behind the CAP theorem:
+        </p>
+
+        <blockquote>
+            During a network partition, you cannot guarantee both strong
+            consistency and availability.
+        </blockquote>
+
+        <h2>6. Why Partition Tolerance Matters</h2>
+
+        <p>
+            In a distributed system, network failures are unavoidable.
+            Servers can lose connectivity because of hardware failures,
+            network problems, configuration errors, overloaded components
+            or failures between data centers.
+        </p>
+
+        <p>
+            Therefore, partition tolerance is generally something distributed
+            systems need to handle rather than something they can simply
+            choose to ignore.
+        </p>
+
+        <p>
+            This means the practical trade-off is often described as:
+        </p>
+
+        <pre><code>        P
+        │
+   ┌────┴────┐
+   │         │
+   C         A
+   │         │
+Consistency  Availability</code></pre>
+        <p>
+            A system can be designed to prioritize either
+            <strong>consistency</strong> or <strong>availability</strong>
+            when communication between nodes is lost.
+        </p>
+
+        <h2>7. Strong vs Eventual Consistency</h2>
+
+        <p>
+            Systems that prioritize availability may allow replicas to
+            temporarily contain different values.
+        </p>
+
+        <pre><code>Immediately after a write:
+
+Server A → X = 20
+Server B → X = 10
+
+Later, after synchronization:
+
+Server A → X = 20
+Server B → X = 20</code></pre>
+
+        <p>
+            This is an example of <strong>eventual consistency</strong>.
+            The system may temporarily return stale data, but replicas
+            eventually converge on the same value.
+        </p>
+
+        <p>
+            Eventual consistency is common in systems where remaining
+            available is more important than immediately having identical
+            data everywhere.
+        </p>
+
+        <h2>Final Thought</h2>
+
+        <p>
+            The easiest way to remember CAP is:
+            <strong>when distributed nodes cannot communicate, you have to
+                decide whether to keep serving requests or guarantee that the
+                data is consistent.</strong>
+        </p>
+
+        <p>
+            In other words:
+            <strong>Partition → Consistency or Availability.</strong>
+        </p>
+
+    </article>
+
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

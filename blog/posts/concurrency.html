@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Concurrency and Distributed Systems — understanding race conditions, transactions, locks, idempotency, queues, retries, distributed locks, caching, rate limiting and consistency models.">
+    <meta property="og:title" content="Concurrency & Distributed Systems – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to concurrency, reliable asynchronous processing and distributed systems.">
+    <meta property="og:type" content="article">
+
+    <title>Concurrency & Distributed Systems – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+    
+
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    
+    <article class="post">
+
+        <h1>Concurrency & Distributed Systems</h1>
+
+        <time class="post-date" datetime="2026-10-08">
+            8 October 2026
+        </time>
+
+        <p>
+            <strong>Concurrency</strong> is the execution of multiple tasks
+            whose work overlaps in time. In backend systems, concurrency
+            happens constantly: multiple HTTP requests, workers, database
+            transactions and scheduled jobs may access the same resources
+            simultaneously.
+        </p>
+
+        <p>
+            The challenge is not simply running things at the same time.
+            The challenge is making sure that concurrent operations produce
+            correct and predictable results.
+        </p>
+
+        <h2>1. Concurrency vs Parallelism</h2>
+
+        <p>
+            <strong>Concurrency</strong> means multiple tasks are in progress
+            during overlapping periods of time.
+        </p>
+
+        <p>
+            <strong>Parallelism</strong> means multiple tasks are actually
+            executing at the same time, typically on different CPU cores.
+        </p>
+
+        <p>
+            A backend application can therefore have concurrency even when
+            only one CPU core is executing instructions at a time.
+        </p>
+
+        <h2>2. Race Conditions</h2>
+
+        <p>
+            A <strong>race condition</strong> occurs when the result depends
+            on the timing or ordering of concurrent operations.
+        </p>
+
+        <p>
+            A common example is a shared counter:
+        </p>
+
+        <pre><code>counter = 0
+
+Worker A: READ 0
+Worker B: READ 0
+
+Worker A: ADD 1
+Worker B: ADD 1
+
+Worker A: WRITE 1
+Worker B: WRITE 1
+
+Final value = 1  ❌</code></pre>
+
+        
+        <p>
+            We expected the result to be 2, but both workers read the same
+            old value.
+        </p>
+
+        <p>
+            This is especially common with the
+            <strong>read → modify → write</strong> pattern.
+        </p>
+
+        <h2>3. Read → Modify → Write</h2>
+
+        <p>
+            Many concurrency bugs come from splitting an operation into
+            multiple steps:
+        </p>
+
+        <pre><code>READ
+↓
+MODIFY
+↓
+WRITE</code></pre>
+
+        <p>
+            For example, suppose a product has one item in stock:
+        </p>
+
+        <pre><code>stock = 1
+
+Request A: READ 1
+Request B: READ 1
+
+A: stock--
+B: stock--
+
+A: WRITE 0
+B: WRITE 0</code></pre>
+
+        
+        <p>
+            Two requests may both believe they successfully purchased the
+            same item.
+        </p>
+
+        <p>
+            When possible, combine the operation into one atomic database
+            statement:
+        </p>
+
+        <pre><code>UPDATE products
+
+SET stock = stock - 1
+WHERE id = 123
+AND stock > 0;</code></pre>
+
+        
+        <p>
+            Then check the number of affected rows:
+        </p>
+
+        <pre><code>1 row → operation succeeded
+
+0 rows → no stock / another request won</code></pre>
+
+        
+        <p>
+            The database can safely perform the update as one operation,
+            avoiding the application-level read-modify-write race.
+        </p>
+
+        <h2>4. Atomic Operations vs Transactions</h2>
+
+        <p>
+            An <strong>atomic operation</strong> makes one operation happen
+            without exposing an intermediate state.
+        </p>
+
+        <p>
+            A <strong>transaction</strong> groups multiple database
+            operations so they succeed or fail together.
+        </p>
+
+        <pre><code>Atomic operation:
+
+UPDATE accounts
+SET balance = balance - 100
+WHERE id = 1;
+
+Transaction:
+
+START TRANSACTION;
+
+UPDATE accounts
+SET balance = balance - 100
+WHERE id = 1;
+
+UPDATE accounts
+SET balance = balance + 100
+WHERE id = 2;
+
+COMMIT;</code></pre>
+
+        <p>
+            Atomic operations are useful when one database statement can
+            express the required invariant. Transactions are useful when
+            multiple operations must be coordinated.
+        </p>
+
+        <h2>5. Transactions</h2>
+
+        <p>
+            A transaction provides a boundary around a group of database
+            operations.
+        </p>
+
+        <pre><code>START TRANSACTION;
+
+Operation A
+Operation B
+Operation C
+
+COMMIT;</code></pre>
+
+        
+        <p>
+            If something fails:
+        </p>
+
+        <pre><code>ROLLBACK;</code></pre>
+
+        <p>
+            Transactions are especially important when several changes must
+            remain consistent with one another.
+        </p>
+
+        <h2>6. Isolation Levels</h2>
+
+        <p>
+            <strong>Isolation</strong> determines what concurrent transactions
+            are allowed to observe.
+        </p>
+
+        <p>
+            Common MySQL isolation levels are:
+        </p>
+
+        <ul>
+            <li>
+                <strong>READ UNCOMMITTED</strong> — may read uncommitted changes.
+            </li>
+            <li>
+                <strong>READ COMMITTED</strong> — reads only committed data.
+            </li>
+            <li>
+                <strong>REPEATABLE READ</strong> — MySQL's default; ordinary
+                reads use a consistent transaction snapshot.
+            </li>
+            <li>
+                <strong>SERIALIZABLE</strong> — strongest isolation, with
+                greater contention.
+            </li>
+        </ul>
+
+        <p>
+            Different isolation levels control anomalies such as:
+        </p>
+
+        <ul>
+            <li>Dirty reads</li>
+            <li>Non-repeatable reads</li>
+            <li>Phantom reads</li>
+            <li>Lost updates</li>
+        </ul>
+
+        <p>
+            Isolation answers the question:
+        </p>
+
+        <pre><code>"What can my transaction see?"</code></pre>
+
+        <h2>7. Locks</h2>
+
+        <p>
+            A <strong>lock</strong> controls which concurrent operations can
+            access or modify a resource.
+        </p>
+
+        <p>
+            For example, MySQL's <code>FOR UPDATE</code> can lock selected rows:
+        </p>
+
+        <pre><code>START TRANSACTION;
+
+SELECT balance
+FROM accounts
+WHERE id = 1
+FOR UPDATE;
+
+-- check balance
+
+UPDATE accounts
+SET balance = balance - 100
+WHERE id = 1;
+
+COMMIT;</code></pre>
+
+        
+        <p>
+            Another transaction attempting to acquire the same conflicting
+            row lock may have to wait.
+        </p>
+
+        <p>
+            A locking read such as <code>FOR UPDATE</code> is useful inside an
+            explicit transaction because the lock is held until
+            <code>COMMIT</code> or <code>ROLLBACK</code>.
+        </p>
+
+        <p>
+            This gives us a useful distinction:
+        </p>
+
+        <pre><code>Isolation → What can I see?
+
+Locks → What can I block or prevent?</code></pre>
+
+        
+        <h2>8. Deadlocks</h2>
+
+        <p>
+            A <strong>deadlock</strong> occurs when transactions wait for
+            each other indefinitely.
+        </p>
+
+        <pre><code>Transaction A:
+
+locks Row 1
+waits for Row 2
+
+Transaction B:
+locks Row 2
+waits for Row 1</code></pre>
+
+        <p>
+            The database detects the circular dependency and normally rolls
+            back one transaction.
+        </p>
+
+        <p>
+            A common way to prevent deadlocks is to acquire locks in a
+            consistent order:
+        </p>
+
+        <pre><code>Always lock:
+
+Row 1
+then
+Row 2
+
+Never:
+
+Transaction A: 1 → 2
+Transaction B: 2 → 1</code></pre>
+
+        
+        <p>
+            Transactions should also be kept short and should avoid slow
+            external operations while holding locks.
+        </p>
+
+        <p>
+            Applications should generally be prepared to retry a transaction
+            after a deadlock.
+        </p>
+
+        <h2>9. Optimistic Locking</h2>
+
+        <p>
+            <strong>Optimistic locking</strong> assumes conflicts are
+            relatively uncommon and detects them instead of preventing them.
+        </p>
+
+        <p>
+            A version column can be used:
+        </p>
+
+        <pre><code>id = 123
+
+status = pending
+version = 5</code></pre>
+
+        
+        <p>
+            The worker reads version 5 and attempts:
+        </p>
+
+        <pre><code>UPDATE invoices
+
+SET status = 'processing',
+version = version + 1
+WHERE id = 123
+AND version = 5;</code></pre>
+
+        
+        <p>
+            The result tells us whether we won:
+        </p>
+
+        <pre><code>1 affected row → success
+
+
+0 affected rows → someone changed it first</code></pre>
+
+        
+        <p>
+            This differs from pessimistic locking:
+        </p>
+
+        <pre><code>Pessimistic:
+
+"Prevent conflicts."
+
+Optimistic:
+"Allow conflicts, but detect them."</code></pre>
+
+        
+        <h2>10. Idempotency</h2>
+
+        <p>
+            An operation is <strong>idempotent</strong> if performing it
+            multiple times has the same intended effect as performing it once.
+        </p>
+
+        <pre><code>SET balance = 100
+
+→ idempotent
+
+balance = balance + 100
+→ not idempotent</code></pre>
+
+        
+        <p>
+            Idempotency is essential when requests can be retried.
+        </p>
+
+        <p>
+            For example:
+        </p>
+
+        <pre><code>Client
+↓
+Payment API
+↓
+payment succeeds
+↓
+response lost
+↓
+client retries</code></pre>
+
+        
+        <p>
+            Without protection, the payment could be processed twice.
+        </p>
+
+        <p>
+            An idempotency key can identify the logical operation:
+        </p>
+
+        <pre><code>Idempotency-Key: abc123</code></pre>
+
+        <p>
+            The database should enforce uniqueness rather than relying on:
+        </p>
+
+        <pre><code>if (!exists) {
+insert();
+
+}</code></pre>
+
+        
+        <p>
+            Two concurrent requests can both pass the check. A unique
+            constraint or atomic insert provides the actual protection.
+        </p>
+
+        <h2>11. Queues and Workers</h2>
+
+        <p>
+            Queues allow work to be processed asynchronously.
+        </p>
+
+        <pre><code>API
+↓
+Queue
+↓
+Workers
+↓
+External services</code></pre>
+
+        
+        <p>
+            Multiple workers allow the system to process many messages
+            concurrently.
+        </p>
+
+        <p>
+            A worker normally acknowledges a message only after successful
+            processing:
+        </p>
+
+        <pre><code>Receive
+↓
+Process
+↓
+Success
+↓
+ACK</code></pre>
+
+        
+        <p>
+            If the worker crashes before acknowledging the message, the queue
+            can deliver it again.
+        </p>
+
+        <p>
+            This commonly results in <strong>at-least-once delivery</strong>,
+            which means consumers must be prepared for duplicates.
+        </p>
+
+        <h2>12. Message Reliability</h2>
+
+        <p>
+            Queue systems commonly use a temporary ownership period called a
+            <strong>visibility timeout</strong> or message lease.
+        </p>
+
+        <pre><code>Message received
+↓
+temporarily hidden
+↓
+worker processes it
+↓
+ACK</code></pre>
+
+        <p>
+            If the worker does not acknowledge it before the timeout, the
+            message may become available again.
+        </p>
+
+        <p>
+            The timeout must be long enough for normal processing. Otherwise,
+            two workers may process the same message concurrently.
+        </p>
+
+        <p>
+            Failed messages are usually retried with
+            <strong>exponential backoff</strong>:
+        </p>
+
+        <pre><code>1s
+2s
+4s
+8s
+16s
+...</code></pre>
+
+        <p>
+            <strong>Jitter</strong> adds randomness to retry delays so that
+            many workers do not retry at exactly the same time.
+        </p>
+
+        <p>
+            After a configured number of attempts, a message can be moved to
+            a <strong>Dead Letter Queue (DLQ)</strong>.
+        </p>
+
+        <pre><code>Message
+   ↓
+Process
+   ↓
+Failure
+   ↓
+Retry + Backoff
+   ↓
+Maximum attempts?
+   ↓
+DLQ</code></pre>
+
+        <p>
+            Temporary failures should usually be retried, while permanent
+            failures such as invalid input should generally not be retried
+            indefinitely.
+        </p>
+
+        <h2>13. At-Most-Once vs At-Least-Once vs Exactly-Once</h2>
+
+        <p>
+            Message delivery can be described using three common guarantees.
+        </p>
+
+        <ul>
+            <li>
+                <strong>At-most-once:</strong> delivered zero or one time;
+                messages may be lost.
+            </li>
+            <li>
+                <strong>At-least-once:</strong> delivered one or more times;
+                duplicates are possible.
+            </li>
+            <li>
+                <strong>Exactly-once:</strong> intended to produce exactly one
+                delivery or processing result.
+            </li>
+        </ul>
+
+        <p>
+            Exactly-once behavior is difficult to guarantee across an entire
+            distributed workflow.
+        </p>
+
+        <p>
+            A more practical approach is often:
+        </p>
+
+        <pre><code>At-least-once delivery
+        +
+Idempotent consumer
+        =
+Reliable processing</code></pre>
+
+        <p>
+            For example, a consumer can store processed message IDs with a
+            unique constraint:
+        </p>
+
+        <pre><code>processed_messages
+------------------
+message_id PRIMARY KEY
+processed_at</code></pre>
+
+        <h2>14. Transactional Outbox</h2>
+
+        <p>
+            A common distributed-systems problem occurs when an application
+            needs to update a database and publish an event.
+        </p>
+
+        <pre><code>START TRANSACTION
+
+INSERT invoice
+
+Publish InvoiceCreated
+
+COMMIT</code></pre>
+
+        <p>
+            The database operation and message publication are two separate
+            systems. One can succeed while the other fails.
+        </p>
+
+        <p>
+            The <strong>transactional outbox</strong> pattern solves this by
+            storing the event in the same database transaction:
+        </p>
+
+        <pre><code>START TRANSACTION
+
+INSERT invoice
+
+INSERT outbox_event
+
+COMMIT</code></pre>
+
+        <p>
+            A separate publisher then reads the outbox and publishes the
+            events:
+        </p>
+
+        <pre><code>Application
+    ↓
+DB transaction
+    ↓
+Invoice + Outbox Event
+    ↓
+Outbox Publisher
+    ↓
+Queue
+    ↓
+Workers</code></pre>
+
+        <p>
+            The publisher can still crash after publishing but before marking
+            the event as published. Therefore, the outbox provides reliable
+            <strong>at-least-once publishing</strong>, not automatic
+            exactly-once delivery.
+        </p>
+
+        <p>
+            Consumers still need idempotency.
+        </p>
+
+        <h2>15. Distributed Locks</h2>
+
+        <p>
+            A normal in-memory lock only coordinates threads or processes on
+            the same machine. It cannot coordinate workers running on
+            different machines or Kubernetes pods.
+        </p>
+
+        <pre><code>Pod A ──┐
+Pod B ──┼──→ Shared resource
+Pod C ──┘</code></pre>
+
+        <p>
+            A <strong>distributed lock</strong> provides shared coordination,
+            often using Redis or a database.
+        </p>
+
+        <p>
+            A Redis-style lock might conceptually look like:
+        </p>
+
+        <pre><code>SET lock:invoice:123 worker-abc NX EX 30</code></pre>
+
+        <ul>
+            <li><code>NX</code> → acquire only if the lock does not exist</li>
+            <li><code>EX 30</code> → expire after 30 seconds</li>
+            <li><code>worker-abc</code> → identifies the owner</li>
+        </ul>
+
+        <p>
+            The expiration acts as a lease. If the worker crashes, another
+            worker can eventually acquire the lock.
+        </p>
+
+        <p>
+            However, if processing takes longer than the lease, the lock may
+            expire while the original worker is still running. This is one
+            reason distributed locks require careful design.
+        </p>
+
+        <p>
+            Often, an atomic database claim is simpler:
+        </p>
+
+        <pre><code>UPDATE invoices
+SET status = 'processing'
+WHERE id = 123
+  AND status = 'pending';</code></pre>
+
+        <p>
+            If one row was affected, that worker successfully claimed the
+            invoice.
+        </p>
+
+        <h2>16. Distributed Concurrency</h2>
+
+        <p>
+            Concurrency becomes more difficult when operations happen on
+            different machines.
+        </p>
+
+        <pre><code>Pod A ──────┐
+Pod B ──────┼── Network ── DB / Redis / APIs
+Pod C ──────┘</code></pre>
+
+        <p>
+            Networks can introduce:
+        </p>
+
+        <ul>
+            <li>Latency</li>
+            <li>Timeouts</li>
+            <li>Lost responses</li>
+            <li>Duplicate requests</li>
+            <li>Network partitions</li>
+            <li>Partial failures</li>
+        </ul>
+
+        <p>
+            One of the most important problems is ambiguity:
+        </p>
+
+        <pre><code>Request
+   ↓
+External service succeeds
+   ↓
+Response is lost
+   ↓
+Client sees timeout</code></pre>
+
+        <p>
+            The client cannot know whether the operation failed or succeeded.
+            Retrying therefore requires idempotency.
+        </p>
+
+        <h2>17. Split Brain and Stale Workers</h2>
+
+        <p>
+            A <strong>split brain</strong> occurs when multiple nodes believe
+            they have authority over the same resource.
+        </p>
+
+        <p>
+            Distributed locks can also suffer from stale workers. For example:
+        </p>
+
+        <pre><code>Worker A
+acquires lock
+    ↓
+lock expires
+
+Worker B
+acquires lock
+    ↓
+Worker A continues running ❗</code></pre>
+
+        <p>
+            A <strong>fencing token</strong> can protect against this by
+            assigning an increasing token to each new owner:
+        </p>
+
+        <pre><code>Worker A → token 5
+Worker B → token 6</code></pre>
+
+        <p>
+            The shared resource can reject operations using an older token.
+        </p>
+
+        <p>
+            This prevents a stale worker from modifying state after another
+            worker has legitimately taken ownership.
+        </p>
+
+        <h2>18. Caching and Concurrency</h2>
+
+        <p>
+            Caches reduce database load, but they introduce their own
+            concurrency problems.
+        </p>
+
+        <p>
+            A common pattern is <strong>cache-aside</strong>:
+        </p>
+
+        <pre><code>Request
+   ↓
+Cache
+ ┌─┴─┐
+Hit  Miss
+ ↓    ↓
+Return DB
+       ↓
+     Cache
+       ↓
+     Return</code></pre>
+
+        <p>
+            A <strong>cache stampede</strong> can happen when many requests
+            encounter the same cache miss simultaneously.
+        </p>
+
+        <pre><code>Cache expires
+      ↓
+100 requests
+      ↓
+100 DB queries ❗</code></pre>
+
+        <p>
+            One solution is request coalescing using a shared lock:
+        </p>
+
+        <pre><code>Request A → acquires lock → loads DB → updates cache
+
+Request B ───────────────────────→ waits
+
+Request C ───────────────────────→ waits</code></pre>
+
+        <p>
+            Another technique is <strong>TTL jitter</strong>, which gives
+            different cache entries slightly different expiration times.
+        </p>
+
+        <p>
+            <strong>Stale-while-revalidate</strong> can also return slightly
+            stale data while another worker refreshes the cache in the
+            background.
+        </p>
+
+        <h2>19. Cache Invalidation</h2>
+
+        <p>
+            When underlying data changes, the cache must eventually reflect
+            the new state.
+        </p>
+
+        <pre><code>Update DB
+   ↓
+Invalidate cache</code></pre>
+
+        <p>
+            Updating the cache before the database can be dangerous:
+        </p>
+
+        <pre><code>Update Cache
+     ↓
+Update DB fails ❌
+
+Cache now contains data
+that the DB never committed.</code></pre>
+
+        <p>
+            Cache design therefore involves a trade-off between freshness,
+            performance and complexity.
+        </p>
+
+        <h2>20. Rate Limiting</h2>
+
+        <p>
+            <strong>Rate limiting</strong> controls how many requests can
+            enter a system over time.
+        </p>
+
+        <p>
+            It is different from concurrency limiting:
+        </p>
+
+        <pre><code>Rate limiting
+→ How many requests over time?
+
+Concurrency limiting
+→ How many operations at once?</code></pre>
+
+        <h3>Fixed Window</h3>
+
+        <p>
+            Count requests within fixed time intervals.
+        </p>
+
+        <pre><code>12:00:00 ───────── 12:01:00
+
+Maximum: 100 requests</code></pre>
+
+        <p>
+            A weakness is the boundary:
+        </p>
+
+        <pre><code>12:00:59 → 100 requests
+12:01:00 → 100 requests
+
+200 requests in ~1 second</code></pre>
+
+        <h3>Sliding Window</h3>
+
+        <p>
+            Counts requests over a rolling time period, providing a more
+            accurate limit at the cost of additional state and computation.
+        </p>
+
+        <h3>Token Bucket</h3>
+
+        <p>
+            A bucket contains tokens that are consumed by requests and
+            replenished at a fixed rate.
+        </p>
+
+        <pre><code>Capacity: 10 tokens
+Refill:   2 tokens / second
+
+Request → consume token</code></pre>
+
+        <p>
+            This allows controlled bursts while maintaining an average rate.
+        </p>
+
+        <h3>Leaky Bucket</h3>
+
+        <p>
+            The leaky bucket smooths traffic by processing requests at a
+            controlled rate.
+        </p>
+
+        <p>
+            Rate limiting itself must be concurrency-safe. A distributed
+            implementation cannot simply:
+        </p>
+
+        <pre><code>READ count
+↓
+count + 1
+↓
+WRITE count</code></pre>
+
+        <p>
+            because concurrent requests can race. The counter update and
+            limit check need atomic coordination.
+        </p>
+
+        <h2>21. Retry Storms and Backpressure</h2>
+
+        <p>
+            Retries can make a failure worse.
+        </p>
+
+        <pre><code>Service becomes slow
+      ↓
+Requests timeout
+      ↓
+Clients retry
+      ↓
+More requests
+      ↓
+Service becomes even slower
+      ↓
+More retries</code></pre>
+
+        <p>
+            This is a <strong>retry storm</strong>.
+        </p>
+
+        <p>
+            Exponential backoff, jitter, rate limiting and bounded concurrency
+            help control the amount of work entering an unhealthy system.
+        </p>
+
+        <p>
+            This is an example of <strong>backpressure</strong>: preventing
+            downstream systems from receiving more work than they can safely
+            handle.
+        </p>
+
+        <h2>22. Consistency Models</h2>
+
+        <p>
+            In distributed systems, the same data may exist on multiple
+            servers. Replication can therefore cause clients to observe
+            different versions of the data.
+        </p>
+
+        <pre><code>Primary                 Replica
+X = 20                  X = 10
+
+       ← replication →</code></pre>
+
+        <p>
+            A <strong>consistency model</strong> defines what clients are
+            allowed to observe.
+        </p>
+
+        <h3>Strong / Linearizable Consistency</h3>
+
+        <p>
+            Once a write has successfully completed, a later read observes
+            that write.
+        </p>
+
+        <pre><code>WRITE X = 20
+     ↓
+READ X
+     ↓
+20</code></pre>
+
+        <p>
+            Linearizability also requires operations to appear to occur in a
+            single order that respects real-time ordering.
+        </p>
+
+        <h3>Eventual Consistency</h3>
+
+        <p>
+            Replicas may temporarily disagree but eventually converge if no
+            new updates occur.
+        </p>
+
+        <pre><code>Primary  → X = 20
+Replica  → X = 10
+             ↓
+        replication
+             ↓
+Replica  → X = 20</code></pre>
+
+        <p>
+            This can provide better availability and lower coordination costs,
+            but clients may temporarily see stale data.
+        </p>
+
+        <h3>Read-Your-Writes</h3>
+
+        <p>
+            After a client successfully writes data, that client can
+            subsequently see its own update.
+        </p>
+
+        <pre><code>WRITE name = "Nefeli"
+        ↓
+READ name
+        ↓
+"Nefeli"</code></pre>
+
+        <h3>Monotonic Reads</h3>
+
+        <p>
+            Once a client has seen a particular version, subsequent reads
+            will not return an older version.
+        </p>
+
+        <pre><code>READ → version 5
+READ → version 5
+READ → version 6
+
+Never:
+
+READ → version 4</code></pre>
+
+        <h3>Causal Consistency</h3>
+
+        <p>
+            Causally related operations are observed in their causal order.
+        </p>
+
+        <pre><code>Create Post
+     ↓
+Create Comment</code></pre>
+
+        <p>
+            A client should not observe the comment before the post that
+            caused it to exist.
+        </p>
+
+        <h2>23. Consistency vs Serializability</h2>
+
+        <p>
+            These concepts are related but different.
+        </p>
+
+        <p>
+            <strong>Serializability</strong> concerns concurrent database
+            transactions and whether their result is equivalent to some
+            serial execution.
+        </p>
+
+        <p>
+            <strong>Linearizability</strong> concerns the ordering and
+            visibility of operations, particularly in distributed systems.
+        </p>
+
+        <pre><code>Serializability
+→ How transactions interact
+
+Linearizability
+→ How operations appear in real time</code></pre>
+
+        <p>
+            Similarly, distributed-systems consistency should not be confused
+            with the <strong>C</strong> in ACID, which concerns preservation
+            of database invariants.
+        </p>
+
+        <h2>24. Choosing the Right Guarantee</h2>
+
+        <p>
+            Stronger consistency is not automatically better. It often
+            requires more coordination and can increase latency or reduce
+            availability.
+        </p>
+
+        <p>Strong consistency may be important for:</p>
+
+        <ul>
+            <li>Financial balances</li>
+            <li>Inventory where overselling is unacceptable</li>
+            <li>Critical permissions</li>
+            <li>Distributed coordination</li>
+        </ul>
+
+        <p>Eventual consistency may be acceptable for:</p>
+
+        <ul>
+            <li>Search indexes</li>
+            <li>Analytics</li>
+            <li>Recommendations</li>
+            <li>View counts</li>
+            <li>Social media feeds</li>
+        </ul>
+
+        <p>
+            The goal is often to choose the
+            <strong>weakest consistency guarantee that still satisfies the
+            business requirements</strong>.
+        </p>
+
+        <h2>25. A Practical Mental Model</h2>
+
+        <p>
+            Many concurrency problems can be mapped to a small number of
+            techniques:
+        </p>
+
+        <pre><code>Read-modify-write race
+        ↓
+Atomic database operation
+
+Multiple DB operations
+        ↓
+Transaction
+
+Protect a DB row
+        ↓
+Lock
+
+Detect conflicting updates
+        ↓
+Optimistic locking
+
+Duplicate request
+        ↓
+Idempotency
+
+Asynchronous work
+        ↓
+Queue
+
+Worker crash
+        ↓
+Retry + ACK
+
+Repeated failures
+        ↓
+DLQ
+
+DB + event consistency
+        ↓
+Transactional outbox
+
+Multiple workers
+        ↓
+Atomic claim / lock
+
+Multiple machines
+        ↓
+Distributed coordination
+
+Stale lock owner
+        ↓
+Fencing token
+
+Cache expiration race
+        ↓
+Request coalescing / locking
+
+Too much traffic
+        ↓
+Rate limiting / concurrency limiting
+
+Replicated data
+        ↓
+Choose a consistency model</code></pre>
+
+        <h2>Final Thought</h2>
+
+        <p>
+            Concurrency problems rarely come from one request doing something
+            complicated. They usually appear because
+            <strong>multiple operations can happen at the same time</strong>
+            and the system has to decide what happens when they interact.
+        </p>
+
+        <p>
+            At the database level, we use atomic operations, transactions,
+            isolation and locks. At the application level, we use
+            idempotency and optimistic concurrency. At the distributed level,
+            we need queues, retries, outboxes, distributed coordination,
+            caching strategies, rate limiting and consistency guarantees.
+        </p>
+
+        <p>
+            The most important question is therefore not simply
+            <strong>"How do I make this concurrent?"</strong>, but:
+        </p>
+
+        <pre><code>What can happen concurrently?
+        ↓
+What can go wrong?
+        ↓
+What guarantee do I need?
+        ↓
+What mechanism provides that guarantee?</code></pre>
+
+    </article>
+
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>
+
