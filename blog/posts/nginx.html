@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="NGINX, Reverse Proxies, Load Balancers and API Gateways — understanding how HTTP traffic is routed, distributed and managed.">
+    <meta property="og:title" content="NGINX, Reverse Proxies, Load Balancers and API Gateways – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to NGINX, reverse proxies, load balancing, API gateways, traffic routing and real-world configurations.">
+    <meta property="og:type" content="article">
+
+    <title>NGINX, Reverse Proxies, Load Balancers and API Gateways – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+
+        <h1>NGINX, Reverse Proxies, Load Balancers and API Gateways</h1>
+
+        <time class="post-date" datetime="2026-10-14">
+            14 October 2026
+        </time>
+
+        <p>
+            When a client sends an HTTP request, it does not always communicate
+            directly with the application that processes it. Requests often pass
+            through infrastructure components responsible for routing traffic,
+            distributing requests and controlling access to backend services.
+        </p>
+
+        <p>
+            Three important concepts are <strong>reverse proxies, load balancers
+            and API gateways</strong>. They have overlapping responsibilities,
+            but each emphasizes a different problem.
+        </p>
+
+        <p>
+            NGINX is a popular tool that can act as a reverse proxy and load
+            balancer, while also providing features such as TLS termination,
+            caching and rate limiting.
+        </p>
+
+        <p>
+            Understanding these components helps explain how applications
+            scale, expose APIs and communicate with backend services.
+        </p>
+
+
+        <h2>1. The Big Picture</h2>
+
+        <p>
+            Imagine an application with a frontend, a payments service and
+            a users service.
+        </p>
+
+        <p>
+            Instead of allowing clients to communicate directly with every
+            backend service, we can introduce an entry point that receives
+            incoming requests and forwards them to the appropriate destination.
+        </p>
+
+        <pre><code>Client
+  |
+  v
+Reverse Proxy / API Gateway
+  |
+  +----&gt; Payments Service
+  |
+  +----&gt; Users Service
+  |
+  +----&gt; Orders Service</code></pre>
+
+        <p>
+            If the payments service has multiple instances, another concern
+            appears: deciding which instance should receive each request.
+            This is where load balancing becomes important.
+        </p>
+
+        <pre><code>Client
+  |
+  v
+Load Balancer
+  |
+  +----&gt; Payments Instance 1
+  |
+  +----&gt; Payments Instance 2
+  |
+  +----&gt; Payments Instance 3</code></pre>
+
+        <p>
+            These responsibilities can be implemented by separate infrastructure
+            components or combined in one product.
+        </p>
+
+
+        <h2>2. What Is a Reverse Proxy?</h2>
+
+        <p>
+            A <strong>reverse proxy</strong> is a server that receives requests
+            from clients and forwards them to backend servers.
+        </p>
+
+        <p>
+            The client communicates with the proxy rather than needing to know
+            the internal address of the backend.
+        </p>
+
+        <pre><code>Client
+  |
+  v
+Reverse Proxy
+  |
+  v
+Backend Application</code></pre>
+
+        <p>
+            For example, a browser might send a request to:
+        </p>
+
+        <pre><code>https://example.com/api/users</code></pre>
+
+        <p>
+            The reverse proxy forwards the request to an internal application:
+        </p>
+
+        <pre><code>http://users-service:8080/api/users</code></pre>
+
+        <p>
+            The backend processes the request and returns a response through
+            the proxy to the client.
+        </p>
+
+        <h3>Why use a reverse proxy?</h3>
+
+        <ul>
+            <li>Hide internal backend addresses from clients.</li>
+            <li>Provide a single entry point to multiple services.</li>
+            <li>Route requests based on hostnames or URL paths.</li>
+            <li>Terminate TLS connections.</li>
+            <li>Apply common request-handling rules.</li>
+            <li>Cache responses or limit request rates when appropriate.</li>
+        </ul>
+
+        <h3>Example: NGINX as a reverse proxy</h3>
+
+        <pre><code>server {
+    listen 80;
+    server_name example.com;
+
+    location /api/ {
+        proxy_pass http://localhost:8080;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+
+        <p>
+            The <code>location</code> block matches requests beginning with
+            <code>/api/</code>. The <code>proxy_pass</code> directive forwards
+            them to the backend on port <code>8080</code>.
+        </p>
+
+        <p>
+            The forwarding headers communicate information about the original
+            request. For example, <code>X-Forwarded-For</code> can preserve
+            the client's IP address across proxy hops.
+        </p>
+
+        <p>
+            Applications should only trust forwarded headers from known,
+            trusted proxies.
+        </p>
+
+        <h3>When should you use a reverse proxy?</h3>
+
+        <p>
+            Use one when you want to expose an application through a controlled
+            entry point without exposing its internal network structure.
+        </p>
+
+        <p>
+            A reverse proxy is useful even if you have only one backend server.
+            You do not need multiple instances to benefit from it.
+        </p>
+
+
+        <h2>3. What Is a Load Balancer?</h2>
+
+        <p>
+            A <strong>load balancer</strong> distributes incoming requests
+            or connections across multiple backend instances.
+        </p>
+
+        <p>
+            Suppose a single application instance cannot handle all incoming
+            traffic. Instead of relying on one server, we can run multiple
+            instances of the same application.
+        </p>
+
+        <pre><code>                 +--&gt; Application Instance 1
+                 |
+Client --&gt; Load Balancer --&gt; Application Instance 2
+                 |
+                 +--&gt; Application Instance 3</code></pre>
+
+        <p>
+            The load balancer chooses which instance should receive each
+            request according to a configured algorithm.
+        </p>
+
+        <h3>Round-robin</h3>
+
+        <p>
+            Round-robin distributes requests across servers in rotation.
+        </p>
+
+        <pre><code>Request 1 --&gt; Instance 1
+Request 2 --&gt; Instance 2
+Request 3 --&gt; Instance 3
+Request 4 --&gt; Instance 1</code></pre>
+
+        <p>
+            This is a simple strategy when backend instances have similar
+            capacity and requests have reasonably similar processing costs.
+        </p>
+
+        <h3>Least connections</h3>
+
+        <p>
+            Least connections prefers the server with the fewest active
+            connections.
+        </p>
+
+        <pre><code>Instance 1: 12 active connections
+Instance 2:  4 active connections
+Instance 3:  8 active connections
+
+New connection --&gt; Instance 2</code></pre>
+
+        <p>
+            This can help when some requests take longer than others.
+            However, active connection counts are not necessarily a perfect
+            measure of actual application workload.
+        </p>
+
+        <h3>Example: NGINX as a load balancer</h3>
+
+        <pre><code>http {
+    upstream payments_backend {
+        least_conn;
+
+        server payments-1:8080;
+        server payments-2:8080;
+        server payments-3:8080;
+    }
+
+    server {
+        listen 80;
+
+        location /payments/ {
+            proxy_pass http://payments_backend;
+        }
+    }
+}</code></pre>
+
+        <p>
+            The <code>upstream</code> block defines a group of backend servers.
+            NGINX distributes requests across the group using the
+            <code>least_conn</code> strategy.
+        </p>
+
+        <p>
+            Notice that NGINX is also acting as a reverse proxy here.
+            Load balancing is an additional responsibility, not a replacement
+            for reverse proxying.
+        </p>
+
+        <h3>Health checks and availability</h3>
+
+        <p>
+            Load balancing can improve availability, but it does not
+            automatically guarantee it.
+        </p>
+
+        <p>
+            If a backend fails, traffic needs to be directed away from
+            unavailable instances. NGINX provides passive failure detection
+            in its standard upstream configuration. Active health checks
+            and other advanced features depend on the NGINX edition or
+            infrastructure platform being used.
+        </p>
+
+        <p>
+            The application must also be designed to run safely across
+            multiple instances. For example, relying on local in-memory
+            session state can cause problems when consecutive requests
+            reach different instances.
+        </p>
+
+        <h3>When should you use a load balancer?</h3>
+
+        <ul>
+            <li>You run multiple instances of the same application.</li>
+            <li>You need to distribute traffic as demand increases.</li>
+            <li>You want to avoid depending on one application instance.</li>
+            <li>You need to route traffic away from failed instances.</li>
+        </ul>
+
+
+        <h2>4. What Is an API Gateway?</h2>
+
+        <p>
+            An <strong>API gateway</strong> is an entry point designed to
+            manage how clients access APIs.
+        </p>
+
+        <p>
+            Like a reverse proxy, an API gateway receives requests and forwards
+            them to backend services. However, API gateways commonly provide
+            additional capabilities for managing API consumers and enforcing
+            API-specific policies.
+        </p>
+
+        <pre><code>Web Client --------+
+                   |
+Mobile App --------+--&gt; API Gateway --&gt; Payments Service
+                   |                 +--&gt; Users Service
+Third-Party API ---+                 +--&gt; Orders Service</code></pre>
+
+        <h3>Common API gateway responsibilities</h3>
+
+        <ul>
+            <li><strong>Authentication:</strong> Validate credentials or tokens.</li>
+            <li><strong>Authorization:</strong> Enforce configured access policies.</li>
+            <li><strong>Rate limiting:</strong> Restrict request rates.</li>
+            <li><strong>Consumer quotas:</strong> Limit API usage per customer or application.</li>
+            <li><strong>Request validation:</strong> Reject requests that violate configured rules.</li>
+            <li><strong>Routing:</strong> Forward requests to the appropriate service.</li>
+            <li><strong>Observability:</strong> Collect API usage metrics and logs.</li>
+            <li><strong>Transformations:</strong> Modify requests or responses when needed.</li>
+        </ul>
+
+        <p>
+            The exact capabilities depend on the gateway product. Some also
+            provide developer portals, API keys, subscription plans and
+            centralized API lifecycle management.
+        </p>
+
+        <h3>Example: An API gateway in a coupon application</h3>
+
+        <p>
+            Imagine a customer wants to redeem a reward:
+        </p>
+
+        <pre><code>POST /api/coupons/123/redeem
+Authorization: Bearer &lt;token&gt;</code></pre>
+
+        <p>
+            The gateway might validate the access token, enforce a rate limit
+            and forward the request to the coupon service.
+        </p>
+
+        <pre><code>Client
+  |
+  v
+API Gateway
+  |
+  +-- Validate access token
+  |
+  +-- Enforce API quota
+  |
+  +-- Route request
+  |
+  v
+Coupon Service</code></pre>
+
+        <p>
+            However, validating the token does not necessarily mean that
+            the customer is entitled to redeem the reward.
+        </p>
+
+        <p>
+            The coupon service must still enforce business rules, such as
+            whether the customer has enough stamps, whether the reward has
+            already been redeemed and whether the offer is still valid.
+        </p>
+
+        <p>
+            An API gateway should not replace authorization and business
+            validation inside the application.
+        </p>
+
+        <h3>When should you use an API gateway?</h3>
+
+        <ul>
+            <li>You expose APIs to mobile apps, web clients or third parties.</li>
+            <li>You need API keys, token validation or centralized access policies.</li>
+            <li>You need usage quotas per customer or API consumer.</li>
+            <li>You manage multiple APIs with different access requirements.</li>
+            <li>You need centralized API analytics or developer-facing tooling.</li>
+        </ul>
+
+
+        <h2>5. Reverse Proxy vs Load Balancer vs API Gateway</h2>
+
+        <p>
+            These concepts are related, but their primary purposes differ.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Capability</th>
+                <th>Reverse Proxy</th>
+                <th>Load Balancer</th>
+                <th>API Gateway</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Primary purpose</td>
+                <td>Forward requests</td>
+                <td>Distribute traffic</td>
+                <td>Manage API access</td>
+            </tr>
+            <tr>
+                <td>Forward requests to backends</td>
+                <td>Yes</td>
+                <td>Commonly</td>
+                <td>Yes</td>
+            </tr>
+            <tr>
+                <td>Distribute traffic across instances</td>
+                <td>Optional</td>
+                <td>Core responsibility</td>
+                <td>Often</td>
+            </tr>
+            <tr>
+                <td>Route by URL or hostname</td>
+                <td>Common</td>
+                <td>Often</td>
+                <td>Common</td>
+            </tr>
+            <tr>
+                <td>TLS termination</td>
+                <td>Common</td>
+                <td>Common</td>
+                <td>Common</td>
+            </tr>
+            <tr>
+                <td>Rate limiting</td>
+                <td>Possible</td>
+                <td>Product-dependent</td>
+                <td>Common</td>
+            </tr>
+            <tr>
+                <td>Consumer-specific quotas</td>
+                <td>Custom configuration</td>
+                <td>Not usually the main purpose</td>
+                <td>Common</td>
+            </tr>
+            <tr>
+                <td>API keys and developer portals</td>
+                <td>Not usually built in</td>
+                <td>Not usually built in</td>
+                <td>Common in API management products</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            These are typical roles, not strict boundaries. A single product
+            can implement several of these capabilities.
+        </p>
+
+        <p>
+            The simplest way to remember the distinction is:
+        </p>
+
+        <ul>
+            <li><strong>Reverse proxy:</strong> Where should this request go?</li>
+            <li><strong>Load balancer:</strong> Which instance should handle it?</li>
+            <li><strong>API gateway:</strong> How should access to this API be managed?</li>
+        </ul>
+
+
+        <h2>6. Can One Component Do All Three?</h2>
+
+        <p>
+            Yes. These terms describe roles and responsibilities rather
+            than mutually exclusive types of software.
+        </p>
+
+        <p>
+            NGINX, for example, can act as a reverse proxy and load balancer
+            and can implement some API gateway features.
+        </p>
+
+        <p>
+            Consider this simplified configuration:
+        </p>
+
+        <pre><code>http {
+    upstream payments_backend {
+        least_conn;
+
+        server payments-1:8080;
+        server payments-2:8080;
+    }
+
+    limit_req_zone $binary_remote_addr
+        zone=api_limit:10m
+        rate=10r/s;
+
+    server {
+        listen 80;
+        server_name api.example.com;
+
+        location /api/payments/ {
+            limit_req zone=api_limit burst=20 nodelay;
+
+            proxy_pass http://payments_backend;
+        }
+    }
+}</code></pre>
+
+        <p>
+            This configuration combines three responsibilities:
+        </p>
+
+        <ul>
+            <li>
+                <strong>Reverse proxy:</strong>
+                <code>proxy_pass</code> forwards requests to the backend group.
+            </li>
+            <li>
+                <strong>Load balancing:</strong>
+                The <code>upstream</code> group distributes requests across
+                two payments instances.
+            </li>
+            <li>
+                <strong>Traffic control:</strong>
+                <code>limit_req</code> applies a rate limit based on client IP.
+            </li>
+        </ul>
+
+        <p>
+            However, this does not automatically provide a complete API
+            management platform with customer-specific API keys, subscription
+            plans, developer portals and API consumer analytics.
+        </p>
+
+        <p>
+            For those requirements, a dedicated API gateway may be a better fit.
+        </p>
+
+
+        <h2>7. Other Important NGINX Use Cases</h2>
+
+        <p>
+            NGINX can do more than proxying and load balancing. Several other
+            features are useful in production systems.
+        </p>
+
+        <h3>TLS termination</h3>
+
+        <p>
+            NGINX can accept HTTPS connections, handle TLS encryption and
+            forward requests to backend services.
+        </p>
+
+        <pre><code>server {
+    listen 443 ssl;
+    server_name example.com;
+
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+
+        <p>
+            In this example, TLS is terminated at NGINX. The connection
+            between NGINX and the backend uses HTTP, so use HTTPS upstream
+            connections when encryption on that hop is required.
+        </p>
+
+        <h3>Static file serving</h3>
+
+        <p>
+            NGINX can serve HTML, CSS, JavaScript, images and other files
+            directly, without sending every request to the application.
+        </p>
+
+        <pre><code>server {
+    listen 80;
+    server_name example.com;
+
+    root /var/www/frontend;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}</code></pre>
+
+        <p>
+            The fallback to <code>index.html</code> is useful for single-page
+            applications whose frontend router handles URLs.
+        </p>
+
+        <h3>Response caching</h3>
+
+        <p>
+            NGINX can cache eligible responses so repeated requests do not
+            always reach the backend.
+        </p>
+
+        <pre><code>http {
+    proxy_cache_path /var/cache/nginx
+        keys_zone=public_cache:10m
+        max_size=500m
+        inactive=30m;
+
+    server {
+        listen 80;
+
+        location /api/public/products/ {
+            proxy_cache public_cache;
+            proxy_cache_valid 200 30s;
+
+            proxy_pass http://products_backend;
+        }
+    }
+}</code></pre>
+
+        <p>
+            Caching is especially useful for public data that changes
+            infrequently. Personalized or sensitive responses need careful
+            cache policies to prevent one user's data from being served
+            to another user.
+        </p>
+
+        <h3>Rate limiting</h3>
+
+        <p>
+            NGINX can restrict request rates to reduce excessive traffic
+            reaching an application.
+        </p>
+
+        <pre><code>http {
+    limit_req_zone $binary_remote_addr
+        zone=login_limit:10m
+        rate=5r/m;
+
+    server {
+        listen 80;
+
+        location /api/login {
+            limit_req zone=login_limit burst=3 nodelay;
+
+            proxy_pass http://auth_backend;
+        }
+    }
+}</code></pre>
+
+        <p>
+            This example defines a rate of five requests per minute per
+            client IP, with a small burst allowance.
+        </p>
+
+        <p>
+            Rate limiting is not a complete security solution. Configure
+            trusted client IP handling when running behind other proxies,
+            and choose limits that do not unnecessarily block legitimate
+            users.
+        </p>
+
+
+        <h2>8. Load Balancing Does Not Solve Every Scaling Problem</h2>
+
+        <p>
+            Adding a load balancer and more application instances can
+            increase processing capacity, but it introduces new considerations.
+        </p>
+
+        <h3>Shared state</h3>
+
+        <p>
+            Suppose a user logs in and the application stores the session
+            only in the memory of Instance 1.
+        </p>
+
+        <pre><code>Request 1 --&gt; Instance 1
+               Session stored in memory
+
+Request 2 --&gt; Instance 2
+               Session not found</code></pre>
+
+        <p>
+            The second request may fail because the two instances do not
+            share the same session state.
+        </p>
+
+        <p>
+            Possible solutions include using a shared session store,
+            such as Redis, or using an appropriately designed stateless
+            authentication mechanism.
+        </p>
+
+        <h3>Database bottlenecks</h3>
+
+        <p>
+            Increasing the number of application instances does not
+            automatically increase database capacity.
+        </p>
+
+        <pre><code>                 +--&gt; Application 1 --+
+                 |                    |
+Client --&gt; Load Balancer              +--&gt; Database
+                 |                    |
+                 +--&gt; Application 2 --+</code></pre>
+
+        <p>
+            If every application instance sends more queries to the same
+            overloaded database, the database can remain the bottleneck.
+        </p>
+
+        <p>
+            Scaling therefore requires understanding the entire request
+            path, not just the number of application servers.
+        </p>
+
+
+        <h2>9. Common Mistakes</h2>
+
+        <ul>
+            <li>
+                <strong>Assuming a reverse proxy is always a load balancer.</strong>
+                A reverse proxy can forward every request to one backend.
+            </li>
+            <li>
+                <strong>Assuming a load balancer provides API management.</strong>
+                Distributing traffic does not automatically provide API keys,
+                consumer quotas or developer portals.
+            </li>
+            <li>
+                <strong>Assuming an API gateway replaces application security.</strong>
+                Business rules and authorization still need to be enforced
+                by the appropriate application services.
+            </li>
+            <li>
+                <strong>Assuming more instances always improve performance.</strong>
+                Shared databases, network capacity and other dependencies
+                can become bottlenecks.
+            </li>
+            <li>
+                <strong>Ignoring forwarded headers.</strong>
+                Applications behind proxies need a secure and correct strategy
+                for determining the original client IP, hostname and protocol.
+            </li>
+            <li>
+                <strong>Caching sensitive responses without a clear policy.</strong>
+                Incorrect cache keys or authorization rules can expose data.
+            </li>
+            <li>
+                <strong>Assuming a rate limit is a complete security solution.</strong>
+                Rate limiting complements authentication, authorization
+                and other security controls.
+            </li>
+        </ul>
+
+
+        <h2>10. When Should You Use Each?</h2>
+
+        <h3>Use a reverse proxy when:</h3>
+
+        <ul>
+            <li>You want one entry point for backend applications.</li>
+            <li>You need to route requests by URL or hostname.</li>
+            <li>You want to centralize TLS termination or request handling.</li>
+            <li>You have one backend and want to keep its address internal.</li>
+        </ul>
+
+        <h3>Use a load balancer when:</h3>
+
+        <ul>
+            <li>You run multiple instances of an application.</li>
+            <li>You need to distribute incoming traffic.</li>
+            <li>You want to scale application capacity horizontally.</li>
+            <li>You need to route traffic away from unavailable instances.</li>
+        </ul>
+
+        <h3>Use an API gateway when:</h3>
+
+        <ul>
+            <li>You expose APIs to different clients or third parties.</li>
+            <li>You need centralized API authentication or access policies.</li>
+            <li>You need quotas per API consumer.</li>
+            <li>You want API usage analytics or developer management features.</li>
+        </ul>
+
+        <p>
+            You may not need three separate components. A small application
+            might use NGINX alone. A larger platform might use a cloud load
+            balancer, an API gateway and internal load balancing for its
+            backend services.
+        </p>
+
+
+        <h2>11. Quick Comparison Checklist</h2>
+
+        <p>
+            If you encounter one of these terms in an architecture diagram,
+            ask what problem the component is solving.
+        </p>
+
+        <ul>
+            <li>
+                Is it forwarding requests to internal services?
+                Think <strong>reverse proxy</strong>.
+            </li>
+            <li>
+                Is it choosing between multiple instances of the same service?
+                Think <strong>load balancer</strong>.
+            </li>
+            <li>
+                Is it enforcing API access policies and managing consumers?
+                Think <strong>API gateway</strong>.
+            </li>
+            <li>
+                Is it handling HTTPS, serving static files, caching responses
+                or limiting traffic?
+                These are additional capabilities that products such as
+                <strong>NGINX</strong> can provide.
+            </li>
+        </ul>
+
+
+        <h2>Final Thought</h2>
+
+        <p>
+            Reverse proxies, load balancers and API gateways all help
+            control how requests reach backend services, but they emphasize
+            different responsibilities.
+        </p>
+
+        <p>
+            A reverse proxy forwards traffic, a load balancer distributes
+            traffic, and an API gateway manages API access and policies.
+            These responsibilities overlap, so one product can perform
+            multiple roles.
+        </p>
+
+        <p>
+            NGINX is a useful starting point because it demonstrates how
+            request routing, load balancing, TLS termination, caching and
+            rate limiting work in practice.
+        </p>
+
+        <p>
+            The most useful mindset is:
+            <strong>understand the problem each component solves, and choose
+                the simplest architecture that satisfies your application's
+                security, availability and scaling requirements.</strong>
+        </p>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

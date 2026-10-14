@@ -44,5 +44,25 @@ const POSTS = [
         title: "Concurrency & Distributed Systems",
         date: "2026-10-08",
         file: "concurrency.html"
+    },
+    {
+        title: "Database Indexes",
+        date: "2026-10-08",
+        file: "database_indexes.html"
+    },
+    {
+        title: "Database Normalization",
+        date: "2026-10-08",
+        file: "database_normalization.html"
+    },
+    {
+        title: "NGINX, Reverse Proxies, Load Balancers and API Gateways\n",
+        date: "2026-10-14",
+        file: "nginx.html"
+    },
+    {
+        title: "N + 1 Queries",
+        date: "2026-10-14",
+        file: "n_plus_one.html"
     }
 ];

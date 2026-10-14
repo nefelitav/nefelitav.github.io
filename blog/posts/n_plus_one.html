@@ -1,0 +1,599 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="N+1 Queries — understanding why N+1 queries happen, how to detect them, and how to fix them using joins, eager loading, and batching.">
+    <meta property="og:title" content="N+1 Queries – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to the N+1 query problem, database round trips, eager loading, batching, and query optimization.">
+    <meta property="og:type" content="article">
+
+    <title>N+1 Queries – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+
+        <h1>N+1 Queries</h1>
+
+        <time class="post-date" datetime="2026-10-14">
+            14 October 2026
+        </time>
+
+        <p>
+            The N+1 query problem is a common performance issue in database-backed
+            applications. It occurs when an application executes one query to
+            retrieve a collection of records and then executes an additional
+            query for each record to retrieve related data.
+        </p>
+
+        <p>
+            The result is often far more database queries than necessary,
+            increasing response times and database load.
+        </p>
+
+        <p>
+            A useful principle is:
+            <strong>retrieve related data efficiently instead of making one
+                database round trip per record.</strong>
+        </p>
+
+        <h2>1. What Is the N+1 Query Problem?</h2>
+
+        <p>
+            Imagine an application that retrieves a list of orders and displays
+            the name of the customer who placed each order.
+        </p>
+
+        <p>
+            We have two tables:
+        </p>
+
+        <pre><code>orders
+------
+id
+customer_id
+total
+
+customers
+---------
+id
+name</code></pre>
+
+        <p>
+            First, the application retrieves all orders:
+        </p>
+
+        <pre><code>SELECT id, customer_id, total
+FROM orders;</code></pre>
+
+        <p>
+            If the query returns 100 orders, the application might then execute
+            one query per order to retrieve its customer.
+        </p>
+
+        <pre><code>SELECT id, name FROM customers WHERE id = 1;
+SELECT id, name FROM customers WHERE id = 2;
+SELECT id, name FROM customers WHERE id = 3;
+
+-- ... 97 more queries</code></pre>
+
+        <p>
+            The application executes one query for the orders and another
+            100 queries for the customers.
+        </p>
+
+        <pre><code>Total queries = 1 + 100 = 101</code></pre>
+
+        <p>
+            This is called the <strong>N+1 query problem</strong>:
+            one initial query followed by N additional queries.
+        </p>
+
+        <h2>2. Why Is It a Problem?</h2>
+
+        <p>
+            The problem is not necessarily that any individual query is slow.
+            It is the cumulative cost of executing many queries.
+        </p>
+
+        <ul>
+            <li>
+                <strong>More database round trips:</strong>
+                Each query may require communication between the application
+                and the database.
+            </li>
+            <li>
+                <strong>Increased database load:</strong>
+                The database must repeatedly process queries and return results.
+            </li>
+            <li>
+                <strong>Slower response times:</strong>
+                The overhead of many queries can accumulate during a single request.
+            </li>
+            <li>
+                <strong>Poor scalability:</strong>
+                A page that works with 10 records may become slow when it handles
+                hundreds or thousands.
+            </li>
+        </ul>
+
+        <p>
+            If the number of records increases, the number of queries increases
+            with it. This makes N+1 problems particularly harmful for endpoints
+            that return large collections.
+        </p>
+
+        <h2>3. What Does N+1 Look Like in PHP?</h2>
+
+        <p>
+            N+1 problems often appear when database queries or ORM relationships
+            are accessed inside a loop.
+        </p>
+
+        <pre><code>$orders = $orderRepository->findAll();
+
+foreach ($orders as $order) {
+    $customer = $customerRepository->find(
+        $order->getCustomerId()
+    );
+
+    echo $customer->getName();
+}</code></pre>
+
+        <p>
+            The initial call retrieves all orders. Inside the loop, each call to
+            <code>find()</code> retrieves one customer.
+        </p>
+
+        <p>
+            If there are 100 orders and every lookup executes a separate query,
+            the application performs 101 queries.
+        </p>
+
+        <p>
+            Notice that the problem is not the loop itself. The problem is that
+            the loop triggers a database query for every record.
+        </p>
+
+        <h2>4. Solution: Use a JOIN</h2>
+
+        <p>
+            If you need data from related tables, you can often retrieve it
+            using a single SQL query with a <code>JOIN</code>.
+        </p>
+
+        <pre><code>SELECT
+    o.id AS order_id,
+    o.total,
+    c.name AS customer_name
+FROM orders o
+JOIN customers c
+    ON c.id = o.customer_id;</code></pre>
+
+        <p>
+            Instead of fetching the orders and then querying each customer
+            separately, the database returns the orders together with their
+            customer names.
+        </p>
+
+        <p>
+            <strong>Typical result:</strong> One query instead of 101.
+        </p>
+
+        <p>
+            <strong>When to use it:</strong>
+            When related data belongs in the same result set, such as in reports,
+            list endpoints, and read-heavy queries.
+        </p>
+
+        <p>
+            <strong>Trade-off:</strong>
+            Joins can duplicate parent data when retrieving one-to-many
+            relationships. Joining multiple collections can multiply the
+            number of returned rows.
+        </p>
+
+        <h2>5. Solution: Use Eager Loading</h2>
+
+        <p>
+            Many ORMs support relationships between entities. For example,
+            an order may have a relationship to a customer.
+        </p>
+
+        <p>
+            With <strong>lazy loading</strong>, the related customer is retrieved
+            when the application accesses the relationship. If this happens
+            inside a loop, it can trigger N+1 queries.
+        </p>
+
+        <pre><code>// Potential N+1 problem
+
+$orders = Order::all();
+
+foreach ($orders as $order) {
+    echo $order->customer->name;
+}</code></pre>
+
+        <p>
+            In Laravel Eloquent, accessing <code>$order->customer</code> can
+            execute an additional query for each order if the relationship
+            has not already been loaded.
+        </p>
+
+        <p>
+            <strong>Eager loading</strong> retrieves the related data upfront,
+            using a small number of queries instead of querying for each record.
+        </p>
+
+        <pre><code>// Eager loading
+
+$orders = Order::with('customer')->get();
+
+foreach ($orders as $order) {
+    echo $order->customer->name;
+}</code></pre>
+
+        <p>
+            Laravel typically executes two queries: one for the orders and one
+            for the associated customers.
+        </p>
+
+        <p>
+            <strong>When to use it:</strong>
+            When working with ORM relationships and you know which related
+            data the application will need.
+        </p>
+
+        <p>
+            <strong>Trade-off:</strong>
+            Loading every possible relationship can retrieve unnecessary data.
+            Eager-load only the relationships the application actually needs.
+        </p>
+
+        <h2>6. Solution: Use Batching</h2>
+
+        <p>
+            Sometimes a JOIN is not possible or the related data comes from
+            another service. In these cases, you can retrieve multiple records
+            in one operation using batching.
+        </p>
+
+        <p>
+            Instead of retrieving every customer individually:
+        </p>
+
+        <pre><code>foreach ($orders as $order) {
+    $customer = fetchCustomer(
+        $order['customer_id']
+    );
+}</code></pre>
+
+        <p>
+            Collect the customer IDs and retrieve the customers together:
+        </p>
+
+        <pre><code>$customerIds = array_unique(
+    array_column($orders, 'customer_id')
+);
+
+$customers = fetchCustomersByIds($customerIds);</code></pre>
+
+        <p>
+            The underlying database query might look like:
+        </p>
+
+        <pre><code>SELECT id, name
+FROM customers
+WHERE id IN (1, 2, 3, 4, 5);</code></pre>
+
+        <p>
+            The application can then map the returned customers to the orders
+            using their IDs.
+        </p>
+
+        <p>
+            <strong>When to use it:</strong>
+            When related data comes from separate services, when a JOIN is
+            not practical, or when many individual lookups can be grouped
+            into fewer requests.
+        </p>
+
+        <p>
+            <strong>Trade-off:</strong>
+            Very large batches may need to be split into smaller chunks.
+            The application must also handle missing records and preserve
+            the relationships between results.
+        </p>
+
+        <h2>7. Comparing the Solutions</h2>
+
+        <pre><code>Approach           Typical query count
+--------------------------------------
+N+1                1 + N
+JOIN               1
+Eager loading      Often 2 or a few more
+Batching           Usually a few</code></pre>
+
+        <p>
+            These are typical patterns, not guarantees. The actual query count
+            depends on the ORM, relationship types, batch sizes, and query strategy.
+        </p>
+
+        <p>
+            A single query is not always better than multiple queries.
+            A large JOIN that returns many duplicate rows may be less efficient
+            than a small number of focused queries.
+        </p>
+
+        <p>
+            The goal is to reduce unnecessary work, not to minimize the query
+            count at all costs.
+        </p>
+
+        <h2>8. How to Detect N+1 Queries</h2>
+
+        <p>
+            N+1 problems can be difficult to notice when development datasets
+            are small. Query logs and profiling tools help reveal them.
+        </p>
+
+        <h3>Inspect query logs</h3>
+
+        <p>
+            Look for the same SQL statement executing repeatedly with different
+            IDs during a single request.
+        </p>
+
+        <pre><code>SELECT * FROM customers WHERE id = 1;
+SELECT * FROM customers WHERE id = 2;
+SELECT * FROM customers WHERE id = 3;
+...</code></pre>
+
+        <h3>Use profiling tools</h3>
+
+        <p>
+            Database query logs, application profilers, and ORM debugging tools
+            can show how many queries a request executes and how much time
+            they take.
+        </p>
+
+        <h3>Inspect loops and relationships</h3>
+
+        <p>
+            Be suspicious of database queries or lazy-loaded relationships
+            inside loops, particularly when each iteration uses a different ID.
+        </p>
+
+        <pre><code>foreach ($orders as $order) {
+    $customer = $customerRepository->find(
+        $order->getCustomerId()
+    );
+}</code></pre>
+
+        <p>
+            A query inside a loop is not automatically an N+1 problem.
+            The important question is whether the repeated operations could
+            reasonably be combined or avoided.
+        </p>
+
+        <h2>9. N+1 Problems Beyond Databases</h2>
+
+        <p>
+            The same pattern can occur when calling external APIs.
+        </p>
+
+        <p>
+            Imagine an endpoint retrieves 100 orders and then makes 100 HTTP
+            requests to fetch the corresponding customer details.
+        </p>
+
+        <pre><code>foreach ($orders as $order) {
+    $customer = $customerApi->getCustomer(
+        $order->customerId
+    );
+}</code></pre>
+
+        <p>
+            Although these are HTTP requests rather than SQL queries, the
+            underlying problem is the same: one initial operation triggers
+            many individual operations.
+        </p>
+
+        <p>
+            Possible solutions include:
+        </p>
+
+        <ul>
+            <li>
+                <strong>Bulk endpoints:</strong>
+                Fetch multiple customers in a single HTTP request.
+            </li>
+            <li>
+                <strong>Batch processing:</strong>
+                Group requests and process them in batches.
+            </li>
+            <li>
+                <strong>Caching:</strong>
+                Reuse previously fetched data when appropriate.
+            </li>
+            <li>
+                <strong>API redesign:</strong>
+                Return the required customer information as part of the
+                original response when appropriate.
+            </li>
+        </ul>
+
+        <h2>10. N+1 Queries vs. PHP Generators</h2>
+
+        <p>
+            PHP generators and eager loading solve different problems.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Eager loading:</strong>
+                Reduces unnecessary database queries when retrieving related data.
+            </li>
+            <li>
+                <strong>Generators:</strong>
+                Produce values on demand, which can help reduce memory usage
+                when processing large datasets.
+            </li>
+        </ul>
+
+        <p>
+            For example, a generator can help process a large number of orders
+            without keeping every order in memory at once. However, it does
+            not automatically eliminate N+1 queries.
+        </p>
+
+        <p>
+            These techniques can be combined. An application might process
+            orders in batches, eager-load the associated customers for each
+            batch, and process the orders without loading the entire dataset
+            into memory.
+        </p>
+
+        <p>
+            The distinction is:
+            <strong>eager loading optimizes database access, while generators
+                optimize how values are produced and consumed.</strong>
+        </p>
+
+        <h2>11. Common Misconceptions</h2>
+
+        <p>
+            <strong>"Adding an index fixes N+1 queries."</strong>
+        </p>
+
+        <p>
+            An index can make each individual query faster, but it does not
+            eliminate repeated database round trips. A hundred fast queries
+            may still be slower than two well-designed queries.
+        </p>
+
+        <p>
+            <strong>"A single query is always better."</strong>
+        </p>
+
+        <p>
+            Not necessarily. Large joins can produce duplicate data and consume
+            more memory. A small number of focused queries can be more efficient.
+        </p>
+
+        <p>
+            <strong>"Eager loading is always the best solution."</strong>
+        </p>
+
+        <p>
+            Eager loading is often appropriate for ORM relationships, but joins
+            or batching may be better depending on the use case.
+        </p>
+
+        <p>
+            <strong>"Every query inside a loop is an N+1 problem."</strong>
+        </p>
+
+        <p>
+            Not necessarily. The problem occurs when repeated queries could
+            reasonably be combined or avoided.
+        </p>
+
+        <h2>12. A Practical Optimization Process</h2>
+
+        <p>
+            When investigating a potential N+1 problem:
+        </p>
+
+        <pre><code>1. Identify a slow or frequently executed endpoint.
+
+2. Inspect the database queries executed by one request.
+
+3. Look for repeated queries with different IDs.
+
+4. Determine which related data is needed.
+
+5. Choose an appropriate solution:
+   - JOIN
+   - Eager loading
+   - Batching
+
+6. Measure the query count and execution time again.
+
+7. Check memory usage and the size of returned results.
+
+8. Verify that the behavior remains efficient as data grows.</code></pre>
+
+        <p>
+            Do not stop at reducing the number of queries. Verify that the
+            application actually performs better.
+        </p>
+
+        <h2>13. N+1 Queries Checklist</h2>
+
+        <ul>
+            <li>Does a request execute repeated queries with different IDs?</li>
+            <li>Are ORM relationships being loaded lazily inside a loop?</li>
+            <li>Could a JOIN retrieve the required data more efficiently?</li>
+            <li>Could eager loading avoid repeated relationship lookups?</li>
+            <li>Could multiple lookups be batched into one operation?</li>
+            <li>Are all retrieved columns and relationships necessary?</li>
+            <li>Have query count and execution time been measured?</li>
+            <li>Does performance remain acceptable with larger datasets?</li>
+            <li>Has memory usage been considered as well as query count?</li>
+        </ul>
+
+        <h2>Final Thought</h2>
+
+        <p>
+            The N+1 query problem is a reminder that code that looks simple
+            does not always execute efficiently.
+        </p>
+
+        <p>
+            A single property access inside a loop can trigger hundreds of
+            database queries, especially when ORM relationships are loaded lazily.
+        </p>
+
+        <p>
+            The most useful mindset is:
+            <strong>understand the queries your code generates, retrieve related
+                data efficiently, and measure the improvement.</strong>
+        </p>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

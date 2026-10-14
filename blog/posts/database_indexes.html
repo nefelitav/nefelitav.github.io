@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    
+    <meta name="description" content="Database Indexes — understanding how database indexes work, when to use them, composite indexes, query performance, and their trade-offs.">
+    <meta property="og:title" content="Database Indexes – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to database indexes, B-trees, composite indexes, selectivity, covering indexes, query plans and indexing trade-offs.">
+    <meta property="og:type" content="article">
+
+    <title>Database Indexes – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+    
+
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+    
+
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    
+    <article class="post">
+
+        <h1>Database Indexes</h1>
+
+        <time class="post-date" datetime="2026-10-08">
+            8 October 2026
+        </time>
+
+        <p>
+            Database indexes are one of the most important tools for improving
+            query performance.
+        </p>
+
+        <p>
+            They allow a database to find rows efficiently without scanning
+            the entire table. But indexes are not free:
+            <strong>they consume storage and make writes more expensive.</strong>
+        </p>
+
+        <p>
+            A useful principle is:
+            <strong>index the access patterns your application actually needs,
+                not every column that appears in a table.</strong>
+        </p>
+
+        <h2>1. What Is an Index?</h2>
+
+        <p>
+            Imagine a table containing millions of users:
+        </p>
+
+        <pre><code>users
+
+
+| id               | name  | email                                         |
+| ---------------- | ----- | --------------------------------------------- |
+| 1                | Alice | [alice@example.com](mailto:alice@example.com) |
+| 2                | Bob   | [bob@example.com](mailto:bob@example.com)     |
+| 3                | Carol | [carol@example.com](mailto:carol@example.com) |
+...</code></pre>
+
+        
+        <p>
+            Without an index, a query such as:
+        </p>
+
+        <pre><code>SELECT *
+
+
+FROM users
+WHERE email = '[alice@example.com](mailto:alice@example.com)';</code></pre>
+
+        
+        <p>
+            may require the database to inspect many or even all rows.
+            This is called a <strong>table scan</strong>.
+        </p>
+
+        <p>
+            An index on <code>email</code> gives the database a separate
+            data structure that can be searched efficiently.
+        </p>
+
+        <pre><code>CREATE INDEX idx_users_email
+
+
+ON users(email);</code></pre>
+
+        
+        <p>
+            Instead of searching every row, the database can use the index
+            to locate the relevant row much faster.
+        </p>
+
+        <h2>2. Without an Index vs With an Index</h2>
+
+        <p>
+            Conceptually, searching a table without an index looks like:
+        </p>
+
+        <pre><code>Row 1 → Does email match?
+
+
+Row 2 → Does email match?
+Row 3 → Does email match?
+Row 4 → Does email match?
+...
+Row 1,000,000 → Does email match?</code></pre>
+
+        
+        <p>
+            An index provides a structure that allows the database to
+            navigate towards the matching value instead.
+        </p>
+
+        <pre><code>             email
+           │
+    ┌──────┴──────┐
+    │             │
+
+
+a... - m...     n... - z...
+│
+[alice@example.com](mailto:alice@example.com)
+│
+row</code></pre>
+
+        
+        <p>
+            The exact implementation depends on the database and index type,
+            but the key idea is the same:
+            <strong>avoid examining unnecessary rows.</strong>
+        </p>
+
+        <h2>3. B-Tree Indexes</h2>
+
+        <p>
+            One of the most common index structures is the
+            <strong>B-tree</strong>.
+        </p>
+
+        <p>
+            B-trees keep values ordered and balanced, allowing the database
+            to efficiently perform operations such as:
+        </p>
+
+        <ul>
+            <li>Equality lookups</li>
+            <li>Range queries</li>
+            <li>Sorting</li>
+            <li>Prefix searches</li>
+        </ul>
+
+        <pre><code>WHERE id = 123
+
+
+WHERE created_at >= '2026-01-01'
+
+WHERE price BETWEEN 10 AND 100
+
+ORDER BY created_at</code></pre>
+
+        
+        <p>
+            The database can navigate through the tree rather than scanning
+            every row.
+        </p>
+
+        <h2>4. Primary Keys and Indexes</h2>
+
+        <p>
+            A primary key is normally indexed automatically.
+        </p>
+
+        <pre><code>CREATE TABLE users (
+  id BIGINT PRIMARY KEY,
+  email VARCHAR(255)
+);</code></pre>
+
+        
+        <p>
+            This allows queries such as:
+        </p>
+
+        <pre><code>SELECT *
+FROM users
+WHERE id = 123;</code></pre>
+
+        <p>
+            to efficiently locate a specific row.
+        </p>
+
+        <p>
+            Primary keys are also important because many databases use the
+            primary key as part of the physical organization of the table or
+            as information stored in secondary indexes.
+        </p>
+
+        <h2>5. Indexing Foreign Keys</h2>
+
+        <p>
+            Foreign keys are often good candidates for indexes.
+        </p>
+
+        <pre><code>orders
+
+
+| id | customer_id      |
+| -- | ---------------- |
+| 1  | 100              |
+| 2  | 200              |
+| 3  | 100              |
+| 4  | 300              |
+</code></pre>
+        
+        <p>
+            If the application frequently executes:
+        </p>
+
+        <pre><code>SELECT *
+FROM orders
+WHERE customer_id = 100;</code></pre>
+
+        
+        <p>
+            an index can make the lookup much more efficient.
+        </p>
+
+        <pre><code>CREATE INDEX idx_orders_customer_id ON orders(customer_id);</code></pre>
+
+        
+        <h2>6. Selectivity</h2>
+
+        <p>
+            An important concept when designing indexes is
+            <strong>selectivity</strong>.
+        </p>
+
+        <p>
+            A highly selective column has many distinct values and therefore
+            allows the database to narrow down the result significantly.
+        </p>
+
+        <p>
+            For example, suppose a table has one million users.
+        </p>
+
+        <p>
+            An <code>id</code> column might have one million distinct values,
+            while a <code>country</code> column might only have 100.
+        </p>
+
+        <pre><code>id       → very selective
+
+email    → very selective
+
+country  → less selective
+
+gender   → usually much less selective</code></pre>
+
+        
+        <p>
+            This does not mean low-cardinality columns should never be indexed.
+            It means that the usefulness of an index depends on the query,
+            data distribution and database optimizer.
+        </p>
+
+        <h2>7. Composite Indexes</h2>
+
+        <p>
+            Sometimes a query filters by multiple columns:
+        </p>
+
+        <pre><code>SELECT *
+FROM orders
+WHERE customer_id = 123
+AND status = 'pending';</code></pre>
+
+        <p>
+            Instead of creating two separate indexes, we can create a
+            <strong>composite index</strong>:
+        </p>
+
+        <pre><code>CREATE INDEX idx_orders_customer_status ON orders(customer_id, status);</code></pre>
+
+        
+        <p>
+            The order of columns matters.
+        </p>
+
+        <p>
+            Conceptually, this index is ordered like:
+        </p>
+
+        <pre><code>customer_id
+↓
+status
+↓
+indexed rows</code></pre>
+
+        
+        <p>
+            The database can efficiently search for a specific
+            <code>customer_id</code> and then narrow the results by
+            <code>status</code>.
+        </p>
+
+        <h2>8. The Leftmost Prefix Rule</h2>
+
+        <p>
+            Consider:
+        </p>
+
+        <pre><code>CREATE INDEX idx_orders_customer_status_date ON orders(customer_id, status, created_at);</code></pre>
+
+        <p>
+            The index is ordered first by <code>customer_id</code>,
+            then by <code>status</code>, then by <code>created_at</code>.
+        </p>
+
+        <p>
+            Queries using the leftmost columns can generally benefit from
+            the index:
+        </p>
+
+        <pre><code>WHERE customer_id = 123
+WHERE customer_id = 123
+AND status = 'pending'
+
+WHERE customer_id = 123
+AND status = 'pending'
+AND created_at >= '2026-01-01'</code></pre>
+
+        
+        <p>
+            But a query filtering only by the later columns may not be able
+            to use the index as effectively:
+        </p>
+
+        <pre><code>WHERE status = 'pending'
+WHERE created_at >= '2026-01-01'</code></pre>
+
+        <p>
+            This is commonly described as the
+            <strong>leftmost prefix rule</strong>.
+        </p>
+
+        <h2>9. Column Order Matters</h2>
+
+        <p>
+            Compare these two indexes:
+        </p>
+
+        <pre><code>INDEX(customer_id, status)
+INDEX(status, customer_id)</code></pre>
+
+        
+        <p>
+            They are not equivalent.
+        </p>
+
+        <p>
+            If the application's most common access pattern is:
+        </p>
+
+        <pre><code>WHERE customer_id = ?
+AND status = ?</code></pre>
+
+        <p>
+            both indexes may be useful for that query.
+            But their behavior for queries using only one of the columns
+            can be very different.
+        </p>
+
+        <p>
+            Composite indexes should therefore be designed around the
+            application's actual query patterns.
+        </p>
+
+        <h2>10. Indexes and ORDER BY</h2>
+
+        <p>
+            Indexes can also help with sorting.
+        </p>
+
+        <pre><code>SELECT *
+FROM orders
+WHERE customer_id = 123
+ORDER BY created_at DESC;</code></pre>
+
+        
+        <p>
+            An index such as:
+        </p>
+
+        <pre><code>CREATE INDEX idx_orders_customer_created ON orders(customer_id, created_at);</code></pre>
+
+        <p>
+            may allow the database to retrieve the relevant rows in the
+            required order without performing an additional expensive sort.
+        </p>
+
+        <h2>11. Indexes and Range Queries</h2>
+
+        <p>
+            B-tree indexes are particularly useful for range queries.
+        </p>
+
+        <pre><code>SELECT *
+FROM orders
+WHERE created_at >= '2026-10-01'
+AND created_at < '2026-11-01';</code></pre>
+
+        
+        <p>
+            Instead of scanning the entire table, the database can locate
+            the relevant portion of the index and scan that range.
+        </p>
+
+        <p>
+            This is one reason columns such as timestamps are common
+            candidates for indexing.
+        </p>
+
+        <h2>12. Covering Indexes</h2>
+
+        <p>
+            Sometimes an index contains everything the database needs to
+            answer a query.
+        </p>
+
+        <pre><code>CREATE INDEX idx_users_email_name ON users(email, name);</code></pre>
+
+        <p>
+            Consider:
+        </p>
+
+        <pre><code>SELECT name
+FROM users
+WHERE email = '[alice@example.com](mailto:alice@example.com)';</code></pre>
+
+        <p>
+            The database may be able to find both <code>email</code> and
+            <code>name</code> directly in the index without reading the
+            corresponding table row.
+        </p>
+
+        <p>
+            This is commonly called a
+            <strong>covering index</strong>.
+        </p>
+
+        <p>
+            Covering indexes can improve performance, but adding many columns
+            to an index also increases its size and write cost.
+        </p>
+
+        <h2>13. Indexes Are Not Free</h2>
+
+        <p>
+            An index makes reads faster, but it introduces costs.
+        </p>
+
+        <ul>
+            <li>Indexes consume disk space.</li>
+            <li>INSERT operations must update indexes.</li>
+            <li>UPDATE operations may need to update indexes.</li>
+            <li>DELETE operations must remove index entries.</li>
+            <li>Indexes increase memory and cache pressure.</li>
+            <li>Too many indexes can make write-heavy systems slower.</li>
+        </ul>
+
+        <p>
+            For example:
+        </p>
+
+        <pre><code>INSERT row
+     ↓
+┌────┴────┐
+↓    ↓    ↓
+index1 index2 index3
+↓    ↓    ↓
+update update update</code></pre>
+
+        
+        <p>
+            Every additional index potentially adds work to writes.
+        </p>
+
+        <h2>14. Don't Index Everything</h2>
+
+        <p>
+            It can be tempting to add an index to every column used in a
+            <code>WHERE</code> clause.
+        </p>
+
+        <p>
+            This is usually a mistake.
+        </p>
+
+        <p>
+            A better approach is to start from actual queries:
+        </p>
+
+        <pre><code>1. Identify slow queries.
+
+2. Inspect their execution plans.
+
+3. Understand the access pattern.
+
+4. Design an appropriate index.
+
+5. Measure the improvement.
+
+6. Remove indexes that provide little value.</code></pre>
+
+        
+        <p>
+            Indexes should support real workloads rather than theoretical
+            possibilities.
+        </p>
+
+        <h2>15. EXPLAIN</h2>
+
+        <p>
+            Databases provide tools for understanding how a query will be
+            executed.
+        </p>
+
+        <p>
+            In MySQL, one of the most important tools is
+            <strong>EXPLAIN</strong>.
+        </p>
+
+        <pre><code>EXPLAIN
+SELECT *
+FROM orders
+WHERE customer_id = 123;</code></pre>
+
+        
+        <p>
+            The query plan can show information such as:
+        </p>
+
+        <ul>
+            <li>Which table is being accessed</li>
+            <li>Which indexes are available</li>
+            <li>Which index is being considered or used</li>
+            <li>How many rows may be examined</li>
+            <li>How the tables are joined</li>
+            <li>Whether an additional sort is required</li>
+        </ul>
+
+        <p>
+            An index existing on a table does not guarantee that the optimizer
+            will use it.
+        </p>
+
+        <h2>16. The Optimizer Can Ignore an Index</h2>
+
+        <p>
+            The database optimizer chooses what it believes is the cheapest
+            execution plan.
+        </p>
+
+        <p>
+            Sometimes that means not using an available index.
+        </p>
+
+        <p>
+            For example, if a query returns a very large percentage of a table,
+            scanning the table may be cheaper than using an index and then
+            fetching a large number of rows.
+        </p>
+
+        <pre><code>SELECT *
+FROM users
+WHERE country = 'US';</code></pre>
+
+        
+        <p>
+            If most users are from the US, an index on <code>country</code>
+            might not provide much benefit.
+        </p>
+
+        <p>
+            <strong>An index is a tool, not a guarantee.</strong>
+        </p>
+
+        <h2>17. Functions Can Prevent Efficient Index Usage</h2>
+
+        <p>
+            Be careful when applying functions to indexed columns.
+        </p>
+
+        <p>
+            For example:
+        </p>
+
+        <pre><code>SELECT *
+FROM users
+WHERE LOWER(email) = '[alice@example.com](mailto:alice@example.com)';</code></pre>
+
+        
+        <p>
+            Depending on the database and index configuration, this may prevent
+            the normal index on <code>email</code> from being used efficiently.
+        </p>
+
+        <p>
+            Often it is better to store or index data in the form needed for
+            the lookup, or use a database-supported functional index where
+            appropriate.
+        </p>
+
+        <h2>18. Avoid Wrapping Indexed Columns When Possible</h2>
+
+        <p>
+            Another common example is applying a function to a timestamp:
+        </p>
+
+        <pre><code>WHERE DATE(created_at) = '2026-10-08'</code></pre>
+
+        <p>
+            A range condition can often be more index-friendly:
+        </p>
+
+        <pre><code>WHERE created_at >= '2026-10-08 00:00:00'
+AND created_at <  '2026-10-09 00:00:00'</code></pre>
+
+        
+        <p>
+            This allows the database to search a range of the indexed
+            timestamp values directly.
+        </p>
+
+        <h2>19. Indexes and NULL</h2>
+
+        <p>
+            Index behavior around <code>NULL</code> values depends on the
+            database system and index type.
+        </p>
+
+        <p>
+            Queries such as:
+        </p>
+
+        <pre><code>WHERE deleted_at IS NULL</code></pre>
+
+        <p>
+            may be able to benefit from an index on <code>deleted_at</code>,
+            but the usefulness depends on the database, data distribution
+            and query plan.
+        </p>
+
+        <p>
+            Always verify with the database's execution plan rather than
+            assuming an index will be used.
+        </p>
+
+        <h2>20. Unique Indexes</h2>
+
+        <p>
+            A unique index both supports efficient lookup and enforces
+            uniqueness.
+        </p>
+
+        <pre><code>CREATE UNIQUE INDEX idx_users_email ON users(email);</code></pre>
+
+        <p>
+            This prevents two rows from having the same email address while
+            also providing an index for lookups.
+        </p>
+
+        <p>
+            A <strong>UNIQUE constraint</strong> is often preferable when
+            the business rule is that a value must be unique, because it
+            expresses the constraint explicitly.
+        </p>
+
+        <h2>21. Indexes and Constraints</h2>
+
+        <p>
+            Indexes and constraints solve different problems.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Index</strong> — helps the database find data efficiently.
+            </li>
+            <li>
+                <strong>UNIQUE constraint</strong> — enforces uniqueness.
+            </li>
+            <li>
+                <strong>PRIMARY KEY</strong> — uniquely identifies a row.
+            </li>
+            <li>
+                <strong>FOREIGN KEY</strong> — enforces relationships between tables.
+            </li>
+        </ul>
+
+        <p>
+            Some constraints are implemented using indexes internally,
+            but their purpose is still different.
+        </p>
+
+        <h2>22. Index Size Matters</h2>
+
+        <p>
+            The size of an index depends on factors such as:
+        </p>
+
+        <ul>
+            <li>Number of rows</li>
+            <li>Indexed column size</li>
+            <li>Number of columns in a composite index</li>
+            <li>Data distribution</li>
+            <li>Database implementation</li>
+        </ul>
+
+        <p>
+            Indexing a large text column can therefore be considerably more
+            expensive than indexing a small integer.
+        </p>
+
+        <p>
+            In general:
+            <strong>smaller indexes are cheaper to maintain and easier to keep
+                in memory.</strong>
+        </p>
+
+        <h2>23. Duplicate and Redundant Indexes</h2>
+
+        <p>
+            Over time, a table can accumulate indexes that overlap.
+        </p>
+
+        <pre><code>INDEX(customer_id)
+INDEX(customer_id, status)</code></pre>
+
+        <p>
+            The second index already starts with <code>customer_id</code>,
+            so the first index may be redundant for many workloads.
+        </p>
+
+        <p>
+            However, whether an index is truly redundant depends on the
+            database and the exact workload.
+        </p>
+
+        <p>
+            Before removing an index, verify which queries depend on it.
+        </p>
+
+        <h2>24. Indexing a Query Pattern</h2>
+
+        <p>
+            Instead of thinking:
+        </p>
+
+        <pre><code>"Which columns should I index?"</code></pre>
+
+        <p>
+            think:
+        </p>
+
+        <pre><code>"How does my application access this data?"</code></pre>
+
+        <p>
+            For example, suppose the application frequently runs:
+        </p>
+
+        <pre><code>SELECT *
+FROM payments
+WHERE merchant_id = ?
+AND status = ?
+ORDER BY created_at DESC
+LIMIT 50;</code></pre>
+
+        <p>
+            A possible index could be:
+        </p>
+
+        <pre><code>CREATE INDEX idx_payments_merchant_status_created ON payments(merchant_id, status, created_at);</code></pre>
+
+        <p>
+            The index is designed around the complete access pattern:
+            filtering by merchant, filtering by status, and then ordering
+            by creation time.
+        </p>
+
+        <p>
+            The best index is often the one designed around the query,
+            rather than around an individual column.
+        </p>
+
+        <h2>25. Indexes and Joins</h2>
+
+        <p>
+            Indexes are also important when joining tables.
+        </p>
+
+        <pre><code>SELECT orders.*
+FROM orders
+JOIN customers
+ON orders.customer_id = customers.id
+WHERE customers.id = 123;</code></pre>
+
+        <p>
+            An index on the columns used to locate and join rows can
+            significantly reduce the amount of data the database needs
+            to examine.
+        </p>
+
+        <p>
+            Primary keys are commonly indexed automatically, while foreign
+            key columns are often good candidates for explicit indexes.
+        </p>
+
+        <h2>26. Indexes and Write-Heavy Systems</h2>
+
+        <p>
+            Index design is especially important for write-heavy workloads.
+        </p>
+
+        <p>
+            Imagine a table receiving thousands of inserts per second.
+            Every additional index may need to be updated for every insert.
+        </p>
+
+        <pre><code>INSERT
+│
+├── update primary key index
+├── update customer index
+├── update status index
+├── update timestamp index
+└── update another composite index</code></pre>
+
+        
+        <p>
+            An index that saves a few milliseconds on an occasional query
+            may not be worth the cost if it significantly increases the
+            cost of millions of writes.
+        </p>
+
+        <h2>27. The Trade-off</h2>
+
+        <p>
+            Database indexing is fundamentally a trade-off:
+        </p>
+
+        <pre><code>More indexes
+ ↓
+Faster reads
++
+More storage
++
+More expensive writes
++
+More maintenance</code></pre>
+
+        <p>
+            Conversely:
+        </p>
+
+        <pre><code>Fewer indexes
+ ↓
+Cheaper writes
++
+Less storage
+-
+Potentially slower reads</code></pre>
+
+        <p>
+            Good database design finds the appropriate balance for the
+            application's workload.
+        </p>
+
+        <h2>28. A Practical Indexing Process</h2>
+
+        <p>
+            A useful process for adding an index is:
+        </p>
+
+        <ol>
+            <li>Identify a slow or frequently executed query.</li>
+            <li>Inspect the current execution plan.</li>
+            <li>Understand which rows the query filters, sorts or joins.</li>
+            <li>Design an index around that access pattern.</li>
+            <li>Check the new execution plan.</li>
+            <li>Benchmark the query.</li>
+            <li>Measure the impact on writes and storage.</li>
+            <li>Monitor the index in production.</li>
+        </ol>
+
+        <p>
+            Do not stop at:
+        </p>
+
+        <pre><code>"The index exists."</code></pre>
+
+        <p>
+            The important question is:
+        </p>
+
+        <pre><code>"Did the index actually improve the workload?"</code></pre>
+
+        <h2>29. Common Indexing Mistakes</h2>
+
+        <ul>
+            <li>Adding indexes to every column</li>
+            <li>Ignoring composite index column order</li>
+            <li>Creating duplicate or redundant indexes</li>
+            <li>Ignoring write performance</li>
+            <li>Ignoring index storage requirements</li>
+            <li>Assuming an index will always be used</li>
+            <li>Not checking the execution plan</li>
+            <li>Indexing without understanding the query workload</li>
+            <li>Adding very large indexes unnecessarily</li>
+            <li>Keeping unused indexes forever</li>
+        </ul>
+
+        <h2>Indexing Checklist</h2>
+
+        <ul>
+            <li>Is this query actually slow or frequently executed?</li>
+            <li>What does the current execution plan look like?</li>
+            <li>Which columns are used for filtering?</li>
+            <li>Which columns are used for joins?</li>
+            <li>Which columns are used for sorting?</li>
+            <li>Should this be a composite index?</li>
+            <li>Is the column order appropriate?</li>
+            <li>Is the index selective enough for the workload?</li>
+            <li>Could the index cover the query?</li>
+            <li>What will the index cost in storage?</li>
+            <li>How will it affect INSERT, UPDATE and DELETE performance?</li>
+            <li>Is there already a redundant index?</li>
+            <li>Did the execution plan actually improve?</li>
+        </ul>
+
+        <h2>Final Thought</h2>
+
+        <p>
+            An index is essentially a trade:
+            <strong>pay extra storage and write overhead to make certain reads
+                significantly cheaper.</strong>
+        </p>
+
+        <p>
+            Good indexing is therefore not about having as many indexes as
+            possible. It is about understanding how the application accesses
+            its data and building indexes around those access patterns.
+        </p>
+
+        <p>
+            The most useful mindset is:
+            <strong>measure the query, understand the execution plan,
+                design the index, and measure again.</strong>
+        </p>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>
