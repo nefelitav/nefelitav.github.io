@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Database Partitioning — learn how tables are split into smaller partitions, how range, list, and hash partitioning work, and when partitioning improves database performance and maintenance.">
+    <meta property="og:title" content="Database Partitioning">
+    <meta property="og:description" content="Understand database partitioning, partition pruning, partition keys, and the difference between partitioning and sharding.">
+    <meta property="og:type" content="article">
+
+    <title>Database Partitioning | Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+        <h1>Database Partitioning</h1>
+        <p class="post-date">October 15, 2026</p>
+
+        <p>
+            As a database grows, some tables can contain millions
+            or even billions of rows. Queries against these tables
+            may become expensive, and routine operations such as
+            deleting old records or maintaining indexes can become
+            increasingly difficult.
+        </p>
+
+        <p>
+            <strong>Database partitioning</strong> divides a large
+            table into smaller pieces called partitions. The database
+            can then work with the relevant partitions instead of
+            always processing the entire table.
+        </p>
+
+        <p>
+            Let's look at how partitioning works, which strategies
+            databases support, and when it is worth using.
+        </p>
+
+        <h2>1. What Is Database Partitioning?</h2>
+
+        <p>
+            Database partitioning is the process of dividing a large
+            table into smaller, logically related pieces based on
+            a defined rule.
+        </p>
+
+        <p>
+            From the application's perspective, the data can often
+            still be queried through one table name. The database
+            determines which underlying partitions contain the
+            relevant records.
+        </p>
+
+        <p>
+            Imagine an application that stores every payment event
+            in a single table.
+        </p>
+
+        <pre><code>Before partitioning:
+
+payment_events
+├── Event from January
+├── Event from February
+├── Event from March
+├── ...
+└── Event from December
+
+
+After partitioning by month:
+
+payment_events
+├── payment_events_2026_01
+├── payment_events_2026_02
+├── payment_events_2026_03
+└── ...</code></pre>
+
+        <p>
+            These partitions are still part of one logical table.
+            The example uses monthly partitions, but the correct
+            partitioning strategy depends on the data and queries.
+        </p>
+
+        <h2>2. Why Use Partitioning?</h2>
+
+        <h3>Partition pruning</h3>
+
+        <p>
+            One of the main benefits of partitioning is
+            <strong>partition pruning</strong>. When a query includes
+            conditions that identify relevant partitions, the database
+            can skip partitions that cannot contain matching rows.
+        </p>
+
+        <p>For example:</p>
+
+        <pre><code>SELECT *
+FROM payment_events
+WHERE created_at >= '2026-10-01'
+  AND created_at < '2026-11-01';</code></pre>
+
+        <p>
+            If the table is partitioned by month using
+            <code>created_at</code>, the database may only need
+            to scan the October 2026 partition.
+        </p>
+
+        <p>
+            Without effective pruning, the database may need to
+            consider many more partitions. The exact behavior
+            depends on the database, query, and partition definition.
+        </p>
+
+        <h3>Easier data retention</h3>
+
+        <p>
+            Suppose an application must retain payment events for
+            only a limited period. With time-based partitions, old
+            data may be removed by dropping an entire partition
+            rather than deleting millions of individual rows.
+        </p>
+
+        <pre><code>Old approach:
+DELETE FROM payment_events
+WHERE created_at < '2024-01-01';
+
+Partitioned approach:
+Drop or detach the partitions
+that contain expired data.</code></pre>
+
+        <p>
+            The exact commands depend on the database. Partition
+            removal must follow the application's retention,
+            audit, and backup requirements.
+        </p>
+
+        <h3>More manageable maintenance</h3>
+
+        <p>
+            Some databases allow operations such as creating,
+            attaching, detaching, or maintaining partitions
+            individually. This can make very large tables easier
+            to manage.
+        </p>
+
+        <p>
+            Partitioning does not automatically make every query
+            faster, and it does not replace indexes. It is most
+            useful when the partition strategy matches the
+            application's query patterns and maintenance needs.
+        </p>
+
+        <h2>3. How Does Partitioning Work?</h2>
+
+        <p>
+            A partitioned table has a <strong>partition key</strong>
+            and a rule that determines which partition receives
+            each row.
+        </p>
+
+        <p>
+            For example, if payment events are partitioned by
+            <code>created_at</code>, the database uses the timestamp
+            to decide which partition stores a new event.
+        </p>
+
+        <pre><code>INSERT INTO payment_events (id, created_at, amount)
+VALUES (101, '2026-10-15', 49.99);
+
+The database checks the partition rule
+and stores the row in the October 2026 partition.</code></pre>
+
+        <p>
+            When reading data, the database can use the query
+            conditions and partition definitions to determine
+            which partitions need to be accessed.
+        </p>
+
+        <h2>4. Types of Partitioning</h2>
+
+        <h3>Range partitioning</h3>
+
+        <p>
+            Range partitioning assigns rows to partitions based
+            on ranges of values.
+        </p>
+
+        <p>For example, partitioning payment events by date:</p>
+
+        <pre><code>Partition 1: January 2026
+Partition 2: February 2026
+Partition 3: March 2026
+...</code></pre>
+
+        <p><strong>Advantages:</strong></p>
+        <ul>
+            <li>Works well for time-based data and range queries.</li>
+            <li>Can simplify retention by allowing old ranges to be removed.</li>
+            <li>Can make it easier to isolate recent data from historical data.</li>
+        </ul>
+
+        <p><strong>Disadvantages:</strong></p>
+        <ul>
+            <li>Some partitions may grow much faster than others.</li>
+            <li>Queries that do not filter by the partition key may need to access many partitions.</li>
+        </ul>
+
+        <h3>List partitioning</h3>
+
+        <p>
+            List partitioning assigns rows to partitions based on
+            explicit values.
+        </p>
+
+        <p>For example:</p>
+
+        <pre><code>Partition 1: country = 'NL'
+Partition 2: country = 'BE'
+Partition 3: country = 'DE'
+Partition 4: Other supported countries</code></pre>
+
+        <p>
+            This can be useful when a known set of categories,
+            regions, or business units determines how data should
+            be organized.
+        </p>
+
+        <p>
+            The design must account for new values and any default
+            partition behavior supported by the database.
+        </p>
+
+        <h3>Hash partitioning</h3>
+
+        <p>
+            Hash partitioning applies a hash function to the
+            partition key and uses the result to assign a row
+            to a partition.
+        </p>
+
+        <pre><code>partition = hash(customer_id) % 4</code></pre>
+
+        <p>
+            This is a simplified illustration. A database generally
+            manages the actual hash partition mapping.
+        </p>
+
+        <p><strong>Advantages:</strong></p>
+        <ul>
+            <li>Can distribute rows relatively evenly across partitions.</li>
+            <li>Can avoid concentrating all recent records in one partition.</li>
+        </ul>
+
+        <p><strong>Disadvantages:</strong></p>
+        <ul>
+            <li>Range queries on the key may need to access many partitions.</li>
+            <li>It is less useful when queries naturally target a particular range or category.</li>
+        </ul>
+
+        <h2>5. Example: Partitioning a Table in PostgreSQL</h2>
+
+        <p>
+            PostgreSQL supports declarative table partitioning.
+            The following example creates a table partitioned
+            by the range of a timestamp.
+        </p>
+
+        <pre><code>CREATE TABLE payment_events (
+    id BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    amount NUMERIC(12, 2) NOT NULL
+) PARTITION BY RANGE (created_at);</code></pre>
+
+        <p>Next, create partitions for two months:</p>
+
+        <pre><code>CREATE TABLE payment_events_2026_09
+PARTITION OF payment_events
+FOR VALUES FROM ('2026-09-01')
+TO ('2026-10-01');
+
+CREATE TABLE payment_events_2026_10
+PARTITION OF payment_events
+FOR VALUES FROM ('2026-10-01')
+TO ('2026-11-01');</code></pre>
+
+        <p>
+            The upper boundary is exclusive. Therefore, the October
+            partition includes timestamps on October 31 and excludes
+            timestamps on November 1.
+        </p>
+
+        <p>Insert data through the parent table:</p>
+
+        <pre><code>INSERT INTO payment_events (id, created_at, amount)
+VALUES
+    (1, '2026-09-15 10:00:00', 25.00),
+    (2, '2026-10-15 12:30:00', 49.99);</code></pre>
+
+        <p>
+            PostgreSQL routes each row to the appropriate partition.
+            The application can query the parent table without
+            naming the individual partitions.
+        </p>
+
+        <pre><code>SELECT *
+FROM payment_events
+WHERE created_at >= '2026-10-01'
+  AND created_at < '2026-11-01';</code></pre>
+
+        <p>
+            PostgreSQL can prune partitions that cannot contain
+            matching rows. You can inspect the query plan with
+            <code>EXPLAIN</code> to check which partitions are
+            accessed.
+        </p>
+
+        <p>
+            This example is for PostgreSQL. Syntax, capabilities,
+            and limitations differ across database systems.
+        </p>
+
+        <h2>6. Partitioning vs. Indexing</h2>
+
+        <p>
+            Partitioning and indexing are different techniques,
+            and they can be used together.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Indexing:</strong> Creates a data structure
+                that helps the database locate matching rows without
+                scanning the entire table.
+            </li>
+            <li>
+                <strong>Partitioning:</strong> Divides the table
+                into smaller pieces so that irrelevant partitions
+                can potentially be skipped.
+            </li>
+        </ul>
+
+        <p>Imagine a table containing several years of payment events.</p>
+
+        <pre><code>Partitioning:
+Only access the partitions for October 2026.
+
+Indexing:
+Within the relevant partition, use an index
+to locate events for a specific customer.</code></pre>
+
+        <p>
+            Depending on the query, the database may use partition
+            pruning, indexes, both, or neither. You should inspect
+            actual query plans rather than assume partitioning
+            always improves performance.
+        </p>
+
+        <h2>7. Partitioning vs. Sharding</h2>
+
+        <p>
+            Partitioning and sharding both divide data, but they
+            usually describe different levels of an architecture.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Partitioning:</strong> Divides a table or
+                dataset into smaller parts managed by a database
+                system. These partitions may all reside on one
+                database server.
+            </li>
+            <li>
+                <strong>Sharding:</strong> Distributes subsets of
+                data across separate database instances or servers.
+            </li>
+        </ul>
+
+        <pre><code>Partitioning:
+
+Database Server
+└── payment_events
+    ├── Partition 1
+    ├── Partition 2
+    └── Partition 3
+
+
+Sharding:
+
+Application
+├── Database Server 1: Customers A–M
+└── Database Server 2: Customers N–Z</code></pre>
+
+        <p>
+            Partitioning does not necessarily distribute workload
+            across multiple machines. Sharding is generally used
+            when data or throughput needs to be distributed across
+            database instances.
+        </p>
+
+        <p>
+            The terminology can overlap. Some database systems
+            support distributed partitioning, and a sharded
+            architecture can use partitioning within each shard.
+        </p>
+
+        <h2>8. Partitioning Is Not Always Faster</h2>
+
+        <p>
+            Partitioning adds structure and operational requirements.
+            It is not a universal performance optimization.
+        </p>
+
+        <h3>Queries without the partition key</h3>
+
+        <p>
+            If a query does not constrain the partition key, the
+            database may need to inspect many or all partitions.
+            For example, searching by customer ID in a table
+            partitioned only by date might require checking
+            multiple date partitions.
+        </p>
+
+        <h3>Too many partitions</h3>
+
+        <p>
+            Creating thousands of tiny partitions can add planning,
+            metadata, and operational overhead. The appropriate
+            number depends on the database, workload, and size
+            of each partition.
+        </p>
+
+        <h3>Indexes and constraints</h3>
+
+        <p>
+            Indexes and uniqueness constraints behave differently
+            across database systems and partitioning schemes.
+            Some databases require a unique constraint to include
+            the partition key, for example.
+        </p>
+
+        <p>
+            Understand the database's specific limitations before
+            choosing the partition key or schema.
+        </p>
+
+        <h3>Maintenance</h3>
+
+        <p>
+            Applications that use time-based partitions may need
+            to create future partitions in advance, monitor
+            partition growth, and decide what happens when a row
+            does not match any existing partition.
+        </p>
+
+        <h2>9. When Should You Use Partitioning?</h2>
+
+        <p>Partitioning may be useful when:</p>
+
+        <ul>
+            <li>A table contains a very large number of rows.</li>
+            <li>Queries frequently filter by a suitable partition key.</li>
+            <li>You need to remove or archive old data efficiently.</li>
+            <li>Different parts of a table have different retention or maintenance needs.</li>
+            <li>You have measured a performance or operational problem that partitioning can address.</li>
+        </ul>
+
+        <h3>When might it not be worth it?</h3>
+
+        <ul>
+            <li>Your tables are relatively small and perform well.</li>
+            <li>Your queries do not align with the proposed partition key.</li>
+            <li>Indexes and query improvements would solve the problem more simply.</li>
+            <li>The extra partition management would introduce more complexity than value.</li>
+        </ul>
+
+        <p>
+            Before partitioning a table, measure query performance,
+            inspect query plans, and understand how the table is
+            accessed and maintained.
+        </p>
+
+        <h2>10. Real-World Example: An Invoicing System</h2>
+
+        <p>
+            Imagine a billing system that stores millions of invoice
+            events over several years. Most queries retrieve events
+            for a particular invoicing period.
+        </p>
+
+        <p>
+            The system could partition the events table by
+            <code>created_at</code>, using monthly partitions.
+        </p>
+
+        <pre><code>invoice_events_2026_08
+invoice_events_2026_09
+invoice_events_2026_10
+invoice_events_2026_11</code></pre>
+
+        <p>
+            When an application requests events from October 2026,
+            the database can skip partitions for other months.
+        </p>
+
+        <p>
+            If the system also needs to remove data beyond its
+            retention period, old partitions may be detached or
+            dropped according to the database's capabilities and
+            the application's compliance requirements.
+        </p>
+
+        <p>
+            This approach can simplify queries and maintenance,
+            but it does not replace the need for appropriate
+            indexes, correct retention policies, and tested
+            operational procedures.
+        </p>
+
+        <h2>11. Summary</h2>
+
+        <p>
+            Database partitioning divides a large table into
+            smaller pieces that the database can manage according
+            to a partitioning rule.
+        </p>
+
+        <p>The key concepts to remember are:</p>
+
+        <ul>
+            <li>
+                <strong>Partitioning</strong> divides a table or
+                dataset into smaller pieces.
+            </li>
+            <li>
+                <strong>Partition keys</strong> determine where
+                rows belong.
+            </li>
+            <li>
+                <strong>Range, list, and hash partitioning</strong>
+                are common strategies.
+            </li>
+            <li>
+                <strong>Partition pruning</strong> allows the
+                database to skip partitions that cannot match a
+                query.
+            </li>
+            <li>
+                <strong>Indexing and partitioning</strong> solve
+                different problems and can be used together.
+            </li>
+            <li>
+                <strong>Partitioning is not the same as sharding:</strong>
+                partitioning divides data into pieces, while
+                sharding generally distributes pieces across
+                database instances.
+            </li>
+        </ul>
+
+        <p>
+            The goal is to choose a partitioning strategy that
+            matches your query patterns and maintenance needs.
+            Partitioning can be very effective for large tables,
+            especially time-based data, but it should be driven
+            by a real requirement rather than added by default.
+        </p>
+    </article>
+</main>
+</body>
+</html>

@@ -64,5 +64,25 @@ const POSTS = [
         title: "N + 1 Queries",
         date: "2026-10-14",
         file: "n_plus_one.html"
+    },
+    {
+        title: "Deployment Strategies",
+        date: "2026-10-15",
+        file: "deployment_strategies.html"
+    },
+    {
+        title: "Database Replication",
+        date: "2026-10-15",
+        file: "database_replication.html"
+    },
+    {
+        title: "Database Sharding",
+        date: "2026-10-15",
+        file: "database_sharding.html"
+    },
+    {
+        title: "Database Partitioning",
+        date: "2026-10-15",
+        file: "database_partitioning.html"
     }
 ];

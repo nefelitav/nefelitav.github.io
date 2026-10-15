@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Database Replication & Read Replicas — understand primary-replica architecture, synchronous and asynchronous replication, replication lag, and how to scale database reads.">
+    <meta property="og:title" content="Database Replication & Read Replicas">
+    <meta property="og:description" content="Learn how database replication works, how read replicas improve scalability, and what trade-offs to consider.">
+    <meta property="og:type" content="article">
+
+    <title>Database Replication & Read Replicas | Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+        <h1>Database Replication & Read Replicas</h1>
+        <p class="post-date">October 15, 2026</p>
+
+        <p>
+            As applications grow, a single database server can become a
+            bottleneck. It may struggle to handle thousands of queries,
+            become a single point of failure, or introduce high latency
+            for users in different regions.
+        </p>
+
+        <p>
+            <strong>Database replication</strong> helps address these
+            challenges by copying data between database servers.
+            <strong>Read replicas</strong> use this capability to handle
+            read queries without sending every query to the primary
+            database.
+        </p>
+
+        <p>
+            Let's understand how they work, why they are useful, and
+            what you need to consider before introducing them.
+        </p>
+
+        <h2>1. What Is Database Replication?</h2>
+
+        <p>
+            Database replication is the process of copying data from
+            one database server to one or more other database servers.
+            These copies are called <strong>replicas</strong>.
+        </p>
+
+        <p>
+            In a common setup, one database acts as the
+            <strong>primary</strong> (also called the leader), while
+            other databases act as <strong>replicas</strong>
+            (also called followers or standbys).
+        </p>
+
+        <pre><code>                 Writes
+Application ───────────────► Primary Database
+                                  │
+                                  │ Replication
+                         ┌────────┴────────┐
+                         ▼                 ▼
+                    Replica 1         Replica 2</code></pre>
+
+        <p>
+            The primary is responsible for accepting writes. Changes
+            are then propagated to the replicas, which maintain copies
+            of the primary's data.
+        </p>
+
+        <p>
+            Depending on the database and its configuration, replicas
+            may be used for read queries, high availability, disaster
+            recovery, or other workloads.
+        </p>
+
+        <h2>2. How Does Replication Work?</h2>
+
+        <p>
+            Imagine an e-commerce application where a customer updates
+            their delivery address.
+        </p>
+
+        <pre><code>1. The application sends an UPDATE to the primary.
+2. The primary commits the change.
+3. The change is recorded in the database's replication log.
+4. A replica receives and applies the change.
+5. The updated address becomes available on that replica.</code></pre>
+
+        <p>
+            Databases commonly use logs to communicate changes.
+            For example, MySQL uses binary logs, while PostgreSQL
+            uses write-ahead logs (WAL) for replication.
+        </p>
+
+        <p>
+            Replication is not necessarily instantaneous. Depending
+            on the replication mode, a replica might receive a change
+            before the original write is acknowledged, or it might
+            apply the change a little later.
+        </p>
+
+        <h2>3. Types of Replication</h2>
+
+        <h3>Synchronous replication</h3>
+
+        <p>
+            With synchronous replication, the primary waits for
+            confirmation from the required replica or replicas before
+            acknowledging a transaction, according to the configured
+            durability guarantees.
+        </p>
+
+        <pre><code>Application ──► Primary
+                   │
+                   ▼
+                 Replica
+                   │
+                   ▼
+             Confirmation
+                   │
+                   ▼
+Application receives success</code></pre>
+
+        <p><strong>Advantages:</strong></p>
+        <ul>
+            <li>Can provide stronger guarantees that changes have reached a replica before success is acknowledged.</li>
+            <li>Can reduce the risk of losing acknowledged changes during certain failures.</li>
+        </ul>
+
+        <p><strong>Disadvantages:</strong></p>
+        <ul>
+            <li>Writes can become slower because they depend on replica acknowledgements.</li>
+            <li>Network failures or unavailable replicas can affect write availability.</li>
+        </ul>
+
+        <p>
+            The exact guarantee depends on the database configuration.
+            For example, waiting for a replica to receive a log record
+            is not always the same as waiting for it to apply the
+            change or persist it to durable storage.
+        </p>
+
+        <h3>Asynchronous replication</h3>
+
+        <p>
+            With asynchronous replication, the primary does not wait
+            for replicas to confirm each change before acknowledging
+            the write to the application.
+        </p>
+
+        <pre><code>Application ──► Primary
+                   │
+                   ├──► Write succeeds
+                   │
+                   └──► Replica catches up afterward</code></pre>
+
+        <p><strong>Advantages:</strong></p>
+        <ul>
+            <li>Lower write latency because the primary doesn't wait for replica acknowledgements.</li>
+            <li>Replicas can catch up in the background.</li>
+        </ul>
+
+        <p><strong>Disadvantages:</strong></p>
+        <ul>
+            <li>Replicas may temporarily contain stale data.</li>
+            <li>If the primary fails before changes are replicated, some acknowledged writes may be lost during failover.</li>
+        </ul>
+
+        <p>
+            Asynchronous replication is common when read scalability
+            is a priority and a small delay between the primary and
+            replicas is acceptable.
+        </p>
+
+        <h3>Primary-replica vs. multi-primary replication</h3>
+
+        <p>
+            Replication also differs in which database servers can
+            accept writes.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Primary-replica:</strong> One primary accepts
+                writes, and replicas receive changes from it. This is
+                a common and relatively straightforward architecture.
+            </li>
+            <li>
+                <strong>Multi-primary:</strong> Multiple database
+                servers can accept writes. This can support some
+                distributed-write use cases, but conflicting changes,
+                consistency, and failover become more complicated.
+            </li>
+        </ul>
+
+        <p>
+            Multi-primary replication is not simply a faster version
+            of primary-replica replication. It requires a deliberate
+            strategy for handling conflicting writes and maintaining
+            correctness.
+        </p>
+
+        <h2>4. What Are Read Replicas?</h2>
+
+        <p>
+            A read replica is a database server that receives
+            replicated data from the primary and is used primarily
+            to serve read queries.
+        </p>
+
+        <p>
+            Instead of sending every query to one database, an
+            application can send writes to the primary and direct
+            suitable reads to replicas.
+        </p>
+
+        <pre><code>                         ┌──────────────────┐
+                         │    Application   │
+                         └────────┬─────────┘
+                                  │
+                     ┌────────────┴────────────┐
+                     │                         │
+                  Writes                     Reads
+                     │                         │
+                     ▼                         ▼
+              ┌─────────────┐         ┌────────────────┐
+              │   Primary   │────────►│  Read Replica  │
+              │ Read/Write  │ Replicate│  Read only     │
+              └─────────────┘         └────────────────┘
+                                              │
+                                              ▼
+                                       ┌────────────────┐
+                                       │  Read Replica  │
+                                       │  Read only     │
+                                       └────────────────┘</code></pre>
+
+        <p>
+            A read replica is not just a backup. It is an additional
+            database instance that can actively serve application
+            queries.
+        </p>
+
+        <p>
+            Read replicas are often configured to reject direct
+            writes, although the exact restrictions depend on the
+            database and setup.
+        </p>
+
+        <h2>5. Why Use Read Replicas?</h2>
+
+        <h3>Better read performance</h3>
+
+        <p>
+            The primary no longer needs to execute every read query.
+            Replicas can handle queries such as loading product
+            listings, retrieving user profiles, or displaying
+            reporting dashboards.
+        </p>
+
+        <h3>Horizontal read scalability</h3>
+
+        <p>
+            You can add more replicas to distribute read traffic.
+            This can help when an application has many more reads
+            than writes.
+        </p>
+
+        <p>
+            However, adding replicas does not automatically make
+            every query faster. Queries still depend on indexes,
+            query plans, available CPU, memory, storage, and the
+            replication workload.
+        </p>
+
+        <h3>Isolation of workloads</h3>
+
+        <p>
+            You can send analytical or reporting queries to a
+            dedicated replica instead of letting expensive reads
+            compete with latency-sensitive transactions on the
+            primary.
+        </p>
+
+        <h3>Geographic distribution</h3>
+
+        <p>
+            Replicas in different regions can serve nearby users,
+            potentially reducing read latency. Cross-region
+            replication introduces additional network latency and
+            may increase replication lag.
+        </p>
+
+        <h2>6. How Does an Application Use Read Replicas?</h2>
+
+        <p>
+            The application needs a way to choose which database
+            connection should execute each query.
+        </p>
+
+        <p>For example, imagine an application with two connections:</p>
+
+        <pre><code>PRIMARY_DATABASE_URL=postgres://primary.example/app
+READ_DATABASE_URL=postgres://replica.example/app</code></pre>
+
+        <p>
+            The application can use the primary for writes and
+            consistency-sensitive reads, and the replica for reads
+            where slightly stale data is acceptable.
+        </p>
+
+        <p>Conceptually:</p>
+
+        <pre><code>// Write to the primary
+order = primaryDatabase.insertOrder(orderData);
+
+// Read from a replica
+products = readDatabase.getProducts();
+
+// Read the newly created order from the primary
+// when an up-to-date result is required
+order = primaryDatabase.getOrder(order.id);</code></pre>
+
+        <p>
+            This is illustrative pseudocode, not a specific ORM API.
+            In a real application, the database driver, framework,
+            or repository layer determines how connections are
+            configured and selected.
+        </p>
+
+        <p>
+            Many frameworks support read/write connection splitting.
+            Still, routing every SELECT to a replica is not always
+            correct. The application must account for queries that
+            need to observe recent writes.
+        </p>
+
+        <h2>7. What Is Replication Lag?</h2>
+
+        <p>
+            <strong>Replication lag</strong> is the delay between a
+            change being committed on the primary and that change
+            becoming available on a replica.
+        </p>
+
+        <p>Consider this sequence:</p>
+
+        <pre><code>1. A user updates their profile.
+2. The primary saves the new name: "Alex".
+3. The application returns success.
+4. The user refreshes the profile.
+5. The read replica still contains the old name: "Alice".</code></pre>
+
+        <p>
+            The user may see the old name even though the update
+            succeeded. This is a common example of
+            <strong>eventual consistency</strong>.
+        </p>
+
+        <h3>How can you handle replication lag?</h3>
+
+        <ul>
+            <li>
+                <strong>Read your writes from the primary:</strong>
+                After a user changes data, send related reads to
+                the primary for a short period or until the change
+                is known to be replicated.
+            </li>
+            <li>
+                <strong>Monitor replication lag:</strong> Track
+                replication delay and alert when it exceeds
+                acceptable limits.
+            </li>
+            <li>
+                <strong>Use a consistency-aware routing policy:</strong>
+                Route reads according to their freshness requirements,
+                rather than sending every read to a replica.
+            </li>
+            <li>
+                <strong>Define a fallback:</strong> If a replica is
+                too far behind or unavailable, consider routing
+                eligible reads to the primary.
+            </li>
+        </ul>
+
+        <p>
+            Sending a query to the primary avoids replica lag for
+            that read, but it does not solve every consistency issue
+            in a distributed application.
+        </p>
+
+        <h2>8. When Should You Use Read Replicas?</h2>
+
+        <p>Read replicas can be useful when:</p>
+
+        <ul>
+            <li>Your application handles significantly more reads than writes.</li>
+            <li>The primary is approaching its read-processing capacity.</li>
+            <li>Reporting queries are competing with important transactional workloads.</li>
+            <li>You need to serve read traffic from multiple regions.</li>
+            <li>Your application can tolerate some reads being slightly stale.</li>
+        </ul>
+
+        <h3>When might they not be worth it?</h3>
+
+        <ul>
+            <li>
+                Your database is small and performs well on a single
+                instance.
+            </li>
+            <li>
+                Most of your workload consists of writes, so read
+                replicas will not address the main bottleneck.
+            </li>
+            <li>
+                Nearly every read must immediately observe the latest
+                write, and you cannot implement suitable routing.
+            </li>
+            <li>
+                Your team cannot yet support the extra monitoring,
+                connection management, and operational complexity.
+            </li>
+        </ul>
+
+        <p>
+            Before adding replicas, measure the workload and identify
+            the bottleneck. Slow queries, missing indexes, inefficient
+            joins, and excessive database round trips may be better
+            first targets.
+        </p>
+
+        <h2>9. Replication Is Not the Same as Sharding</h2>
+
+        <p>
+            Replication and sharding solve different scaling problems.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Replication:</strong> Copies the same data
+                to multiple database servers.
+            </li>
+            <li>
+                <strong>Sharding:</strong> Splits data across multiple
+                database servers, with each shard holding only part
+                of the dataset.
+            </li>
+        </ul>
+
+        <p>For example:</p>
+
+        <pre><code>Replication:
+
+Primary:   Users A, B, C, D
+Replica:   Users A, B, C, D
+
+
+Sharding:
+
+Shard 1:   Users A, B
+Shard 2:   Users C, D</code></pre>
+
+        <p>
+            Replication is often used to scale reads and improve
+            availability. Sharding can distribute both storage and
+            workload when a single database cannot handle the full
+            dataset or throughput.
+        </p>
+
+        <p>
+            They can also be combined: each shard can have its own
+            replicas.
+        </p>
+
+        <h2>10. Replication and High Availability</h2>
+
+        <p>
+            Replicas can help a system recover from a primary failure,
+            but replication alone does not guarantee high availability.
+        </p>
+
+        <p>
+            A production setup may need to detect failures, select
+            a suitable replica, promote it to primary, redirect
+            application connections, and prevent the old primary
+            from accepting conflicting writes.
+        </p>
+
+        <p>
+            This process is called <strong>failover</strong>. It may
+            be managed by a database service, orchestration system,
+            or dedicated database tooling.
+        </p>
+
+        <p>
+            With asynchronous replication, a replica may not have
+            received every acknowledged write before the primary
+            fails. Promoting it can therefore result in data loss.
+            Synchronous replication can reduce some risks, but its
+            guarantees depend on configuration and failure scenarios.
+        </p>
+
+        <p>
+            Replication is also not a replacement for backups.
+            Accidental deletions or corrupted data may be replicated
+            to every copy. Backups and recovery testing are still
+            essential.
+        </p>
+
+        <h2>11. Real-World Example: An E-commerce Application</h2>
+
+        <p>Imagine an online store with the following workloads:</p>
+
+        <ul>
+            <li>Customers browse product listings thousands of times per minute.</li>
+            <li>Customers place orders and update their accounts.</li>
+            <li>Employees generate reports about sales and inventory.</li>
+        </ul>
+
+        <p>A possible architecture is:</p>
+
+        <pre><code>Product listing reads ──────► Read Replica 1
+
+Reporting queries ──────────► Read Replica 2
+
+Order creation ─────────────► Primary Database
+
+Payment state changes ──────► Primary Database
+
+Consistency-sensitive reads ► Primary Database</code></pre>
+
+        <p>
+            The replicas absorb eligible read traffic, while the
+            primary handles writes and reads that need the latest
+            committed data.
+        </p>
+
+        <p>
+            This architecture still needs careful transaction design.
+            For example, inventory checks and order creation must
+            protect against overselling; reading a stale inventory
+            value from a replica is not sufficient to guarantee
+            correct stock management.
+        </p>
+
+        <h2>12. Things to Keep in Mind</h2>
+
+        <ul>
+            <li>
+                <strong>Replication lag:</strong> A replica may not
+                immediately reflect a committed change.
+            </li>
+            <li>
+                <strong>Connection routing:</strong> Applications
+                need to send queries to the appropriate database.
+            </li>
+            <li>
+                <strong>Failover:</strong> Promoting a replica requires
+                a defined recovery procedure.
+            </li>
+            <li>
+                <strong>Monitoring:</strong> Monitor lag, replica
+                availability, query latency, and resource usage.
+            </li>
+            <li>
+                <strong>Cost:</strong> Additional replicas require
+                compute, storage, and operational resources.
+            </li>
+            <li>
+                <strong>Backups:</strong> Maintain independent backups
+                and test restoration.
+            </li>
+        </ul>
+
+        <h2>13. Summary</h2>
+
+        <p>
+            Database replication copies data between database servers.
+            Read replicas use those copies to serve eligible read
+            queries, helping applications scale read workloads and
+            isolate expensive queries from the primary.
+        </p>
+
+        <p>The key concepts to remember are:</p>
+
+        <ul>
+            <li>
+                <strong>Replication</strong> keeps multiple database
+                instances synchronized to some degree.
+            </li>
+            <li>
+                <strong>Synchronous replication</strong> can provide
+                stronger replication guarantees at the cost of latency
+                or availability trade-offs.
+            </li>
+            <li>
+                <strong>Asynchronous replication</strong> usually
+                improves write responsiveness but can introduce lag
+                and potential data loss during some failures.
+            </li>
+            <li>
+                <strong>Read replicas</strong> distribute read traffic
+                but do not automatically improve write capacity.
+            </li>
+            <li>
+                <strong>Replication lag</strong> means an application
+                must think carefully about which reads need the latest
+                data.
+            </li>
+            <li>
+                <strong>Replication is not a backup</strong> and does
+                not eliminate the need for recovery planning.
+            </li>
+        </ul>
+
+        <p>
+            The goal is not to add more database servers just because
+            an application is growing. It is to identify the actual
+            bottleneck and choose the simplest architecture that
+            meets the application's performance, consistency, and
+            availability requirements.
+        </p>
+    </article>
+</main>
+</body>
+</html>

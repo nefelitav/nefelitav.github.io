@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Database Sharding — learn how horizontal data distribution works, how to choose a shard key, and the trade-offs of scaling databases across multiple servers.">
+    <meta property="og:title" content="Database Sharding">
+    <meta property="og:description" content="Understand database sharding, shard keys, routing, rebalancing, and when to shard a database.">
+    <meta property="og:type" content="article">
+
+    <title>Database Sharding | Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+        <h1>Database Sharding</h1>
+        <p class="post-date">October 15, 2026</p>
+
+        <p>
+            As an application grows, its database may eventually become
+            too large or too busy for a single server. Adding more CPU
+            and memory can help, but there are limits to how much a
+            single machine can scale.
+        </p>
+
+        <p>
+            <strong>Database sharding</strong> addresses this problem by
+            splitting a dataset across multiple database servers. Each
+            server stores and manages only a portion of the data.
+        </p>
+
+        <p>
+            Let's explore how sharding works, how applications find the
+            correct shard, and why this technique introduces additional
+            complexity.
+        </p>
+
+        <h2>1. What Is Database Sharding?</h2>
+
+        <p>
+            Database sharding is a form of horizontal scaling in which
+            data is distributed across multiple database instances.
+            Each instance is called a <strong>shard</strong>.
+        </p>
+
+        <p>
+            Imagine a system that stores millions of users. Instead of
+            storing every user in one database, we distribute users
+            across several databases.
+        </p>
+
+        <pre><code>Before sharding:
+
+Application ──► Database
+                 ├── User 1
+                 ├── User 2
+                 ├── User 3
+                 ├── ...
+                 └── User 1,000,000
+
+
+After sharding:
+
+                 ┌──► Shard 1: Users 1–333,333
+Application ─────┼──► Shard 2: Users 333,334–666,666
+                 └──► Shard 3: Users 666,667–1,000,000</code></pre>
+
+        <p>
+            Each shard is responsible for a subset of the dataset.
+            Together, the shards hold the application's complete
+            dataset.
+        </p>
+
+        <p>
+            The ranges above are just an illustration. In a real system,
+            the distribution depends on the sharding strategy.
+        </p>
+
+        <h2>2. Why Use Sharding?</h2>
+
+        <h3>Horizontal scaling</h3>
+
+        <p>
+            Instead of relying on a single increasingly powerful
+            database server, you can distribute data and workload
+            across multiple servers.
+        </p>
+
+        <p>
+            Each shard can handle queries for its own data, allowing
+            the system to increase its total storage and processing
+            capacity as more shards are added.
+        </p>
+
+        <h3>Handling large datasets</h3>
+
+        <p>
+            A single database may eventually run into storage,
+            memory, or maintenance constraints. Sharding distributes
+            the dataset so that each server is responsible for a
+            smaller portion.
+        </p>
+
+        <h3>Distributing workload</h3>
+
+        <p>
+            If requests can be routed directly to the appropriate
+            shard, multiple database servers can process requests
+            concurrently instead of sending every request to one
+            server.
+        </p>
+
+        <p>
+            However, sharding does not automatically make every query
+            faster. A query that needs data from every shard may
+            actually become more expensive.
+        </p>
+
+        <h2>3. How Does Sharding Work?</h2>
+
+        <p>
+            The application needs a rule for deciding which shard
+            stores a particular record. This rule is based on a
+            <strong>shard key</strong>.
+        </p>
+
+        <p>
+            For example, suppose we shard users by their user ID.
+            Whenever the application wants to retrieve a user, it
+            uses that ID to determine which database contains the
+            record.
+        </p>
+
+        <pre><code>Request: Get user with ID 105
+
+1. The application receives the user ID.
+2. The sharding rule maps ID 105 to Shard 2.
+3. The application queries Shard 2.
+4. Shard 2 returns the user.
+
+The application does not need to search every shard.</code></pre>
+
+        <p>
+            The routing logic can live in the application, a database
+            proxy, a sharding middleware layer, or a database system
+            that supports sharding.
+        </p>
+
+        <p>
+            The important point is that the application must know how
+            to locate the data, either directly or through an
+            infrastructure component.
+        </p>
+
+        <h2>4. What Is a Shard Key?</h2>
+
+        <p>
+            A shard key is the field or combination of fields used
+            to determine where a record belongs.
+        </p>
+
+        <p>
+            Choosing the right shard key is one of the most important
+            decisions in a sharded architecture because it affects
+            data distribution, query performance, and scalability.
+        </p>
+
+        <h3>Example: Sharding by user ID</h3>
+
+        <pre><code>Shard 1: user_id 1, 4, 7, 10, ...
+Shard 2: user_id 2, 5, 8, 11, ...
+Shard 3: user_id 3, 6, 9, 12, ...</code></pre>
+
+        <p>
+            This is an illustrative distribution. A real system might
+            use a hash function rather than assigning IDs in a
+            repeating pattern.
+        </p>
+
+        <h3>What makes a good shard key?</h3>
+
+        <ul>
+            <li>
+                <strong>Even distribution:</strong> Data and traffic
+                should be spread reasonably evenly across shards.
+            </li>
+            <li>
+                <strong>Query compatibility:</strong> Frequently used
+                queries should ideally include the shard key, allowing
+                the application to target one shard.
+            </li>
+            <li>
+                <strong>Stable assignment:</strong> The key should not
+                change frequently, because moving records between
+                shards can be expensive.
+            </li>
+            <li>
+                <strong>Sufficient cardinality:</strong> The key should
+                provide enough distinct values to distribute data
+                effectively.
+            </li>
+        </ul>
+
+        <p>
+            A poor shard key can create a <strong>hot shard</strong>:
+            one database receives a disproportionate amount of traffic
+            while other shards remain underutilized.
+        </p>
+
+        <h2>5. Common Sharding Strategies</h2>
+
+        <h3>Range-based sharding</h3>
+
+        <p>
+            Data is divided into ranges of the shard key.
+        </p>
+
+        <pre><code>Shard 1: user_id 1–100,000
+Shard 2: user_id 100,001–200,000
+Shard 3: user_id 200,001–300,000</code></pre>
+
+        <p><strong>Advantages:</strong></p>
+        <ul>
+            <li>Easy to understand.</li>
+            <li>Range queries can often target a subset of shards.</li>
+        </ul>
+
+        <p><strong>Disadvantages:</strong></p>
+        <ul>
+            <li>Some ranges may contain much more data than others.</li>
+            <li>Sequential IDs can cause recent writes to concentrate on one shard.</li>
+        </ul>
+
+        <h3>Hash-based sharding</h3>
+
+        <p>
+            A hash function transforms the shard key into a value
+            used to determine the destination shard.
+        </p>
+
+        <pre><code>shard = hash(user_id) % number_of_shards</code></pre>
+
+        <p>
+            For example, with three shards, a hash-based rule
+            distributes user IDs according to the hash result.
+        </p>
+
+        <p><strong>Advantages:</strong></p>
+        <ul>
+            <li>Can distribute data more evenly when the key and hash function are suitable.</li>
+            <li>Can reduce the hot-shard problem caused by sequential keys.</li>
+        </ul>
+
+        <p><strong>Disadvantages:</strong></p>
+        <ul>
+            <li>Range queries may need to access many shards.</li>
+            <li>Changing the number of shards can require substantial data movement if a simple modulo rule is used.</li>
+        </ul>
+
+        <p>
+            Systems may use consistent hashing or a partition map to
+            reduce the amount of data that must move when capacity
+            changes.
+        </p>
+
+        <h3>Directory-based sharding</h3>
+
+        <p>
+            A lookup service or directory stores the mapping between
+            records or key ranges and their shards.
+        </p>
+
+        <pre><code>Shard directory:
+
+Tenant A ──► Shard 1
+Tenant B ──► Shard 3
+Tenant C ──► Shard 2</code></pre>
+
+        <p>
+            This allows the mapping to be changed without relying
+            entirely on a fixed calculation.
+        </p>
+
+        <p>
+            The trade-off is that the directory itself must be
+            reliable, fast, and kept consistent with the actual
+            data placement.
+        </p>
+
+        <h2>6. Sharding vs. Replication vs. Partitioning</h2>
+
+        <p>
+            These concepts are related, but they solve different
+            problems.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Sharding:</strong> Distributes different
+                portions of a dataset across database instances.
+            </li>
+            <li>
+                <strong>Replication:</strong> Copies the same data
+                to multiple database instances.
+            </li>
+            <li>
+                <strong>Partitioning:</strong> Divides a table or
+                dataset into smaller pieces according to a rule.
+                Those pieces may remain within one database server.
+            </li>
+            <li>
+                <strong>Read replicas:</strong> Replicated database
+                instances used to serve read traffic.
+            </li>
+        </ul>
+
+        <pre><code>Sharding:
+
+Shard 1: Users A, B
+Shard 2: Users C, D
+
+
+Replication:
+
+Primary: Users A, B, C, D
+Replica: Users A, B, C, D
+
+
+Partitioning in one database:
+
+Users table
+    ├── Partition 1
+    ├── Partition 2
+    └── Partition 3</code></pre>
+
+        <p>
+            Sharding and partitioning are sometimes used as
+            overlapping terms. In this blog, partitioning refers
+            primarily to dividing data within a database, while
+            sharding means distributing data across separate
+            database instances.
+        </p>
+
+        <p>
+            A system can also partition data within each shard and
+            replicate each shard for availability.
+        </p>
+
+        <h2>7. What Happens When You Add More Shards?</h2>
+
+        <p>
+            Adding a database server is not always as simple as
+            creating an instance and sending it traffic.
+        </p>
+
+        <p>
+            If the sharding strategy depends on the number of
+            servers, changing that number may change where records
+            belong. Existing records might need to be moved.
+        </p>
+
+        <p>For example, consider this rule:</p>
+
+        <pre><code>shard = user_id % 3</code></pre>
+
+        <p>
+            If you change it to use four shards, many IDs will map
+            to different destinations.
+        </p>
+
+        <pre><code>Before: user_id % 3
+After:  user_id % 4</code></pre>
+
+        <p>
+            Moving data while the application continues to read and
+            write creates additional challenges. Systems may use
+            consistent hashing, virtual shards, or a shard directory
+            to make rebalancing easier.
+        </p>
+
+        <p>
+            A production migration needs a plan for moving data,
+            routing requests, validating records, and avoiding lost
+            or duplicated writes during the transition.
+        </p>
+
+        <h2>8. Challenges of Database Sharding</h2>
+
+        <h3>Cross-shard queries</h3>
+
+        <p>
+            A query that requires records from multiple shards may
+            need to execute on each shard and combine the results.
+            This is often called a scatter-gather query.
+        </p>
+
+        <pre><code>SELECT COUNT(*)
+FROM users
+WHERE created_at >= '2026-01-01';</code></pre>
+
+        <p>
+            If the table is sharded by user ID, this query may need
+            to inspect every shard because it does not specify the
+            shard key.
+        </p>
+
+        <h3>Cross-shard transactions</h3>
+
+        <p>
+            Transactions involving records on different shards are
+            more complicated. A normal local database transaction
+            cannot automatically guarantee atomicity across
+            independent database instances.
+        </p>
+
+        <p>
+            Distributed transactions are possible in some
+            architectures, but they introduce additional
+            coordination and availability trade-offs. Some
+            applications instead redesign operations so that
+            related records are colocated on the same shard.
+        </p>
+
+        <h3>Unique constraints and IDs</h3>
+
+        <p>
+            A unique constraint on one database does not
+            automatically guarantee uniqueness across every shard.
+            For example, independently generated auto-increment IDs
+            may collide unless the design prevents it.
+        </p>
+
+        <p>
+            Applications may use globally unique identifiers,
+            shard-aware ID generation, or a centralized allocation
+            mechanism, depending on their requirements.
+        </p>
+
+        <h3>Operational complexity</h3>
+
+        <p>
+            You now need to monitor multiple databases, manage
+            migrations, distribute backups, handle failover, and
+            rebalance data when necessary.
+        </p>
+
+        <p>
+            Debugging can also become more difficult because a
+            request may interact with multiple database instances.
+        </p>
+
+        <h2>9. When Should You Use Sharding?</h2>
+
+        <p>Sharding may be appropriate when:</p>
+
+        <ul>
+            <li>Your dataset exceeds the practical capacity of one database server.</li>
+            <li>Your write throughput cannot be handled by a single primary.</li>
+            <li>You need to distribute workload across multiple database instances.</li>
+            <li>You have a clear shard key that matches your access patterns.</li>
+            <li>Your team can operate and monitor a distributed database architecture.</li>
+        </ul>
+
+        <h3>When should you avoid it?</h3>
+
+        <ul>
+            <li>Your database can still scale vertically at a reasonable cost.</li>
+            <li>Query performance problems can be solved with better indexes or SQL.</li>
+            <li>Your workload frequently requires joins and transactions across unrelated data.</li>
+            <li>You do not have a clear way to distribute and rebalance data.</li>
+        </ul>
+
+        <p>
+            Sharding is powerful, but it is usually an architectural
+            decision rather than the first performance optimization
+            to try.
+        </p>
+
+        <h2>10. Real-World Example: A Multi-Tenant Application</h2>
+
+        <p>
+            Imagine a SaaS application used by thousands of
+            businesses. Each business has users, invoices, and
+            configuration data.
+        </p>
+
+        <p>
+            One possible approach is to shard by tenant ID.
+        </p>
+
+        <pre><code>Tenant 101 ──► Shard 1
+Tenant 202 ──► Shard 2
+Tenant 303 ──► Shard 1
+Tenant 404 ──► Shard 3</code></pre>
+
+        <p>
+            When the application loads invoices for Tenant 202,
+            it routes the request to Shard 2.
+        </p>
+
+        <p>
+            This can work well because most operations are scoped
+            to one tenant. Keeping a tenant's related data on the
+            same shard may also simplify queries and transactions.
+        </p>
+
+        <p>
+            However, a very large tenant may overload its shard,
+            and global reporting across all tenants may require
+            queries across multiple shards or a separate
+            analytical data store.
+        </p>
+
+        <h2>11. Summary</h2>
+
+        <p>
+            Database sharding distributes a dataset across multiple
+            database instances, allowing a system to scale beyond
+            the limits of a single server.
+        </p>
+
+        <p>The key concepts to remember are:</p>
+
+        <ul>
+            <li>
+                <strong>Sharding</strong> splits data across database
+                instances.
+            </li>
+            <li>
+                <strong>Shard keys</strong> determine where records
+                are stored and are critical to query performance.
+            </li>
+            <li>
+                <strong>Range-based, hash-based, and directory-based
+                    sharding</strong> are common ways to distribute data.
+            </li>
+            <li>
+                <strong>Cross-shard queries and transactions</strong>
+                introduce additional complexity.
+            </li>
+            <li>
+                <strong>Rebalancing</strong> must be considered when
+                adding capacity or changing data placement.
+            </li>
+            <li>
+                <strong>Sharding is not the same as replication:</strong>
+                one distributes different data, while the other copies
+                data.
+            </li>
+        </ul>
+
+        <p>
+            The goal is to distribute data in a way that matches
+            how the application accesses it. A good shard key and
+            a clear routing strategy can make sharding effective;
+            a poor design can make even simple operations difficult.
+        </p>
+    </article>
+</main>
+</body>
+</html>

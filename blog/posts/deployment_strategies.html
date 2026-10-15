@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Deployment Strategies — understanding rolling, blue-green, canary, feature flags, progressive delivery, shadow deployments, A/B testing, and immutable deployments.">
+    <meta property="og:title" content="Deployment Strategies – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to deployment strategies, Kubernetes, CI/CD pipelines, traffic routing, feature flags, and safe software releases.">
+    <meta property="og:type" content="article">
+
+    <title>Deployment Strategies – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+
+        <h1>Deployment Strategies</h1>
+
+        <time class="post-date" datetime="2026-10-14">
+            14 October 2026
+        </time>
+
+        <p>
+            Deploying a new application version is not simply a matter of
+            replacing the old code with the new code. A deployment can introduce
+            bugs, increase latency, cause errors, or affect every user at once.
+        </p>
+
+        <p>
+            Deployment strategies describe how application versions are
+            introduced into an environment and how traffic moves between them.
+            Different strategies offer different trade-offs in terms of risk,
+            infrastructure cost, rollback speed, and complexity.
+        </p>
+
+        <p>
+            A useful principle is:
+            <strong>deploy changes in a way that limits their impact,
+                allows you to detect problems, and makes recovery predictable.</strong>
+        </p>
+
+        <h2>1. How Does a Deployment Work?</h2>
+
+        <p>
+            Before exploring deployment strategies, it helps to understand
+            the components involved in a typical software release.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Application:</strong>
+                The code that implements your business logic and serves requests.
+            </li>
+            <li>
+                <strong>Container image:</strong>
+                A packaged version of the application and its runtime dependencies.
+            </li>
+            <li>
+                <strong>Infrastructure:</strong>
+                The machines or containers that run the application.
+            </li>
+            <li>
+                <strong>Traffic routing:</strong>
+                The mechanism that determines which application instances
+                receive requests.
+            </li>
+            <li>
+                <strong>CI/CD pipeline:</strong>
+                The automated process that builds, tests, and deploys changes.
+            </li>
+        </ul>
+
+        <p>
+            Consider an application running version 1:
+        </p>
+
+        <pre><code>Users
+  |
+  v
+Application v1
+  |
+  v
+Database</code></pre>
+
+        <p>
+            You have developed version 2 and want to release it. The main
+            question is how to introduce v2 without unnecessarily disrupting
+            the users who are still using v1.
+        </p>
+
+        <p>
+            This is where deployment strategies become useful.
+        </p>
+
+        <h2>2. Rolling Deployment</h2>
+
+        <p>
+            A rolling deployment gradually replaces instances of the old
+            application version with instances of the new version.
+        </p>
+
+        <p>
+            Instead of stopping every old instance and starting every new
+            instance at once, the deployment system replaces them in stages.
+        </p>
+
+        <pre><code>Initial state:
+
+[v1] [v1] [v1] [v1]
+
+During deployment:
+
+[v2] [v1] [v1] [v1]
+
+[v2] [v2] [v1] [v1]
+
+[v2] [v2] [v2] [v1]
+
+Final state:
+
+[v2] [v2] [v2] [v2]</code></pre>
+
+        <h3>How does it work?</h3>
+
+        <p>
+            The deployment system starts new instances, waits for them to
+            become ready, and gradually removes old instances. During the
+            transition, both versions may serve traffic simultaneously.
+        </p>
+
+        <h3>How do you implement it?</h3>
+
+        <p>
+            Kubernetes supports rolling updates through its Deployment resource.
+            A Deployment manages ReplicaSets, which manage the application's Pods.
+        </p>
+
+        <pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: app
+          image: my-app:v1
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080</code></pre>
+
+        <p>
+            Here, <code>maxSurge: 1</code> allows Kubernetes to temporarily
+            run one additional Pod beyond the desired four replicas.
+            <code>maxUnavailable: 0</code> prevents the rollout from
+            intentionally reducing the number of available replicas below four.
+        </p>
+
+        <p>
+            These settings work together with the readiness probe, which
+            helps Kubernetes determine whether a Pod is ready to receive traffic.
+        </p>
+
+        <p>
+            To deploy a new version:
+        </p>
+
+        <pre><code>kubectl set image deployment/my-app \
+  app=my-app:v2
+
+kubectl rollout status deployment/my-app</code></pre>
+
+        <p>
+            To undo the most recent rollout:
+        </p>
+
+        <pre><code>kubectl rollout undo deployment/my-app</code></pre>
+
+        <h3>When should you use it?</h3>
+
+        <ul>
+            <li>When you want a straightforward deployment process.</li>
+            <li>When you want to gradually replace application instances.</li>
+            <li>When you do not need sophisticated traffic splitting.</li>
+            <li>When your infrastructure cannot afford to run two complete environments.</li>
+        </ul>
+
+        <p>
+            <strong>Trade-off:</strong>
+            Old and new application versions coexist during the rollout.
+            They must be compatible with the same database and any shared
+            dependencies. A rollback also does not automatically undo database
+            changes or reverse side effects that have already occurred.
+        </p>
+
+        <h2>3. Blue-Green Deployment</h2>
+
+        <p>
+            A blue-green deployment maintains two separate application
+            environments. One serves production traffic, while the other
+            receives the new version and is prepared for release.
+        </p>
+
+        <ul>
+            <li><strong>Blue:</strong> The currently active production version.</li>
+            <li><strong>Green:</strong> The new version being prepared.</li>
+        </ul>
+
+        <pre><code>Before deployment:
+
+Users
+  |
+  v
+Blue environment (v1)
+
+Green environment (v2)
+Not serving production traffic
+
+
+After switching:
+
+Users
+  |
+  v
+Green environment (v2)
+
+Blue environment (v1)
+Kept available for rollback</code></pre>
+
+        <h3>How does it work?</h3>
+
+        <ol>
+            <li>Keep v1 serving production traffic.</li>
+            <li>Deploy v2 into the separate green environment.</li>
+            <li>Run health checks and smoke tests against v2.</li>
+            <li>Switch production traffic from blue to green.</li>
+            <li>Keep blue available temporarily in case rollback is needed.</li>
+        </ol>
+
+        <h3>How do you implement it with Kubernetes?</h3>
+
+        <p>
+            You can create separate Deployments for each version and use a
+            Service to select which version receives traffic.
+        </p>
+
+        <pre><code># Blue Deployment labels
+app: my-app
+version: blue
+
+# Green Deployment labels
+app: my-app
+version: green</code></pre>
+
+        <p>
+            The production Service initially selects blue:
+        </p>
+
+        <pre><code>apiVersion: v1
+kind: Service
+metadata:
+  name: my-app
+spec:
+  selector:
+    app: my-app
+    version: blue
+  ports:
+    - port: 80
+      targetPort: 8080</code></pre>
+
+        <p>
+            After green has been tested, change the selector to
+            <code>version: green</code>. The Service will route new
+            connections to the green Pods once the corresponding endpoints
+            are updated.
+        </p>
+
+        <p>
+            In practice, you can use a deployment controller such as
+            <a href="https://argoproj.github.io/argo-rollouts/">
+                Argo Rollouts
+            </a>
+            to automate the process and manage traffic switching.
+        </p>
+
+        <h3>When should you use it?</h3>
+
+        <ul>
+            <li>When you want a clear separation between the current and new versions.</li>
+            <li>When you need a fast way to switch back to the previous version.</li>
+            <li>When you can afford the additional infrastructure during deployment.</li>
+            <li>When you want to test a new environment before directing production traffic to it.</li>
+        </ul>
+
+        <p>
+            <strong>Trade-off:</strong>
+            Running two environments can be expensive. Switching traffic does
+            not guarantee that rollback is safe if the new version has already
+            changed the database schema or produced irreversible side effects.
+        </p>
+
+        <h2>4. Canary Deployment</h2>
+
+        <p>
+            A canary deployment introduces the new version to a small portion
+            of production traffic before exposing it to everyone.
+        </p>
+
+        <p>
+            The idea is to limit the number of users affected if something goes
+            wrong.
+        </p>
+
+        <pre><code>Initial state:
+
+100% of traffic --> v1
+
+First stage:
+
+95% of traffic --> v1
+ 5% of traffic --> v2
+
+Second stage:
+
+80% of traffic --> v1
+20% of traffic --> v2
+
+Third stage:
+
+50% of traffic --> v1
+50% of traffic --> v2
+
+Final state:
+
+100% of traffic --> v2</code></pre>
+
+        <h3>How does it work?</h3>
+
+        <ol>
+            <li>Deploy the new version alongside the stable version.</li>
+            <li>Send a small percentage of production traffic to the new version.</li>
+            <li>Monitor error rates, latency, resource usage, and business metrics.</li>
+            <li>Increase traffic if the new version behaves as expected.</li>
+            <li>Stop the rollout and return traffic to the stable version if problems appear.</li>
+        </ol>
+
+        <h3>How do you implement it?</h3>
+
+        <p>
+            Kubernetes can run both versions, but its standard Service does
+            not provide arbitrary percentage-based traffic splitting between
+            two Deployments. A Service generally distributes traffic among
+            its eligible endpoints.
+        </p>
+
+        <p>
+            For controlled traffic splitting, you can use a rollout controller
+            and a compatible traffic router, such as Argo Rollouts with an
+            appropriate ingress controller or service mesh.
+        </p>
+
+        <p>
+            For example, an Argo Rollouts configuration can define a canary
+            strategy with progressively increasing traffic weights.
+        </p>
+
+        <pre><code>strategy:
+  canary:
+    steps:
+      - setWeight: 5
+      - pause:
+          duration: 5m
+      - setWeight: 20
+      - pause:
+          duration: 10m
+      - setWeight: 50
+      - pause:
+          duration: 10m</code></pre>
+
+        <p>
+            This is an illustrative fragment of an Argo Rollouts resource,
+            not a complete Kubernetes manifest. Traffic splitting requires
+            a configured traffic-management integration.
+        </p>
+
+        <h3>When should you use it?</h3>
+
+        <ul>
+            <li>When deploying changes with a potentially large impact.</li>
+            <li>When production traffic is necessary to detect realistic problems.</li>
+            <li>When you have sufficient traffic and monitoring to evaluate the new version.</li>
+            <li>When you want to limit the number of users exposed to a faulty release.</li>
+        </ul>
+
+        <p>
+            <strong>Trade-off:</strong>
+            Canary deployments require reliable monitoring and traffic routing.
+            A small percentage of traffic may not expose rare bugs, and the
+            percentage of requests does not necessarily equal the percentage
+            of affected users.
+        </p>
+
+        <h2>5. Feature Flags</h2>
+
+        <p>
+            A feature flag allows you to enable or disable a feature through
+            configuration rather than requiring a new application deployment.
+        </p>
+
+        <p>
+            This separates two activities:
+        </p>
+
+        <ul>
+            <li><strong>Deployment:</strong> Putting code into an environment.</li>
+            <li><strong>Release:</strong> Making a feature available to users.</li>
+        </ul>
+
+        <p>
+            You can deploy new code while keeping the feature disabled.
+            Later, you can enable it for internal users, selected customers,
+            or a percentage of users.
+        </p>
+
+        <h3>Example in PHP</h3>
+
+        <pre><code>if ($featureFlags->isEnabled('new_checkout', $user)) {
+    return $newCheckout->handle($request);
+}
+
+return $oldCheckout->handle($request);</code></pre>
+
+        <p>
+            The flag service evaluates whether the feature is enabled for
+            the current user. The application then selects the appropriate
+            implementation.
+        </p>
+
+        <p>
+            A simple configuration-based implementation might look like this:
+        </p>
+
+        <pre><code>return [
+    'new_checkout' => false,
+];</code></pre>
+
+        <p>
+            A dedicated feature-flag platform can provide more advanced
+            behavior, including user targeting, percentage rollouts, and
+            configuration updates without redeploying the application.
+        </p>
+
+        <h3>How does this relate to Kubernetes?</h3>
+
+        <p>
+            Kubernetes can supply configuration through environment variables
+            or ConfigMaps, but it does not provide a complete feature-flag
+            management system by itself.
+        </p>
+
+        <p>
+            For example, you could change a ConfigMap value and arrange for
+            the application to reload its configuration. However, an
+            application that only reads the value at startup may require
+            a restart. A dedicated flag service can support dynamic updates.
+        </p>
+
+        <h3>When should you use it?</h3>
+
+        <ul>
+            <li>When deploying a feature before it is ready for all users.</li>
+            <li>When enabling functionality for internal users first.</li>
+            <li>When gradually releasing a feature to selected customers.</li>
+            <li>When you need an operational kill switch for a feature.</li>
+        </ul>
+
+        <p>
+            <strong>Trade-off:</strong>
+            Flags introduce conditional logic and configuration complexity.
+            Old flags should be removed when they are no longer needed, and
+            sensitive functionality must still be protected by proper
+            authorization checks.
+        </p>
+
+        <h2>6. Progressive Delivery</h2>
+
+        <p>
+            Progressive delivery is a broader release approach in which
+            changes are introduced gradually, evaluated using metrics or
+            checks, and promoted or rolled back based on the results.
+        </p>
+
+        <p>
+            It is not a completely separate deployment mechanism. Instead,
+            it can combine techniques such as canary deployments, feature
+            flags, automated analysis, and approval steps.
+        </p>
+
+        <pre><code>Deploy v2
+    |
+    v
+Send 5% of traffic to v2
+    |
+    v
+Check error rate and latency
+    |
+    +---- Metrics look good ----> Increase traffic
+    |
+    +---- Metrics look bad -----> Abort rollout
+                                      |
+                                      v
+                              Keep v1 serving traffic</code></pre>
+
+        <h3>How do you implement it?</h3>
+
+        <p>
+            A typical setup combines:
+        </p>
+
+        <ul>
+            <li>A CI/CD pipeline to build and deploy the application.</li>
+            <li>A rollout controller to manage deployment steps.</li>
+            <li>Monitoring tools to collect metrics such as latency and errors.</li>
+            <li>Automated analysis or approval rules to control promotion.</li>
+        </ul>
+
+        <p>
+            For example, Argo Rollouts can pause a canary deployment while
+            analysis evaluates metrics from a monitoring system such as
+            Prometheus.
+        </p>
+
+        <p>
+            A rollout might proceed only if the error rate stays below a
+            configured threshold. If the analysis fails, the rollout can
+            be aborted.
+        </p>
+
+        <h3>When should you use it?</h3>
+
+        <ul>
+            <li>When deployments need automated safety checks.</li>
+            <li>When you want to reduce reliance on manual monitoring.</li>
+            <li>When you deploy frequently and want consistent release procedures.</li>
+            <li>When you can define meaningful health and performance metrics.</li>
+        </ul>
+
+        <p>
+            <strong>Trade-off:</strong>
+            Progressive delivery requires trustworthy metrics and carefully
+            designed promotion rules. Poorly chosen thresholds can either
+            block healthy releases or allow problematic ones to proceed.
+        </p>
+
+        <h2>7. Shadow Deployment</h2>
+
+        <p>
+            A shadow deployment sends copies of production requests to a new
+            application version while continuing to return responses from
+            the stable version to users.
+        </p>
+
+        <p>
+            Unlike a canary deployment, the new version does not normally
+            serve its response as the actual response to the user.
+        </p>
+
+        <pre><code>                  +--> v1 (stable) --> Response to user
+Production request |
+                  +--> v2 (shadow) --> Response discarded
+                                         |
+                                         v
+                                   Compare results</code></pre>
+
+        <h3>How does it work?</h3>
+
+        <ol>
+            <li>Keep v1 serving real production traffic.</li>
+            <li>Duplicate selected production requests and send them to v2.</li>
+            <li>Capture the new version's results and performance.</li>
+            <li>Compare the behavior of v1 and v2.</li>
+            <li>Use the findings to fix problems before a real rollout.</li>
+        </ol>
+
+        <h3>How do you implement it?</h3>
+
+        <p>
+            You need a mechanism that can mirror traffic to the new version.
+            This might be a reverse proxy, an ingress controller, or a
+            service mesh with traffic-mirroring support.
+        </p>
+
+        <p>
+            Kubernetes can run both versions, but it does not automatically
+            duplicate production requests to the shadow version.
+        </p>
+
+        <h3>When should you use it?</h3>
+
+        <ul>
+            <li>When replacing a critical service implementation.</li>
+            <li>When comparing query performance or response generation.</li>
+            <li>When testing a new version against realistic request patterns.</li>
+            <li>When you want to find compatibility issues before serving real responses.</li>
+        </ul>
+
+        <p>
+            <strong>Trade-off:</strong>
+            Shadow traffic consumes additional resources. Mirrored requests
+            must not cause unintended side effects, such as duplicate
+            payments, emails, database writes, or external API calls.
+            Sensitive request data must also be handled appropriately.
+        </p>
+
+        <h2>8. A/B Testing</h2>
+
+        <p>
+            A/B testing compares two or more variants to determine which
+            performs better against a defined objective.
+        </p>
+
+        <p>
+            For example, an e-commerce application might test two checkout
+            flows to see which results in more completed purchases.
+        </p>
+
+        <pre><code>Users
+  |
+  v
+Experiment assignment
+  |
+  +---- Group A ----> Checkout A
+  |
+  +---- Group B ----> Checkout B
+                         |
+                         v
+                 Measure outcomes</code></pre>
+
+        <h3>How does it work?</h3>
+
+        <ol>
+            <li>Define a hypothesis and a measurable success metric.</li>
+            <li>Assign eligible users to different variants.</li>
+            <li>Keep each user's assignment consistent throughout the experiment.</li>
+            <li>Collect data about outcomes such as conversion rate.</li>
+            <li>Analyze the results before deciding which variant to adopt.</li>
+        </ol>
+
+        <h3>How do you implement it?</h3>
+
+        <p>
+            You can use a feature-flag or experimentation platform to assign
+            users to variants and record experiment exposure. The application
+            then serves the assigned variant.
+        </p>
+
+        <pre><code>$variant = $experimentService->getVariant(
+    experiment: 'checkout_experiment',
+    userId: $user->getId()
+);
+
+if ($variant === 'B') {
+    return $checkoutB->handle($request);
+}
+
+return $checkoutA->handle($request);</code></pre>
+
+        <p>
+            The exact implementation depends on the experimentation system.
+            A production experiment should also track exposure, avoid
+            inconsistent assignments, and account for the possibility that
+            other changes affect the results.
+        </p>
+
+        <h3>Can you combine A/B testing with a canary deployment?</h3>
+
+        <p>
+            Yes, but they answer different questions.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Canary:</strong>
+                Is the new version safe and technically healthy?
+            </li>
+            <li>
+                <strong>A/B testing:</strong>
+                Which variant produces better user or business outcomes?
+            </li>
+        </ul>
+
+        <p>
+            A canary may expose a small portion of traffic to a new version
+            to validate its health. Once it is stable, an experiment can
+            compare different user experiences.
+        </p>
+
+        <h3>When should you use it?</h3>
+
+        <ul>
+            <li>When evaluating alternative user interfaces or workflows.</li>
+            <li>When measuring conversion, engagement, or retention.</li>
+            <li>When a product decision can be informed by controlled experiments.</li>
+        </ul>
+
+        <p>
+            <strong>Trade-off:</strong>
+            A/B testing requires enough observations to draw meaningful
+            conclusions. You must also avoid biased assignment, premature
+            conclusions, and overlapping experiments that make results
+            difficult to interpret.
+        </p>
+
+        <h2>9. Immutable Deployments</h2>
+
+        <p>
+            An immutable deployment replaces existing application instances
+            with new instances instead of modifying the running instances
+            in place.
+        </p>
+
+        <p>
+            The principle is to build a known artifact and deploy that
+            artifact consistently. If the application needs to change,
+            build a new artifact rather than manually modifying the old one.
+        </p>
+
+        <pre><code>Build image v1
+      |
+      v
+Deploy image v1
+      |
+      v
+Build image v2
+      |
+      v
+Create new instances using v2
+      |
+      v
+Remove old instances using v1</code></pre>
+
+        <h3>How do you implement it?</h3>
+
+        <p>
+            A common approach is to build a versioned container image in
+            the CI pipeline and deploy it to Kubernetes.
+        </p>
+
+        <pre><code># Build a versioned image
+docker build -t my-app:abc123 .
+
+# Push it to a container registry
+docker push my-app:abc123
+
+# Deploy the exact image
+kubectl set image deployment/my-app \
+  app=my-app:abc123</code></pre>
+
+        <p>
+            Here, <code>abc123</code> represents a version identifier,
+            such as a commit SHA. In a production pipeline, the image
+            should be built, tested, and published before deployment.
+        </p>
+
+        <p>
+            For stronger artifact integrity, teams often deploy by immutable
+            image digest rather than relying only on a mutable tag.
+        </p>
+
+        <h3>Is immutable deployment the same as rolling deployment?</h3>
+
+        <p>
+            No. They describe different aspects of deployment.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Immutable deployment:</strong>
+                Describes how application instances and artifacts are managed.
+            </li>
+            <li>
+                <strong>Rolling deployment:</strong>
+                Describes how the old instances are replaced by new instances.
+            </li>
+        </ul>
+
+        <p>
+            You can use immutable application images with a rolling deployment,
+            a blue-green deployment, or a canary deployment.
+        </p>
+
+        <h3>When should you use it?</h3>
+
+        <ul>
+            <li>When you want reproducible application releases.</li>
+            <li>When you want to avoid configuration drift between instances.</li>
+            <li>When you need to identify exactly which artifact is running.</li>
+            <li>When you want predictable recovery and easier debugging.</li>
+        </ul>
+
+        <p>
+            <strong>Trade-off:</strong>
+            Immutable deployments still require careful configuration,
+            secret management, image retention, and compatibility between
+            application versions and their dependencies.
+        </p>
+
+        <h2>10. Comparing the Strategies</h2>
+
+        <pre><code>Strategy             Main purpose
+-------------------------------------------------------
+Rolling              Gradually replace application instances
+Blue-green           Switch between separate environments
+Canary               Gradually expose production traffic
+Feature flags        Control feature availability
+Progressive delivery Automate safe, gradual releases
+Shadow               Test using mirrored production traffic
+A/B testing          Compare user or product outcomes
+Immutable            Replace instances using known artifacts</code></pre>
+
+        <p>
+            These strategies are not all mutually exclusive. Some define
+            how instances are replaced, others define how traffic is routed,
+            and others control which features users can access.
+        </p>
+
+        <h3>Important differences</h3>
+
+        <ul>
+            <li>
+                <strong>Rollback:</strong>
+                Blue-green deployments can make traffic switching back
+                straightforward. Rolling and canary deployments can also
+                roll back, but recovery depends on the deployment tooling
+                and the state of the application and database.
+            </li>
+            <li>
+                <strong>Infrastructure cost:</strong>
+                Blue-green deployments may require two full environments.
+                Canary deployments need capacity for both versions, while
+                rolling deployments often need less additional capacity.
+            </li>
+            <li>
+                <strong>Traffic control:</strong>
+                Standard Kubernetes Deployments support rolling updates,
+                but percentage-based canary traffic and shadow traffic
+                require additional routing capabilities.
+            </li>
+            <li>
+                <strong>Business measurement:</strong>
+                A/B testing focuses on outcomes such as conversion, rather
+                than merely whether the deployment is technically healthy.
+            </li>
+        </ul>
+
+        <h2>11. What Tools Do You Actually Need?</h2>
+
+        <p>
+            You do not need a separate tool for every strategy. The tools
+            depend on the infrastructure and release requirements.
+        </p>
+
+        <h3>CI/CD pipeline</h3>
+
+        <p>
+            Tools such as GitHub Actions, GitLab CI, and Jenkins can build
+            application artifacts, run tests, publish images, and initiate
+            deployments.
+        </p>
+
+        <p>
+            A CI/CD pipeline automates the release process, but it does not
+            automatically provide every traffic-routing or release-control
+            capability.
+        </p>
+
+        <h3>Kubernetes</h3>
+
+        <p>
+            Kubernetes provides the foundation for running containerized
+            applications. Its Deployment resource supports rolling updates,
+            readiness checks, and rollout status.
+        </p>
+
+        <p>
+            You can also create separate Deployments and Services to support
+            blue-green releases. More sophisticated traffic routing requires
+            suitable networking components or additional tools.
+        </p>
+
+        <h3>Argo Rollouts</h3>
+
+        <p>
+            <a href="https://argoproj.github.io/argo-rollouts/">
+                Argo Rollouts
+            </a>
+            extends Kubernetes deployment capabilities with strategies
+            such as canary and blue-green releases, along with pauses,
+            analysis, and promotion controls.
+        </p>
+
+        <h3>Monitoring</h3>
+
+        <p>
+            Tools such as Prometheus and Grafana can help you observe
+            application health, error rates, latency, and resource usage.
+            These metrics can support automated promotion and rollback
+            decisions when integrated with a rollout controller.
+        </p>
+
+        <h3>Feature-flag and experimentation tools</h3>
+
+        <p>
+            Feature-flag platforms manage feature availability independently
+            of application deployments. Some also support percentage-based
+            rollouts, user targeting, and A/B experiments.
+        </p>
+
+        <p>
+            Remember that feature flags and traffic routing solve different
+            problems: a traffic router chooses an application instance,
+            while a feature flag determines which functionality the
+            application exposes.
+        </p>
+
+        <h2>12. A Real-World Example</h2>
+
+        <p>
+            Imagine you are deploying a new checkout service. The existing
+            version handles payments correctly, but you have rewritten the
+            checkout flow to support a new payment method.
+        </p>
+
+        <p>
+            A possible release process could look like this:
+        </p>
+
+        <ol>
+            <li>
+                <strong>Build an immutable artifact:</strong>
+                The CI pipeline tests the code and publishes a versioned
+                container image.
+            </li>
+            <li>
+                <strong>Deploy a canary:</strong>
+                Kubernetes runs the new version alongside the stable version.
+                A traffic router sends a small percentage of requests to it.
+            </li>
+            <li>
+                <strong>Monitor health:</strong>
+                The team checks errors, latency, and payment-processing metrics.
+            </li>
+            <li>
+                <strong>Control the feature:</strong>
+                A feature flag keeps the new payment method disabled until
+                the team is ready to expose it.
+            </li>
+            <li>
+                <strong>Evaluate the product change:</strong>
+                An A/B experiment compares eligible checkout variants
+                using appropriate business metrics.
+            </li>
+            <li>
+                <strong>Recover if needed:</strong>
+                If the new version causes problems, stop the rollout and
+                return traffic to the stable version. Disable the feature
+                flag if the issue is specific to the new functionality.
+            </li>
+        </ol>
+
+        <p>
+            Not every application needs all these techniques. For a small
+            service, a rolling deployment with good health checks may be
+            sufficient. For a critical payment service, canary releases,
+            strong monitoring, and controlled feature activation may
+            provide additional safety.
+        </p>
+
+        <h2>13. Database Migrations and Backward Compatibility</h2>
+
+        <p>
+            One of the most important deployment problems occurs when old
+            and new application versions run simultaneously.
+        </p>
+
+        <p>
+            Consider a database migration that renames a column from
+            <code>customer_name</code> to <code>name</code>. The old version
+            may still expect the original column while the new version
+            expects the new one.
+        </p>
+
+        <p>
+            A safer approach is often the expand-and-contract pattern:
+        </p>
+
+        <ol>
+            <li>Add the new column while keeping the old column.</li>
+            <li>Deploy code that can work with the compatible schema.</li>
+            <li>Backfill or synchronize the data as required.</li>
+            <li>Move all application instances to the new implementation.</li>
+            <li>Remove the old column only after no running code needs it.</li>
+        </ol>
+
+        <p>
+            The exact steps depend on the database and migration. You must
+            also consider concurrent writes, data consistency, long-running
+            transactions, and rollback requirements.
+        </p>
+
+        <p>
+            <strong>
+                A successful application rollback does not necessarily
+                mean that the database or external side effects have
+                been rolled back.
+            </strong>
+        </p>
+
+        <h2>14. Common Misconceptions</h2>
+
+        <p>
+            <strong>"Kubernetes supports every deployment strategy out of the box."</strong>
+        </p>
+
+        <p>
+            Kubernetes Deployments support rolling updates, but advanced
+            canary traffic splitting, shadow traffic, and feature-flag
+            management require additional capabilities or tooling.
+        </p>
+
+        <p>
+            <strong>"Blue-green and canary are the same."</strong>
+        </p>
+
+        <p>
+            Blue-green switches between separate environments. Canary
+            gradually exposes production traffic to the new version.
+        </p>
+
+        <p>
+            <strong>"Feature flags are deployment strategies."</strong>
+        </p>
+
+        <p>
+            Feature flags control functionality independently of deployment.
+            They can complement many deployment strategies.
+        </p>
+
+        <p>
+            <strong>"A rollback always restores the previous state."</strong>
+        </p>
+
+        <p>
+            Rolling back application code does not automatically reverse
+            database migrations, completed payments, published events,
+            or other irreversible side effects.
+        </p>
+
+        <p>
+            <strong>"A healthy deployment means the feature is successful."</strong>
+        </p>
+
+        <p>
+            Monitoring can tell you whether a release is technically healthy.
+            A/B testing and product analytics can help determine whether
+            a feature achieves its intended outcome.
+        </p>
+
+        <h2>15. A Practical Learning Path</h2>
+
+        <p>
+            If you want to learn these techniques hands-on, start with
+            the simplest workflow and gradually introduce more advanced
+            release controls.
+        </p>
+
+        <ol>
+            <li>
+                <strong>Start with rolling deployments.</strong>
+                Deploy two versions of a small application to Kubernetes.
+                Inspect Pods, readiness, rollout status, and rollback behavior.
+            </li>
+            <li>
+                <strong>Implement blue-green deployment.</strong>
+                Run two Deployments and switch a Service between them.
+            </li>
+            <li>
+                <strong>Explore canary releases.</strong>
+                Install Argo Rollouts and configure a gradual rollout with
+                a compatible traffic router.
+            </li>
+            <li>
+                <strong>Add monitoring.</strong>
+                Track error rates and latency, and use the metrics to
+                evaluate whether a rollout should continue.
+            </li>
+            <li>
+                <strong>Implement a feature flag.</strong>
+                Add a feature that can be enabled for a selected group
+                of users without deploying new application code.
+            </li>
+            <li>
+                <strong>Explore shadow traffic and A/B testing.</strong>
+                Compare application behavior and product outcomes while
+                ensuring that experiments do not cause unintended
+                production side effects.
+            </li>
+        </ol>
+
+        <h2>16. Deployment Strategies Checklist</h2>
+
+        <ul>
+            <li>Can the old and new application versions run simultaneously?</li>
+            <li>Are readiness checks configured correctly?</li>
+            <li>Can the team detect increased errors and latency?</li>
+            <li>Is traffic routing configured for the intended rollout strategy?</li>
+            <li>Is rollback possible without losing important data?</li>
+            <li>Are database migrations compatible with both versions?</li>
+            <li>Are external side effects safe during retries or mirrored requests?</li>
+            <li>Are container images versioned and reproducible?</li>
+            <li>Are feature flags monitored and removed when no longer needed?</li>
+            <li>Are A/B experiments measured against a clearly defined objective?</li>
+            <li>Has the team tested the recovery procedure before relying on it?</li>
+        </ul>
+
+        <h2>Final Thought</h2>
+
+        <p>
+            Deployment strategies are about managing the risk of changing
+            a running system. Some techniques control how application
+            instances are replaced, others control which traffic reaches
+            a version, and others control which features users can access.
+        </p>
+
+        <p>
+            Kubernetes provides a foundation for running and updating
+            applications, while CI/CD pipelines, traffic routers, monitoring
+            systems, and feature-flag platforms provide additional release
+            capabilities.
+        </p>
+
+        <p>
+            The most useful mindset is:
+            <strong>
+                understand what each strategy controls, choose the simplest
+                approach that meets your reliability requirements, and
+                make sure you can detect and recover from failures.
+            </strong>
+        </p>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>
