@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Redis vs Memcached: understand in-memory caching, data structures, persistence, eviction policies, performance, and when to choose each for backend applications.">
+    <meta property="og:title" content="Redis vs Memcached – Nefeli Tavoulari">
+    <meta property="og:description" content="Compare Redis and Memcached, explore practical caching use cases, and learn when each technology makes sense for backend applications.">
+    <meta property="og:type" content="article">
+
+    <title>Redis vs Memcached – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+<body>
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+        <h1>Redis vs Memcached</h1>
+        <time class="post-date" datetime="2026-10-15">15 October 2026</time>
+
+        <p>Redis and Memcached are both in-memory key-value stores commonly used to cache data. Instead of repeatedly querying a database or calling an external API, an application can store frequently needed results in memory and retrieve them much faster.</p>
+
+        <p>The main difference is that <strong>Memcached focuses on simple, ephemeral caching, while Redis provides a richer set of data structures and additional capabilities such as persistence, atomic operations, and messaging.</strong></p>
+
+        <h2>1. What Is Caching?</h2>
+
+        <p>Imagine that your API repeatedly executes an expensive database query to retrieve a merchant's configuration.</p>
+
+        <p>Without caching, every request might follow this path:</p>
+
+        <pre><code>Client Request
+      |
+      v
+Application Server
+      |
+      v
+Database Query
+      |
+      v
+Return Result</code></pre>
+
+        <p>With caching, the application first checks whether the result is already stored in memory.</p>
+
+        <pre><code>Client Request
+      |
+      v
+Application Server
+      |
+      v
+   Cache Lookup
+      |
+      +---- Cache HIT ----> Return Cached Result
+      |
+      +---- Cache MISS ---> Query Database
+                                  |
+                                  v
+                            Store in Cache
+                                  |
+                                  v
+                            Return Result</code></pre>
+
+        <p>A <strong>cache hit</strong> occurs when the requested data is available in the cache. A <strong>cache miss</strong> occurs when the application must retrieve the data from its original source.</p>
+
+        <p>Caching can reduce database load and latency, but it introduces new challenges: expiration, stale data, invalidation, memory limits, and consistency.</p>
+
+        <h2>2. Redis</h2>
+
+        <p><strong>Redis</strong> is an in-memory data structure store that can be used as a cache, database, message broker, or streaming data store. It supports several data types and operations beyond simple key-value retrieval.</p>
+
+        <h3>Supported data structures</h3>
+
+        <ul>
+            <li><strong>Strings:</strong> simple values, counters, and serialized objects.</li>
+            <li><strong>Hashes:</strong> field-value collections, useful for representing objects.</li>
+            <li><strong>Lists:</strong> ordered collections that can support queue-like patterns.</li>
+            <li><strong>Sets:</strong> collections of unique values.</li>
+            <li><strong>Sorted Sets:</strong> unique members ordered by score, useful for leaderboards.</li>
+            <li><strong>Streams:</strong> append-oriented records useful for event and message-processing patterns.</li>
+        </ul>
+
+        <h3>Example: storing a cached value</h3>
+
+        <pre><code>SET merchant:123:config '{"currency":"EUR"}' EX 300
+
+GET merchant:123:config</code></pre>
+
+        <p>The <code>EX 300</code> option gives the key a time-to-live (TTL) of 300 seconds. After expiration, the application must retrieve the value again if it is needed.</p>
+
+        <h3>Example: atomic counter</h3>
+
+        <pre><code>INCR api:merchant:123:requests</code></pre>
+
+        <p>Redis increments the integer atomically. This is useful for counters and can form part of a rate-limiting implementation.</p>
+
+        <h3>When would you use Redis?</h3>
+
+        <ul>
+            <li>Application and database query caching.</li>
+            <li>Session storage across multiple application instances.</li>
+            <li>Rate limiting and counters.</li>
+            <li>Leaderboards using sorted sets.</li>
+            <li>Distributed coordination using carefully designed atomic operations and locking patterns.</li>
+            <li>Lightweight queues, streams, and messaging patterns.</li>
+            <li>Use cases that need configurable persistence or replication.</li>
+        </ul>
+
+        <h2>3. Memcached</h2>
+
+        <p><strong>Memcached</strong> is a distributed in-memory caching system designed to store arbitrary values associated with keys. It focuses on keeping the caching layer simple and efficient.</p>
+
+        <p>Unlike Redis, Memcached does not provide rich server-side data structures. Your application typically serializes an object into a value, stores it, and retrieves it later.</p>
+
+        <h3>Example: storing a cached value</h3>
+
+        <pre><code>set merchant:123:config 300 0 25
+{"currency":"EUR"}</code></pre>
+
+        <p>This is an example of the Memcached text protocol. The parameters specify the key, expiration time, flags, and value length in bytes. In a real application, you would normally use a client library instead of manually sending protocol commands.</p>
+
+        <p>To retrieve the value:</p>
+
+        <pre><code>get merchant:123:config</code></pre>
+
+        <h3>How does Memcached distribute data?</h3>
+
+        <p>Applications commonly connect to a pool of Memcached servers. The client uses a key-based hashing strategy to choose which server holds a particular entry.</p>
+
+        <pre><code>Application
+     |
+     v
+Client-side Hashing
+     |
+     +----------+----------+
+     |          |          |
+     v          v          v
+ Memcached  Memcached  Memcached
+ Server A   Server B   Server C</code></pre>
+
+        <p>Adding or removing servers can change the mapping of keys to servers. Consistent hashing can reduce how many keys need to be remapped.</p>
+
+        <h3>When would you use Memcached?</h3>
+
+        <ul>
+            <li>Caching rendered pages or HTML fragments.</li>
+            <li>Caching database query results.</li>
+            <li>Caching serialized API responses.</li>
+            <li>Reducing repeated calls to expensive services.</li>
+            <li>Simple caching workloads where values can be discarded and recomputed.</li>
+        </ul>
+
+        <p>Memcached is especially suitable when the application needs a fast, disposable cache without requiring richer server-side functionality.</p>
+
+        <h2>4. Redis vs Memcached: Comparison</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Redis</th>
+                    <th>Memcached</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Primary purpose</td>
+                    <td>In-memory data store and cache</td>
+                    <td>In-memory cache</td>
+                </tr>
+                <tr>
+                    <td>Data model</td>
+                    <td>Strings, hashes, lists, sets, sorted sets, streams, and more</td>
+                    <td>Keys mapped to opaque values</td>
+                </tr>
+                <tr>
+                    <td>Expiration</td>
+                    <td>Supported per key</td>
+                    <td>Supported per item</td>
+                </tr>
+                <tr>
+                    <td>Atomic operations</td>
+                    <td>Rich operations on supported data structures</td>
+                    <td>Basic operations and numeric increment/decrement</td>
+                </tr>
+                <tr>
+                    <td>Persistence</td>
+                    <td>Optional RDB snapshots and AOF logging</td>
+                    <td>Generally ephemeral; limited warm-restart options exist</td>
+                </tr>
+                <tr>
+                    <td>Replication</td>
+                    <td>Supported</td>
+                    <td>No built-in replication mechanism</td>
+                </tr>
+                <tr>
+                    <td>Built-in clustering</td>
+                    <td>Redis Cluster supports sharding and replication</td>
+                    <td>Typically distributed through client-side hashing across servers</td>
+                </tr>
+                <tr>
+                    <td>Messaging</td>
+                    <td>Pub/Sub and Streams</td>
+                    <td>No native messaging system</td>
+                </tr>
+                <tr>
+                    <td>Memory efficiency</td>
+                    <td>Depends on data structures and configuration</td>
+                    <td>Often efficient for simple key-value caching</td>
+                </tr>
+                <tr>
+                    <td>Operational complexity</td>
+                    <td>More features and configuration options</td>
+                    <td>Relatively simple for basic caching</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>Neither technology is automatically faster in every workload. Actual performance depends on the data size, request patterns, serialization, network latency, concurrency, configuration, and hardware.</p>
+
+        <h2>5. Common Use Cases: Which One Should You Choose?</h2>
+
+        <h3>Scenario A: Caching database query results</h3>
+
+        <p><strong>Either can work.</strong></p>
+
+        <p>Suppose your application frequently retrieves a list of product categories. The database query is expensive, but the results change only occasionally.</p>
+
+        <pre><code>Cache key: categories:all
+Cache value: serialized category list
+TTL: 300 seconds</code></pre>
+
+        <p>Memcached is a good fit if you only need to store and retrieve the serialized result. Redis is equally suitable and may be preferable if you already operate Redis for other workloads.</p>
+
+        <h3>Scenario B: Rate limiting an API</h3>
+
+        <p><strong>Redis is usually the more natural choice.</strong></p>
+
+        <p>You want to allow each merchant a maximum number of requests within a time window.</p>
+
+        <pre><code>INCR rate-limit:merchant:123
+EXPIRE rate-limit:merchant:123 60</code></pre>
+
+        <p>This illustrates the basic idea, but these two commands alone are not a fully robust rate limiter: concurrent requests and the creation of the expiration need to be handled safely. A Lua script or another atomic design can combine the relevant operations.</p>
+
+        <p>Redis is useful because it provides atomic counters, expiration, and scripting. Memcached also supports atomic increments, but implementing more sophisticated limiting logic is less convenient.</p>
+
+        <h3>Scenario C: Storing user sessions</h3>
+
+        <p><strong>Redis is often preferred, but both can store sessions.</strong></p>
+
+        <p>In a horizontally scaled application, any application instance should be able to retrieve a user's session.</p>
+
+        <pre><code>session:abc123 -> serialized session data
+TTL: 1800 seconds</code></pre>
+
+        <p>Redis can provide session storage with expiration and optional persistence or replication. Memcached is also suitable when sessions can safely be discarded and recreated or when session loss is acceptable.</p>
+
+        <p>In either case, session expiration, security, eviction, and failure behavior must be considered.</p>
+
+        <h3>Scenario D: Building a leaderboard</h3>
+
+        <p><strong>Redis.</strong></p>
+
+        <p>Sorted sets maintain members associated with scores, making them useful for ranking players, sellers, or other entities.</p>
+
+        <pre><code>ZADD leaderboard 1500 player:123
+ZADD leaderboard 1800 player:456
+
+ZREVRANGE leaderboard 0 9 WITHSCORES</code></pre>
+
+        <p>These commands add scores and retrieve the top ten members in descending score order.</p>
+
+        <p>Memcached would require your application to implement the ranking logic and manage the relevant data itself.</p>
+
+        <h3>Scenario E: Caching an external API response</h3>
+
+        <p><strong>Either can work.</strong></p>
+
+        <p>If an external API is expensive or rate-limited, cache the response to avoid repeated network requests.</p>
+
+        <pre><code>Key: exchange-rates:EUR
+TTL: 60 seconds</code></pre>
+
+        <p>Choose based on the complexity of the cached data, your existing infrastructure, and your operational requirements rather than assuming one product is always faster.</p>
+
+        <h3>Scenario F: A lightweight event-processing workflow</h3>
+
+        <p><strong>Redis may be suitable.</strong></p>
+
+        <p>Redis Streams provide an append-oriented data structure with consumer groups that can support lightweight event-processing workloads.</p>
+
+        <p>However, if your requirements involve extensive routing, complex acknowledgements, durable message retention, or large-scale event streaming, compare Redis with purpose-built messaging systems such as RabbitMQ and Kafka.</p>
+
+        <h2>6. Redis Persistence vs Memcached's Ephemeral Storage</h2>
+
+        <p>One of the most important differences is what happens when the cache process or machine restarts.</p>
+
+        <h3>Redis persistence</h3>
+
+        <p>Redis supports multiple persistence configurations:</p>
+
+        <ul>
+            <li><strong>RDB:</strong> periodically saves snapshots of the dataset.</li>
+            <li><strong>AOF:</strong> records write operations so the dataset can be reconstructed during recovery.</li>
+            <li><strong>Both:</strong> combines snapshots and operation logging.</li>
+            <li><strong>None:</strong> disables persistence, which is common for disposable caching workloads.</li>
+        </ul>
+
+        <p>Persistence settings involve trade-offs between performance, recovery time, disk usage, and the amount of data that could be lost after a failure.</p>
+
+        <h3>Memcached storage</h3>
+
+        <p>Memcached is designed for ephemeral data. A restart or failure can result in cached values being lost, and the application should be able to repopulate them from the original source.</p>
+
+        <p>For this reason, neither cache should be treated as a durable source of truth merely because it is fast. If Redis is used as a primary data store, its durability and recovery configuration must explicitly match the application's requirements.</p>
+
+        <h2>7. Cache Eviction and TTL</h2>
+
+        <p>Memory is limited. When a cache reaches its configured memory limit, it needs a strategy for deciding what to remove.</p>
+
+        <h3>TTL (Time to Live)</h3>
+
+        <p>A TTL determines how long an entry remains valid before it expires.</p>
+
+        <pre><code>SET product:123 '{"price":49.99}' EX 300</code></pre>
+
+        <p>This stores the value with a five-minute expiration. TTLs are useful for data that becomes stale over time, but they do not guarantee immediate consistency with the database.</p>
+
+        <h3>Eviction policies</h3>
+
+        <ul>
+            <li><strong>LRU:</strong> approximates least recently used, favoring the removal of entries that have not been accessed recently.</li>
+            <li><strong>LFU:</strong> approximates least frequently used, favoring the removal of entries accessed less frequently.</li>
+            <li><strong>TTL-based policies:</strong> can favor removing keys with expiration times, depending on the configured policy.</li>
+            <li><strong>No eviction:</strong> a store may reject new writes when its configured memory limit is reached.</li>
+        </ul>
+
+        <p>Redis supports several configurable eviction policies. Memcached also uses an LRU-oriented eviction mechanism, with behavior affected by its slab allocator and configuration.</p>
+
+        <p>Do not confuse expiration with eviction: expiration is based on a key's lifetime, while eviction removes entries to manage resource limits.</p>
+
+        <h2>8. Cache Invalidation: The Hard Part</h2>
+
+        <p>A cache can return stale data when the original record changes but the cached copy remains available.</p>
+
+        <p>Suppose the price of a product changes in your database. Your application must decide how to update or invalidate the cached value.</p>
+
+        <h3>Option 1: TTL-based expiration</h3>
+
+        <p>Set a short expiration time and accept that cached data may remain stale until the entry expires.</p>
+
+        <h3>Option 2: Explicit invalidation</h3>
+
+        <p>After updating the database, delete the corresponding cache entry.</p>
+
+        <pre><code>DEL product:123</code></pre>
+
+        <p>The next request will fetch the updated value from the database and repopulate the cache.</p>
+
+        <h3>Option 3: Update the cache</h3>
+
+        <p>Update the database and cache as part of a deliberate cache-write strategy. This can reduce cache misses but requires careful handling of failures and ordering.</p>
+
+        <p>For important data, a database transaction and cache update are not automatically atomic together. Cache invalidation strategies must account for concurrent writes, retries, and stale values being repopulated.</p>
+
+        <h2>9. Is Redis Always Better?</h2>
+
+        <p>No. Redis offers more capabilities, but additional functionality does not automatically make it the best option for every cache.</p>
+
+        <h3>Choose Redis when:</h3>
+
+        <ul>
+            <li>You need data structures beyond simple key-value pairs.</li>
+            <li>You need atomic counters, scripting, or more sophisticated operations.</li>
+            <li>You need optional persistence, replication, or Redis Cluster.</li>
+            <li>You want caching and additional data-processing capabilities in one technology.</li>
+            <li>Your organization already operates Redis and can reuse that infrastructure.</li>
+        </ul>
+
+        <h3>Choose Memcached when:</h3>
+
+        <ul>
+            <li>You need a straightforward cache for serialized values.</li>
+            <li>Cached entries can be safely discarded and recomputed.</li>
+            <li>You value its simple operational model for your workload.</li>
+            <li>Your application already uses Memcached successfully.</li>
+        </ul>
+
+        <p>For basic caching, the simpler solution can be the better engineering decision. Migrating from one cache to another is not automatically worthwhile without a measurable need.</p>
+
+        <h2>10. Common Misconceptions</h2>
+
+        <ul>
+            <li><strong>"Redis is always faster."</strong> Performance depends on the workload, data structures, client behavior, and configuration.</li>
+            <li><strong>"Memcached cannot expire values."</strong> Memcached supports expiration times on individual items.</li>
+            <li><strong>"Redis data always survives restarts."</strong> Persistence is configurable and must be enabled and configured appropriately.</li>
+            <li><strong>"A cache is a database replacement."</strong> Caches usually reduce the work performed by a primary data source. Redis can serve as a primary store in some architectures, but that requires explicit data-model and durability decisions.</li>
+            <li><strong>"Caching always improves performance."</strong> Cache lookups have costs, and maintaining cached data introduces complexity. Measure before adding a cache.</li>
+            <li><strong>"Cache invalidation is solved by setting a TTL."</strong> TTLs bound the intended lifetime of entries but do not guarantee immediate consistency.</li>
+            <li><strong>"Redis is a replacement for every message broker."</strong> Redis provides messaging and stream capabilities, but specialized brokers may better fit particular delivery and routing requirements.</li>
+        </ul>
+
+        <h2>11. What Should I Remember?</h2>
+
+        <ul>
+            <li><strong>Both:</strong> in-memory key-value stores that can reduce latency and database load.</li>
+            <li><strong>Redis:</strong> a versatile data structure store with atomic operations, optional persistence, replication, and messaging capabilities.</li>
+            <li><strong>Memcached:</strong> a simple, distributed cache for ephemeral key-value data.</li>
+            <li><strong>Choose Redis:</strong> when the workload benefits from richer functionality or its additional operational capabilities.</li>
+            <li><strong>Choose Memcached:</strong> when simple caching is sufficient and its characteristics fit your workload.</li>
+            <li><strong>Always consider:</strong> cache invalidation, TTLs, memory limits, eviction, failure behavior, and consistency.</li>
+        </ul>
+
+        <p>The goal is not to use the most feature-rich technology. It is to choose the simplest caching solution that satisfies your application's performance and reliability requirements.</p>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+</body>
+</html>

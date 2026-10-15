@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="RabbitMQ vs Kafka vs Google Cloud Pub/Sub: compare message queues, event streaming, managed messaging, delivery guarantees, retries, ordering, and real-world backend use cases.">
+    <meta property="og:title" content="RabbitMQ vs Kafka vs Pub/Sub – Nefeli Tavoulari">
+    <meta property="og:description" content="Learn when to use RabbitMQ, Apache Kafka, or Google Cloud Pub/Sub for asynchronous communication, background jobs, event-driven architectures, and streaming data.">
+    <meta property="og:type" content="article">
+
+    <title>RabbitMQ vs Kafka vs Pub/Sub – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+<body>
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+        <h1>RabbitMQ vs Kafka vs Pub/Sub</h1>
+        <time class="post-date" datetime="2026-10-15">15 October 2026</time>
+
+        <p>RabbitMQ, Apache Kafka, and Google Cloud Pub/Sub all enable asynchronous communication between services. Instead of one service waiting for another to finish its work, a producer publishes a message or event that consumers can process independently.</p>
+
+        <p>However, they are designed around different models:</p>
+
+        <ul>
+            <li><strong>RabbitMQ:</strong> a message broker focused on queues, flexible routing, acknowledgements, and task distribution.</li>
+            <li><strong>Apache Kafka:</strong> a distributed event-streaming platform designed to store, distribute, and replay streams of events.</li>
+            <li><strong>Google Cloud Pub/Sub:</strong> a fully managed messaging service for decoupled communication between applications, particularly useful in Google Cloud environments.</li>
+        </ul>
+
+        <p>Understanding these differences helps you choose the right technology for background jobs, microservices, event-driven architectures, and data pipelines.</p>
+
+        <h2>1. Why Do We Need Messaging Systems?</h2>
+
+        <p>Imagine that an e-commerce application receives an order. After the order is placed, the system needs to send a confirmation email, update analytics, and notify the warehouse.</p>
+
+        <p>Without asynchronous messaging, the API might call every service directly.</p>
+
+        <pre><code>Client
+  |
+  v
+Order API
+  |
+  +----> Email Service
+  |
+  +----> Analytics Service
+  |
+  +----> Warehouse Service
+  |
+  v
+Return Response</code></pre>
+
+        <p>This creates several problems:</p>
+
+        <ul>
+            <li>The API may need to wait for multiple services.</li>
+            <li>A slow downstream service can increase request latency.</li>
+            <li>A failing service can interfere with the order workflow.</li>
+            <li>Each service needs to know how to contact its dependencies.</li>
+        </ul>
+
+        <p>With asynchronous messaging, the API publishes an event or message and lets independent consumers process the work.</p>
+
+        <pre><code>Client
+  |
+  v
+Order API
+  |
+  v
+Messaging System
+  |
+  +----> Email Consumer
+  |
+  +----> Analytics Consumer
+  |
+  +----> Warehouse Consumer</code></pre>
+
+        <p>The producer and consumers can now scale and fail independently to a greater extent. The exact guarantees depend on the messaging technology and its configuration.</p>
+
+        <h2>2. Message Queue vs Event Stream vs Pub/Sub</h2>
+
+        <p>Before comparing the products, distinguish the underlying messaging models.</p>
+
+        <h3>Message queue</h3>
+
+        <p>A queue holds work until a consumer processes it. Multiple workers can share the workload, so each message is normally assigned to one worker in a competing-consumer group.</p>
+
+        <pre><code>Producer
+   |
+   v
+  Queue
+   |
+   +----> Worker 1
+   |
+   +----> Worker 2
+   |
+   +----> Worker 3</code></pre>
+
+        <p>For example, a queue can distribute 10,000 invoice-generation jobs across several workers.</p>
+
+        <h3>Event stream</h3>
+
+        <p>An event stream is an ordered, retained sequence of records. Consumers track their progress and can often read events again while they remain available.</p>
+
+        <pre><code>Producer
+   |
+   v
+Event Stream
+   |
+   +----> Billing Consumer
+   |
+   +----> Analytics Consumer
+   |
+   +----> Reporting Consumer</code></pre>
+
+        <p>This is useful when different applications need to process the same events independently or replay historical data.</p>
+
+        <h3>Publish/subscribe (Pub/Sub)</h3>
+
+        <p>In the general publish/subscribe pattern, a publisher sends a message to a topic, and multiple subscribers can receive it.</p>
+
+        <p>The term describes a messaging pattern, not one specific technology. RabbitMQ can implement publish/subscribe through exchanges and queues, Kafka distributes topic events to consumer groups, and Google Cloud Pub/Sub implements topics and subscriptions.</p>
+
+        <h2>3. RabbitMQ</h2>
+
+        <p>RabbitMQ is a message broker. It receives messages from producers, routes them through exchanges, and delivers them to queues for consumers to process.</p>
+
+        <h3>How RabbitMQ works</h3>
+
+        <pre><code>Producer
+   |
+   v
+Exchange
+   |
+   | Routing rules
+   |
+   +----------+----------+
+   |          |          |
+   v          v          v
+ Queue A    Queue B    Queue C
+   |          |          |
+   v          v          v
+Worker A   Worker B   Worker C</code></pre>
+
+        <p>The exchange determines where a message goes. Queues hold messages until they are delivered and acknowledged according to the configured behavior.</p>
+
+        <h3>Exchange types</h3>
+
+        <ul>
+            <li><strong>Direct exchange:</strong> routes messages using an exact routing-key match.</li>
+            <li><strong>Topic exchange:</strong> routes using routing-key patterns, such as <code>invoice.created</code> or <code>invoice.*</code>.</li>
+            <li><strong>Fanout exchange:</strong> broadcasts a message to all bound queues.</li>
+            <li><strong>Headers exchange:</strong> routes messages according to message headers.</li>
+        </ul>
+
+        <h3>Example: background invoice generation</h3>
+
+        <p>Suppose an application needs to generate invoices without making the API request wait for PDF creation.</p>
+
+        <pre><code>API
+ |
+ | Publish GenerateInvoice
+ v
+RabbitMQ Queue
+ |
+ +----> Invoice Worker 1
+ |
+ +----> Invoice Worker 2
+ |
+ +----> Invoice Worker 3</code></pre>
+
+        <p>The API publishes a job. A worker consumes it, generates the invoice, stores the result, and acknowledges the message after successful processing.</p>
+
+        <h3>Important RabbitMQ features</h3>
+
+        <ul>
+            <li><strong>Acknowledgements:</strong> consumers can acknowledge messages after processing them.</li>
+            <li><strong>Publisher confirms:</strong> publishers can learn when the broker has accepted responsibility for published messages.</li>
+            <li><strong>Routing:</strong> exchanges support flexible message distribution.</li>
+            <li><strong>Dead-letter exchanges:</strong> can route messages that are rejected, expire, or otherwise meet configured dead-letter conditions.</li>
+            <li><strong>Prefetch:</strong> limits outstanding deliveries to avoid overwhelming consumers.</li>
+            <li><strong>Durable queues and persistent messages:</strong> can improve recovery after restarts when configured correctly.</li>
+        </ul>
+
+        <h3>When would you use RabbitMQ?</h3>
+
+        <ul>
+            <li>Background jobs and task processing.</li>
+            <li>Sending emails, generating PDFs, and processing files.</li>
+            <li>Routing commands to different workers.</li>
+            <li>Retrying failed work with appropriate queue and dead-letter configuration.</li>
+            <li>Microservice communication where acknowledgement and routing behavior matter.</li>
+        </ul>
+
+        <p><strong>Think of RabbitMQ when your primary question is:</strong> "How do I reliably route this job to a worker and know whether it has been processed?"</p>
+
+        <h2>4. Apache Kafka</h2>
+
+        <p>Apache Kafka is a distributed event-streaming platform. It stores events in topics and distributes them to consumers, allowing data to be processed in real time or replayed later.</p>
+
+        <h3>How Kafka works</h3>
+
+        <pre><code>Producer
+   |
+   v
+Kafka Topic
+   |
+   +----> Consumer Group A
+   |        +-- Consumer 1
+   |        +-- Consumer 2
+   |
+   +----> Consumer Group B
+   |        +-- Consumer 1
+   |
+   +----> Consumer Group C</code></pre>
+
+        <p>Each consumer group tracks its own progress. Different groups can independently consume the same topic, which makes Kafka suitable for event-driven architectures and data pipelines.</p>
+
+        <h3>Topics and partitions</h3>
+
+        <p>A Kafka topic is divided into partitions. Each partition is an ordered log of records, and consumers can read records using offsets.</p>
+
+        <pre><code>Topic: orders
+   |
+   +----> Partition 0
+   |        Event 1 -> Event 4 -> Event 7
+   |
+   +----> Partition 1
+   |        Event 2 -> Event 5 -> Event 8
+   |
+   +----> Partition 2
+            Event 3 -> Event 6 -> Event 9</code></pre>
+
+        <p>Kafka guarantees ordering within a partition, not across every partition in a topic. Using a consistent message key, such as an order ID, can route related events to the same partition.</p>
+
+        <h3>Retention and replay</h3>
+
+        <p>Unlike a traditional queue, Kafka does not normally remove a record simply because one consumer has processed it. Records remain available according to the topic's retention and storage configuration.</p>
+
+        <p>This means a new consumer, or an existing consumer that resets its offset, can replay retained events.</p>
+
+        <h3>Example: order events</h3>
+
+        <p>Whenever an order changes, the application publishes an event to Kafka.</p>
+
+        <pre><code>{
+  "event": "OrderPaid",
+  "orderId": "order-123",
+  "amount": 49.99,
+  "currency": "EUR"
+}</code></pre>
+
+        <p>Independent consumer groups can process the event:</p>
+
+        <ul>
+            <li><strong>Analytics:</strong> update sales dashboards.</li>
+            <li><strong>Reporting:</strong> build reporting datasets.</li>
+            <li><strong>Notifications:</strong> trigger customer communications.</li>
+            <li><strong>Fraud detection:</strong> analyze transaction patterns.</li>
+        </ul>
+
+        <p>Each group maintains its own progress and can process the same retained event independently.</p>
+
+        <h3>Important Kafka features</h3>
+
+        <ul>
+            <li><strong>Durable event retention:</strong> store events for a configured period or according to storage policies.</li>
+            <li><strong>Partitions:</strong> scale throughput and distribute processing.</li>
+            <li><strong>Consumer groups:</strong> divide partition processing among consumers in a group.</li>
+            <li><strong>Replay:</strong> reprocess retained data by adjusting consumer offsets.</li>
+            <li><strong>Replication:</strong> replicate partitions for fault tolerance when configured.</li>
+            <li><strong>Stream processing:</strong> integrate with tools such as Kafka Streams and other data-processing systems.</li>
+        </ul>
+
+        <h3>When would you use Kafka?</h3>
+
+        <ul>
+            <li>High-volume event ingestion.</li>
+            <li>Central event streams shared by multiple applications.</li>
+            <li>Analytics and data pipelines.</li>
+            <li>Change data capture (CDC) and integration between systems.</li>
+            <li>Audit and business-event histories with appropriate retention.</li>
+            <li>Workloads where replay and independent consumer progress are important.</li>
+        </ul>
+
+        <p><strong>Think of Kafka when your primary question is:</strong> "How do I store and distribute an ongoing stream of events so multiple systems can process and replay it independently?"</p>
+
+        <h2>5. Google Cloud Pub/Sub</h2>
+
+        <p>Google Cloud Pub/Sub is a fully managed messaging service. Google operates the underlying infrastructure, allowing developers to publish and consume messages without managing their own broker cluster.</p>
+
+        <h3>How Pub/Sub works</h3>
+
+        <pre><code>Publisher
+    |
+    v
+   Topic
+    |
+    +----------+----------+
+    |                     |
+    v                     v
+Subscription A       Subscription B
+    |                     |
+    v                     v
+Worker Pool A         Analytics Service</code></pre>
+
+        <p>Each subscription receives its own logical copy of messages published to the topic. Multiple subscriber instances attached to the same subscription share the work; they do not each receive every message independently.</p>
+
+        <h3>Push vs pull subscriptions</h3>
+
+        <ul>
+            <li><strong>Pull:</strong> the subscriber client requests messages and processes them.</li>
+            <li><strong>Push:</strong> Pub/Sub sends messages to a configured HTTPS endpoint.</li>
+        </ul>
+
+        <p>For pull subscriptions, subscribers acknowledge messages after processing them. Messages that are not acknowledged within the relevant deadline can be redelivered.</p>
+
+        <h3>Example: order processing on Google Cloud</h3>
+
+        <pre><code>Order API
+    |
+    v
+Pub/Sub Topic: orders
+    |
+    +----> Subscription: emails
+    |             |
+    |             v
+    |        Email Worker
+    |
+    +----> Subscription: analytics
+    |             |
+    |             v
+    |        Analytics Pipeline
+    |
+    +----> Subscription: fulfillment
+                  |
+                  v
+             Fulfillment Worker</code></pre>
+
+        <p>The order service publishes an event once. Pub/Sub distributes it to each subscription, allowing each downstream system to operate independently.</p>
+
+        <h3>Important Pub/Sub features</h3>
+
+        <ul>
+            <li><strong>Managed infrastructure:</strong> no self-managed broker cluster is required.</li>
+            <li><strong>Independent subscriptions:</strong> different services can process the same published messages.</li>
+            <li><strong>Push and pull delivery:</strong> support different consumer architectures.</li>
+            <li><strong>Acknowledgements and redelivery:</strong> support reliable processing workflows.</li>
+            <li><strong>Dead-letter topics:</strong> can isolate messages after configured delivery attempts, with the appropriate policy and permissions.</li>
+            <li><strong>Optional ordering:</strong> ordering can be enabled for messages sharing an ordering key, subject to service constraints.</li>
+            <li><strong>Integration with Google Cloud:</strong> works with services such as Dataflow, BigQuery, and Cloud Run.</li>
+        </ul>
+
+        <h3>When would you use Pub/Sub?</h3>
+
+        <ul>
+            <li>Event-driven applications hosted on Google Cloud.</li>
+            <li>Decoupling independently deployed services.</li>
+            <li>Distributing events to several downstream systems.</li>
+            <li>Cloud-native background processing.</li>
+            <li>Ingesting events into analytics and data-processing pipelines.</li>
+            <li>Messaging workloads where managed infrastructure is preferable to operating brokers.</li>
+        </ul>
+
+        <p><strong>Think of Pub/Sub when your primary question is:</strong> "How can I distribute messages reliably without operating my own messaging infrastructure?"</p>
+
+        <h2>6. Comparison Table</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>RabbitMQ</th>
+                    <th>Kafka</th>
+                    <th>Google Cloud Pub/Sub</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Primary model</td>
+                    <td>Message broker and queues</td>
+                    <td>Distributed event streams</td>
+                    <td>Managed messaging service</td>
+                </tr>
+                <tr>
+                    <td>Message routing</td>
+                    <td>Rich exchange-based routing</td>
+                    <td>Topics and partitions</td>
+                    <td>Topics and subscriptions</td>
+                </tr>
+                <tr>
+                    <td>After consumption</td>
+                    <td>Acknowledged messages can be removed from the queue</td>
+                    <td>Records remain until retention or storage policies remove them</td>
+                    <td>Messages are acknowledged per subscription and retained according to service policies</td>
+                </tr>
+                <tr>
+                    <td>Replay</td>
+                    <td>Not the primary model; requires a separate retention or republishing design</td>
+                    <td>Core capability for retained records</td>
+                    <td>Supported within configured retention and replay capabilities</td>
+                </tr>
+                <tr>
+                    <td>Ordering</td>
+                    <td>Queue ordering can be affected by concurrency, requeueing, and priorities</td>
+                    <td>Within each partition</td>
+                    <td>Optional ordering by key, when configured</td>
+                </tr>
+                <tr>
+                    <td>Retries</td>
+                    <td>Acknowledgements, requeueing, and dead-letter patterns</td>
+                    <td>Consumer retries and offset management; application design matters</td>
+                    <td>Redelivery, retry policies, and dead-letter topics</td>
+                </tr>
+                <tr>
+                    <td>Scaling model</td>
+                    <td>Queues, consumers, and broker topology</td>
+                    <td>Partitions, brokers, and consumer groups</td>
+                    <td>Managed service scaling</td>
+                </tr>
+                <tr>
+                    <td>Infrastructure</td>
+                    <td>Self-managed or managed offerings</td>
+                    <td>Self-managed or managed offerings</td>
+                    <td>Managed by Google Cloud</td>
+                </tr>
+                <tr>
+                    <td>Typical strength</td>
+                    <td>Task distribution and flexible routing</td>
+                    <td>High-volume streams and replay</td>
+                    <td>Cloud-native messaging with low infrastructure overhead</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>All three can support reliable messaging, but reliability depends on configuration and application behavior. No system automatically makes arbitrary business operations exactly-once.</p>
+
+        <h2>7. Delivery Guarantees: At-Most-Once, At-Least-Once, and Exactly-Once</h2>
+
+        <p>Understanding delivery semantics is essential when building asynchronous systems.</p>
+
+        <h3>At-most-once</h3>
+
+        <p>A message is delivered zero or one times. It will not be redelivered, but it can be lost if a failure occurs.</p>
+
+        <h3>At-least-once</h3>
+
+        <p>A message is retried until it is acknowledged or another terminal policy applies. It can be delivered more than once.</p>
+
+        <p>This is common in reliable messaging systems. Consumers should be designed to tolerate duplicate processing.</p>
+
+        <h3>Exactly-once</h3>
+
+        <p>The term depends on the system and the scope of the guarantee. Kafka supports exactly-once processing capabilities for particular Kafka workflows, and Google Cloud Pub/Sub offers an optional exactly-once delivery feature for supported pull subscriptions.</p>
+
+        <p>Neither feature automatically guarantees that an external side effect, such as charging a credit card or sending an email, happens exactly once. That requires appropriate application-level safeguards.</p>
+
+        <h3>Example: duplicate invoice processing</h3>
+
+        <p>A worker receives an invoice-generation message and creates the invoice. Before it acknowledges the message, the process crashes.</p>
+
+        <p>The messaging system may deliver the message again. Without protection, the worker might generate a duplicate invoice.</p>
+
+        <p>Possible safeguards include:</p>
+
+        <ul>
+            <li>Use a stable business identifier or idempotency key.</li>
+            <li>Record completed processing in a database with a uniqueness constraint.</li>
+            <li>Make repeated operations safe.</li>
+            <li>Acknowledge only after the required processing has completed.</li>
+            <li>Use transactional outbox or inbox patterns when coordinating database changes and message delivery.</li>
+        </ul>
+
+        <p>These patterns matter regardless of which messaging technology you choose.</p>
+
+        <h2>8. Retries and Dead-Letter Queues</h2>
+
+        <p>What happens when a consumer cannot process a message?</p>
+
+        <p>For example, an invoice worker might encounter a temporary database outage or a permanently invalid payload.</p>
+
+        <h3>Retry</h3>
+
+        <p>A retry attempts the operation again. Transient failures can succeed later, but repeatedly retrying a permanently invalid message wastes resources.</p>
+
+        <h3>Dead-letter handling</h3>
+
+        <p>A dead-letter queue or topic isolates messages that cannot be processed according to the configured policy. Operators can inspect them, fix the underlying issue, and replay them if appropriate.</p>
+
+        <pre><code>Message
+   |
+   v
+Consumer
+   |
+   +---- Success ----> Acknowledge
+   |
+   +---- Failure ----> Retry with backoff
+                           |
+                           v
+                      Retry limit reached
+                           |
+                           v
+                    Dead-letter destination</code></pre>
+
+        <p>The implementation differs by platform:</p>
+
+        <ul>
+            <li><strong>RabbitMQ:</strong> queue dead-letter configuration and retry queues can route failed messages to a dead-letter exchange.</li>
+            <li><strong>Kafka:</strong> consumers typically implement retry topics, retry handling, or a dead-letter topic as part of the application architecture.</li>
+            <li><strong>Google Cloud Pub/Sub:</strong> a subscription can be configured with a dead-letter topic and a maximum delivery-attempt policy.</li>
+        </ul>
+
+        <p>Retries should generally use backoff and have clear handling for permanent failures. Also consider poison messages, which repeatedly fail and can block progress or consume resources.</p>
+
+        <h2>9. Which One Should You Choose?</h2>
+
+        <h3>Scenario A: Send emails asynchronously</h3>
+
+        <p><strong>Good fit: RabbitMQ or Google Cloud Pub/Sub.</strong></p>
+
+        <p>Your API publishes an email job, and background workers process it. RabbitMQ is a natural choice for queue-based task distribution. Pub/Sub is attractive when your application already runs on Google Cloud and you prefer managed messaging.</p>
+
+        <h3>Scenario B: Process millions of business events and replay them</h3>
+
+        <p><strong>Good fit: Kafka.</strong></p>
+
+        <p>Multiple consumer groups need to independently process a retained history of events. Kafka's partitioned log and offset model make it a strong fit.</p>
+
+        <h3>Scenario C: Route jobs according to business rules</h3>
+
+        <p><strong>Good fit: RabbitMQ.</strong></p>
+
+        <p>You want to route different messages to different queues based on routing keys, message headers, or fanout behavior.</p>
+
+        <h3>Scenario D: Build an event-driven application on Google Cloud</h3>
+
+        <p><strong>Good fit: Google Cloud Pub/Sub.</strong></p>
+
+        <p>You want publishers and consumers to remain independent without managing a broker cluster. Managed operations and Google Cloud integrations may outweigh the need for more specialized broker behavior.</p>
+
+        <h3>Scenario E: Build analytics and data pipelines</h3>
+
+        <p><strong>Good fit: Kafka or Google Cloud Pub/Sub.</strong></p>
+
+        <p>Kafka is particularly attractive when you need retained event streams, replay, and partition-based processing. Pub/Sub is attractive when you want a managed ingestion and distribution service integrated with Google Cloud data tools.</p>
+
+        <h3>Scenario F: Coordinate background processing between PHP services</h3>
+
+        <p><strong>Good fit: RabbitMQ or Google Cloud Pub/Sub, depending on your infrastructure.</strong></p>
+
+        <p>For example, a billing service can publish an invoice-generation job and return without waiting for a worker to finish. The worker processes the message independently and records the result.</p>
+
+        <p>Kafka can also support asynchronous service workflows, especially when invoice events must be retained and consumed by multiple systems. However, it may be unnecessary if the only requirement is distributing simple background jobs.</p>
+
+        <h2>10. Common Misconceptions</h2>
+
+        <ul>
+            <li><strong>"Kafka is just a message queue."</strong> Kafka's retained, partitioned log and replay model are central to its design.</li>
+            <li><strong>"RabbitMQ cannot do publish/subscribe."</strong> Exchanges and queues can implement publish/subscribe patterns.</li>
+            <li><strong>"Pub/Sub is a generic name for one product."</strong> Publish/subscribe is a messaging pattern; Google Cloud Pub/Sub is one specific managed implementation.</li>
+            <li><strong>"Every consumer receives every message."</strong> Multiple consumers on the same queue or subscription typically share work. Independent queues or subscriptions are needed for separate copies of the workload.</li>
+            <li><strong>"Messages are always processed in order."</strong> Ordering depends on the technology, configuration, partitions or queues, and consumer concurrency.</li>
+            <li><strong>"At-least-once means no messages are lost under every circumstance."</strong> Guarantees depend on publishing confirmation, durable configuration, acknowledgement behavior, retention, and failure handling.</li>
+            <li><strong>"Exactly-once delivery means every business operation happens once."</strong> External side effects still require idempotency or transactional safeguards.</li>
+            <li><strong>"The most scalable system is always the best."</strong> Operational complexity, delivery semantics, routing needs, and the team's existing infrastructure matter just as much.</li>
+        </ul>
+
+        <h2>11. What Should a Software Developer Learn First?</h2>
+
+        <ol>
+            <li><strong>Asynchronous communication:</strong> understand producers, consumers, queues, topics, and acknowledgements.</li>
+            <li><strong>Delivery semantics:</strong> learn at-most-once, at-least-once, duplicate delivery, and idempotency.</li>
+            <li><strong>Retries and failure handling:</strong> understand backoff, dead-letter destinations, and poison messages.</li>
+            <li><strong>RabbitMQ:</strong> learn exchanges, queues, bindings, routing keys, acknowledgements, and prefetch.</li>
+            <li><strong>Kafka:</strong> learn topics, partitions, offsets, consumer groups, retention, and replay.</li>
+            <li><strong>Google Cloud Pub/Sub:</strong> learn topics, subscriptions, push vs pull, acknowledgement deadlines, and dead-letter policies.</li>
+            <li><strong>Reliability patterns:</strong> study the transactional outbox, inbox/idempotency patterns, and how database transactions interact with messaging.</li>
+        </ol>
+
+        <p>As a backend developer, the most important skill is not memorizing every broker feature. It is designing a workflow that remains correct when a service crashes, a message is duplicated, a consumer is slow, or a dependency is unavailable.</p>
+
+        <h2>12. What Should I Remember?</h2>
+
+        <ul>
+            <li><strong>RabbitMQ:</strong> choose it for queue-based work distribution, flexible routing, and broker-managed message delivery.</li>
+            <li><strong>Kafka:</strong> choose it for durable event streams, replay, high-volume processing, and multiple independent consumers.</li>
+            <li><strong>Google Cloud Pub/Sub:</strong> choose it for managed asynchronous messaging, especially in Google Cloud architectures.</li>
+            <li><strong>All three:</strong> require thoughtful handling of acknowledgements, retries, ordering, duplicates, and failures.</li>
+            <li><strong>Start with the workload:</strong> choose based on whether you need task processing, retained event streams, or managed cloud messaging.</li>
+        </ul>
+
+        <p>The right messaging system is the one whose delivery model and operational characteristics match your application's needs. You rarely need all three in the same application unless different workloads justify the added complexity.</p>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+</body>
+</html>

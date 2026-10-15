@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Types of Databases Explained — learn how relational, document, key-value, wide-column, graph, time-series, search, vector and other databases work, and when to use each.">
+    <meta property="og:title" content="Types of Databases Explained – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to database types, their trade-offs, popular technologies and real-world backend use cases.">
+    <meta property="og:type" content="article">
+
+    <title>Types of Databases Explained – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+
+        <h1>Types of Databases Explained</h1>
+
+        <time class="post-date" datetime="2026-10-15">
+            15 October 2026
+        </time>
+
+        <p>
+            Databases are designed to store, organize, retrieve and manage
+            data. However, not all databases organize data in the same way
+            or optimize for the same requirements.
+        </p>
+
+        <p>
+            Some databases are excellent at handling financial transactions
+            and relationships between entities. Others are designed for
+            flexible documents, massive write volumes, relationship
+            traversal, full-text search or real-time analytics.
+        </p>
+
+        <p>
+            Understanding the different types of databases helps you choose
+            the right technology for a particular problem instead of
+            automatically reaching for MySQL or PostgreSQL for everything.
+        </p>
+
+        <p>
+            The important question is not just
+            <em>"Which database is the fastest?"</em> but
+            <em>"Which database best fits my data, access patterns,
+                consistency requirements and scale?"</em>
+        </p>
+
+        <h2>The Big Picture</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Database type</th>
+                <th>Best suited for</th>
+                <th>Examples</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Relational (SQL)</td>
+                <td>Structured data, transactions and relationships</td>
+                <td>PostgreSQL, MySQL</td>
+            </tr>
+            <tr>
+                <td>Document</td>
+                <td>Flexible, nested records</td>
+                <td>MongoDB, Couchbase</td>
+            </tr>
+            <tr>
+                <td>Key-value</td>
+                <td>Fast lookups by key</td>
+                <td>Redis, Amazon DynamoDB</td>
+            </tr>
+            <tr>
+                <td>Wide-column</td>
+                <td>Large-scale distributed workloads</td>
+                <td>Apache Cassandra, HBase</td>
+            </tr>
+            <tr>
+                <td>Graph</td>
+                <td>Highly connected data</td>
+                <td>Neo4j, Amazon Neptune</td>
+            </tr>
+            <tr>
+                <td>Time-series</td>
+                <td>Timestamped measurements and metrics</td>
+                <td>InfluxDB, TimescaleDB</td>
+            </tr>
+            <tr>
+                <td>Search</td>
+                <td>Full-text search and relevance ranking</td>
+                <td>Elasticsearch, OpenSearch</td>
+            </tr>
+            <tr>
+                <td>Vector</td>
+                <td>Semantic similarity and embeddings</td>
+                <td>Qdrant, Milvus, pgvector</td>
+            </tr>
+            <tr>
+                <td>Analytical / columnar</td>
+                <td>Large-scale aggregations and reporting</td>
+                <td>ClickHouse, Snowflake</td>
+            </tr>
+            <tr>
+                <td>In-memory</td>
+                <td>Low-latency access and temporary state</td>
+                <td>Redis</td>
+            </tr>
+            <tr>
+                <td>Embedded</td>
+                <td>Local application storage</td>
+                <td>SQLite, DuckDB</td>
+            </tr>
+            <tr>
+                <td>Distributed SQL</td>
+                <td>Relational data across multiple nodes</td>
+                <td>CockroachDB, YugabyteDB</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            These categories are not always mutually exclusive. PostgreSQL
+            is relational but can also support JSON documents, full-text
+            search and vector search. Redis is an in-memory data store that
+            also supports persistence and multiple data structures.
+        </p>
+
+        <h2>1. Relational Databases (SQL)</h2>
+
+        <p>
+            <strong>Relational databases organize data into tables</strong>
+            containing rows and columns. Relationships between tables are
+            represented using keys, and SQL is used to query and manipulate
+            the data.
+        </p>
+
+        <h3>Example</h3>
+
+        <pre><code>customers
+---------
+id
+name
+email
+
+orders
+------
+id
+customer_id
+total
+status</code></pre>
+
+        <p>
+            An order references its customer through
+            <code>customer_id</code>. You can retrieve orders together with
+            their customers using a JOIN.
+        </p>
+
+        <pre><code>SELECT
+    customers.name,
+    orders.total,
+    orders.status
+FROM customers
+JOIN orders
+    ON orders.customer_id = customers.id
+WHERE customers.id = 123;</code></pre>
+
+        <h3>What makes relational databases useful?</h3>
+
+        <ul>
+            <li>
+                <strong>Relationships:</strong> foreign keys connect related
+                records.
+            </li>
+            <li>
+                <strong>Transactions:</strong> multiple changes can succeed
+                or fail together.
+            </li>
+            <li>
+                <strong>Constraints:</strong> unique constraints, foreign
+                keys and checks help enforce data integrity.
+            </li>
+            <li>
+                <strong>SQL:</strong> flexible queries, joins, filtering
+                and aggregations.
+            </li>
+            <li>
+                <strong>Consistency:</strong> transactions and constraints
+                help maintain correct business data.
+            </li>
+        </ul>
+
+        <h3>What is ACID?</h3>
+
+        <p>
+            ACID describes four properties commonly associated with reliable
+            database transactions.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Atomicity:</strong> all changes in a transaction
+                happen, or none do.
+            </li>
+            <li>
+                <strong>Consistency:</strong> transactions preserve defined
+                integrity rules.
+            </li>
+            <li>
+                <strong>Isolation:</strong> concurrent transactions are
+                controlled according to the chosen isolation level.
+            </li>
+            <li>
+                <strong>Durability:</strong> committed changes survive
+                failures according to the database's durability guarantees.
+            </li>
+        </ul>
+
+        <h3>Popular relational databases</h3>
+
+        <ul>
+            <li>
+                <strong>PostgreSQL:</strong> advanced SQL, extensibility,
+                complex queries and rich data types.
+            </li>
+            <li>
+                <strong>MySQL:</strong> widely used in web applications
+                and backend services.
+            </li>
+            <li>
+                <strong>SQL Server:</strong> common in Microsoft-oriented
+                enterprise environments.
+            </li>
+            <li>
+                <strong>Oracle Database:</strong> used in large enterprise
+                and mission-critical environments.
+            </li>
+        </ul>
+
+        <h3>When should you use a relational database?</h3>
+
+        <ul>
+            <li>Financial transactions and payment records.</li>
+            <li>Orders, customers, invoices and subscriptions.</li>
+            <li>Applications with relationships between many entities.</li>
+            <li>Systems requiring constraints and transactional updates.</li>
+            <li>Applications that need flexible querying and reporting.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> an invoicing application that stores
+            invoices, invoice lines, tax breakdowns and payment records
+            would usually benefit from a relational database.
+        </p>
+
+        <p>
+            Relational databases can scale significantly. Do not assume
+            that you need NoSQL simply because an application has many
+            users or a large amount of data.
+        </p>
+
+        <h2>2. Document Databases</h2>
+
+        <p>
+            Document databases store records as documents, commonly using
+            JSON-like structures. Each document can contain nested objects
+            and arrays.
+        </p>
+
+        <h3>Example</h3>
+
+        <pre><code>{
+    "customerId": 123,
+    "name": "Alex",
+    "address": {
+        "city": "Amsterdam",
+        "country": "Netherlands"
+    },
+    "preferences": {
+        "language": "en",
+        "notifications": true
+    },
+    "tags": ["business", "premium"]
+}</code></pre>
+
+        <p>
+            Instead of splitting every field into separate relational
+            tables, a document database can store related information
+            together in one document.
+        </p>
+
+        <h3>Popular document databases</h3>
+
+        <ul>
+            <li>MongoDB</li>
+            <li>Couchbase</li>
+            <li>Firestore</li>
+        </ul>
+
+        <h3>Advantages</h3>
+
+        <ul>
+            <li>Flexible schemas for records with different fields.</li>
+            <li>Natural representation of nested JSON data.</li>
+            <li>Convenient retrieval of a complete document.</li>
+            <li>Can scale horizontally depending on the database and workload.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+
+        <ul>
+            <li>
+                Flexible schemas can lead to inconsistent data if validation
+                is neglected.
+            </li>
+            <li>
+                Relationships and cross-document queries may be less
+                convenient than relational joins.
+            </li>
+            <li>
+                Duplicating data can simplify reads but complicate updates.
+            </li>
+            <li>
+                Transaction capabilities vary by product and deployment.
+            </li>
+        </ul>
+
+        <h3>When should you use a document database?</h3>
+
+        <ul>
+            <li>Records have flexible or evolving structures.</li>
+            <li>Data is naturally represented as nested documents.</li>
+            <li>Most reads retrieve a complete document or aggregate.</li>
+            <li>Different records may have different attributes.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> a content management system where
+            different article types have different metadata could benefit
+            from a document model.
+        </p>
+
+        <p>
+            Document databases are not automatically better for JSON.
+            PostgreSQL, for example, supports JSONB alongside relational
+            tables, indexes and SQL.
+        </p>
+
+        <h2>3. Key-Value Databases</h2>
+
+        <p>
+            Key-value databases store values associated with unique keys.
+            The primary access pattern is simple: provide a key and retrieve
+            or update its value.
+        </p>
+
+        <pre><code>user:123:session -> "session-data"
+product:456:stock -> "20"
+rate-limit:api-key-1 -> "42"</code></pre>
+
+        <p>
+            The application does not necessarily query the value by
+            arbitrary fields. It often knows the exact key it needs.
+        </p>
+
+        <h3>Popular technologies</h3>
+
+        <ul>
+            <li>Redis</li>
+            <li>Amazon DynamoDB</li>
+            <li>Riak KV</li>
+        </ul>
+
+        <p>
+            These systems have different capabilities. Redis provides
+            in-memory data structures, while DynamoDB is a managed,
+            distributed database with durable storage and configurable
+            consistency options.
+        </p>
+
+        <h3>When should you use a key-value database?</h3>
+
+        <ul>
+            <li>Fast lookups by known identifiers.</li>
+            <li>Session storage and temporary application state.</li>
+            <li>Rate-limit counters and caching.</li>
+            <li>High-volume access patterns with predictable keys.</li>
+            <li>Distributed workloads that fit the database's key-based model.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> a backend that repeatedly reads a
+            merchant's configuration by merchant ID may use Redis to
+            cache the configuration.
+        </p>
+
+        <p>
+            A key-value database is less suitable when the application
+            frequently needs complex joins or arbitrary queries across
+            many fields.
+        </p>
+
+        <h2>4. Wide-Column Databases</h2>
+
+        <p>
+            Wide-column databases organize data into rows identified by
+            keys, with columns grouped into families or otherwise modeled
+            for distributed access. Their storage and query models differ
+            from traditional relational tables.
+        </p>
+
+        <p>
+            They are designed for workloads that may involve huge datasets,
+            high write throughput and distribution across many nodes.
+        </p>
+
+        <h3>Popular technologies</h3>
+
+        <ul>
+            <li>Apache Cassandra</li>
+            <li>Apache HBase</li>
+            <li>Google Cloud Bigtable</li>
+        </ul>
+
+        <h3>How is this different from a relational database?</h3>
+
+        <p>
+            In a relational database, developers commonly design normalized
+            tables and use joins to retrieve related data.
+        </p>
+
+        <p>
+            In many wide-column systems, developers design the data model
+            around the queries they need to execute. Related data may be
+            deliberately duplicated so that a query can be served
+            efficiently without joins.
+        </p>
+
+        <h3>When should you use a wide-column database?</h3>
+
+        <ul>
+            <li>Very large datasets distributed across many machines.</li>
+            <li>High-volume writes with predictable access patterns.</li>
+            <li>Event records, telemetry and activity histories.</li>
+            <li>Workloads requiring horizontal scalability.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> a global IoT platform collecting
+            billions of device measurements may consider Cassandra or
+            Bigtable, depending on its query patterns and operational
+            requirements.
+        </p>
+
+        <p>
+            Wide-column databases are not simply relational databases with
+            more columns. Their partitioning, query and consistency models
+            need to be understood before choosing them.
+        </p>
+
+        <h2>5. Graph Databases</h2>
+
+        <p>
+            Graph databases represent data as nodes and relationships,
+            often with properties attached to both.
+        </p>
+
+        <p>
+            They are particularly useful when the relationships between
+            entities are as important as the entities themselves.
+        </p>
+
+        <h3>Example</h3>
+
+        <pre><code>(Alice)-[:FRIEND_OF]->(Bob)
+(Bob)-[:WORKS_AT]->(Company)
+(Alice)-[:PURCHASED]->(Product)</code></pre>
+
+        <p>
+            A graph database can traverse relationships to answer questions
+            such as:
+        </p>
+
+        <ul>
+            <li>Which friends of my friends work at this company?</li>
+            <li>Which accounts are connected to a suspicious account?</li>
+            <li>Which products are related through common purchases?</li>
+            <li>How are two entities connected through multiple relationships?</li>
+        </ul>
+
+        <h3>Popular graph databases</h3>
+
+        <ul>
+            <li>Neo4j</li>
+            <li>Amazon Neptune</li>
+            <li>ArangoDB</li>
+        </ul>
+
+        <h3>When should you use a graph database?</h3>
+
+        <ul>
+            <li>Social networks and relationship discovery.</li>
+            <li>Fraud detection and suspicious-account analysis.</li>
+            <li>Recommendation engines based on connected entities.</li>
+            <li>Dependency graphs and network topology.</li>
+            <li>Queries that repeatedly traverse multiple relationship levels.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> a fraud detection system could use
+            relationships between customer accounts, devices, addresses
+            and payment instruments to identify suspicious connections.
+        </p>
+
+        <p>
+            You do not need a graph database merely because your data
+            contains relationships. Relational databases handle many
+            relationship-based workloads very well. A graph database
+            becomes attractive when traversing complex connections is a
+            central operation.
+        </p>
+
+        <h2>6. Time-Series Databases</h2>
+
+        <p>
+            Time-series databases are optimized for data points associated
+            with timestamps.
+        </p>
+
+        <p>Examples include:</p>
+
+        <pre><code>timestamp           metric          value
+10:00:00            cpu_usage       65
+10:00:01            cpu_usage       68
+10:00:02            cpu_usage       72</code></pre>
+
+        <p>
+            The data is often append-heavy: new measurements arrive
+            continuously, and users query ranges of time to analyze trends.
+        </p>
+
+        <h3>Popular technologies</h3>
+
+        <ul>
+            <li>InfluxDB</li>
+            <li>TimescaleDB</li>
+            <li>Prometheus, primarily for monitoring metrics</li>
+        </ul>
+
+        <h3>Common use cases</h3>
+
+        <ul>
+            <li>Infrastructure and application metrics.</li>
+            <li>Sensor and IoT measurements.</li>
+            <li>Stock prices and market measurements.</li>
+            <li>Energy consumption over time.</li>
+            <li>Historical performance monitoring.</li>
+        </ul>
+
+        <h3>When should you use a time-series database?</h3>
+
+        <p>
+            Consider one when most of your data is timestamped, ingestion
+            rates are high, and queries frequently aggregate values over
+            time windows.
+        </p>
+
+        <p>
+            <strong>Example:</strong> a monitoring system that records
+            thousands of measurements per second and needs to calculate
+            average CPU utilization over the previous hour.
+        </p>
+
+        <p>
+            For ordinary business records that happen to include timestamps,
+            a relational database may still be the simplest choice.
+        </p>
+
+        <h2>7. Search Databases and Search Engines</h2>
+
+        <p>
+            Search engines are optimized for finding relevant results in
+            text and other indexed fields. They commonly support
+            full-text search, relevance scoring, tokenization, filtering
+            and aggregations.
+        </p>
+
+        <h3>Example</h3>
+
+        <p>
+            Imagine a marketplace with millions of products. Users expect
+            to search for phrases such as:
+        </p>
+
+        <pre><code>"waterproof hiking boots for winter"</code></pre>
+
+        <p>
+            A search engine can analyze text, match relevant terms, rank
+            results and apply filters such as brand, category, price and
+            availability.
+        </p>
+
+        <h3>Popular technologies</h3>
+
+        <ul>
+            <li>Elasticsearch</li>
+            <li>OpenSearch</li>
+            <li>Apache Solr</li>
+        </ul>
+
+        <h3>When should you use a search engine?</h3>
+
+        <ul>
+            <li>Full-text search across large amounts of text.</li>
+            <li>Search results ranked by relevance.</li>
+            <li>Product catalogs with multiple filters.</li>
+            <li>Log search and investigation.</li>
+            <li>Autocomplete and search suggestions.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> an e-commerce application can store
+            products in PostgreSQL and maintain a searchable index in
+            Elasticsearch.
+        </p>
+
+        <p>
+            Search indexes are often updated asynchronously and may lag
+            behind the primary database. For that reason, the search engine
+            is commonly a derived representation of the data rather than
+            the authoritative source of truth.
+        </p>
+
+        <h2>8. Vector Databases</h2>
+
+        <p>
+            Vector databases store and search numerical vectors, often
+            called embeddings. An embedding represents information such as
+            text, images or audio as a list of numbers.
+        </p>
+
+        <p>
+            Similar pieces of content can have vectors that are close
+            together according to a chosen similarity metric.
+        </p>
+
+        <h3>Example</h3>
+
+        <pre><code>"How do I reset my password?"
+                |
+                v
+          Embedding model
+                |
+                v
+       [0.12, -0.48, 0.73, ...]
+                |
+                v
+       Search similar vectors
+                |
+                v
+       Return relevant documents</code></pre>
+
+        <p>
+            Unlike ordinary keyword search, vector search can retrieve
+            conceptually similar content even when the wording differs.
+        </p>
+
+        <h3>Popular technologies</h3>
+
+        <ul>
+            <li>Qdrant</li>
+            <li>Milvus</li>
+            <li>Weaviate</li>
+            <li>pgvector for PostgreSQL</li>
+        </ul>
+
+        <h3>When should you use a vector database?</h3>
+
+        <ul>
+            <li>Semantic search over documents.</li>
+            <li>Retrieval-augmented generation (RAG) applications.</li>
+            <li>Finding similar images or products.</li>
+            <li>Recommendations based on vector similarity.</li>
+            <li>Searching large collections of embeddings.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> a support chatbot can retrieve the
+            most relevant help-center articles before sending their contents
+            to a language model to generate an answer.
+        </p>
+
+        <p>
+            Vector search does not replace every other database. Many
+            applications combine vector similarity with metadata filters,
+            full-text search and relational data.
+        </p>
+
+        <h2>9. Analytical and Columnar Databases</h2>
+
+        <p>
+            Analytical databases are optimized for reading and aggregating
+            large amounts of data. Columnar storage is a common technique
+            used by analytical systems.
+        </p>
+
+        <h3>Row-oriented vs column-oriented storage</h3>
+
+        <p>
+            A row-oriented database typically stores the fields of a record
+            together conceptually, which is useful when an application
+            reads or updates individual records.
+        </p>
+
+        <pre><code>Row-oriented:
+
+Customer 1: id, name, country
+Customer 2: id, name, country
+Customer 3: id, name, country</code></pre>
+
+        <p>
+            A column-oriented analytical system groups values by column,
+            making it efficient to scan only the fields needed for an
+            aggregation.
+        </p>
+
+        <pre><code>Column-oriented:
+
+IDs:       1, 2, 3
+Names:     Alice, Bob, Carol
+Countries: NL, DE, NL</code></pre>
+
+        <p>
+            This is a simplified illustration. Actual physical layouts,
+            compression and execution strategies vary by system.
+        </p>
+
+        <h3>Popular technologies</h3>
+
+        <ul>
+            <li>ClickHouse</li>
+            <li>Snowflake</li>
+            <li>Google BigQuery</li>
+            <li>Amazon Redshift</li>
+        </ul>
+
+        <h3>When should you use an analytical database?</h3>
+
+        <ul>
+            <li>Business intelligence and dashboards.</li>
+            <li>Large-scale reporting and aggregations.</li>
+            <li>Historical analysis across billions of records.</li>
+            <li>Product analytics and event analysis.</li>
+            <li>Data warehouse and analytics workloads.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> a payments company wants to analyze
+            millions of transactions to calculate monthly volume by country,
+            currency, merchant category and product.
+        </p>
+
+        <p>
+            The transactional application might store each payment in
+            PostgreSQL, while a warehouse or analytical database processes
+            large reporting queries without burdening the main application.
+        </p>
+
+        <h2>10. In-Memory Databases</h2>
+
+        <p>
+            In-memory databases keep working data primarily in RAM,
+            allowing very low-latency access. Some also support persistence
+            to disk and replication.
+        </p>
+
+        <p>
+            Redis is a well-known example. Despite being frequently used
+            as a cache, Redis also supports counters, sorted sets,
+            queues, streams and other data structures.
+        </p>
+
+        <h3>When should you use an in-memory database?</h3>
+
+        <ul>
+            <li>Low-latency reads and writes.</li>
+            <li>Frequently accessed cached data.</li>
+            <li>Shared sessions and temporary state.</li>
+            <li>Rate limiting and counters.</li>
+            <li>Real-time leaderboards and certain queue workloads.</li>
+        </ul>
+
+        <p>
+            In-memory storage is not necessarily volatile in every
+            configuration. Persistence and recovery capabilities depend
+            on the product and its settings.
+        </p>
+
+        <p>
+            However, RAM is expensive relative to many forms of disk
+            storage, and durability guarantees must be evaluated explicitly.
+            Do not choose an in-memory system as the sole store for
+            critical records simply because it is fast.
+        </p>
+
+        <h2>11. Embedded Databases</h2>
+
+        <p>
+            Embedded databases run inside an application or process instead
+            of requiring a separately operated database server.
+        </p>
+
+        <p>
+            They can store data in local files and are useful when a
+            complete client-server database deployment would be unnecessary.
+        </p>
+
+        <h3>Popular technologies</h3>
+
+        <ul>
+            <li>SQLite</li>
+            <li>DuckDB</li>
+            <li>RocksDB, an embedded key-value storage engine</li>
+        </ul>
+
+        <p>
+            These products serve different purposes. SQLite is a
+            transactional relational database, DuckDB focuses on analytical
+            workloads, and RocksDB is an embeddable key-value storage engine.
+        </p>
+
+        <h3>When should you use an embedded database?</h3>
+
+        <ul>
+            <li>Mobile and desktop applications.</li>
+            <li>Local application storage.</li>
+            <li>Command-line tools and development utilities.</li>
+            <li>Offline-first applications.</li>
+            <li>Local analytical queries over files using DuckDB.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> a mobile application can use SQLite
+            to store data locally so users can access it without an
+            internet connection.
+        </p>
+
+        <p>
+            SQLite is not simply a weaker MySQL. It is an excellent database
+            for many local workloads. However, a multi-instance web backend
+            with concurrent remote clients may be better served by a
+            client-server database.
+        </p>
+
+        <h2>12. Distributed SQL Databases</h2>
+
+        <p>
+            Distributed SQL databases aim to provide a relational model
+            and SQL interface while distributing data across multiple
+            nodes.
+        </p>
+
+        <p>
+            Depending on the product, they may offer automatic sharding,
+            replication, distributed transactions and fault tolerance.
+        </p>
+
+        <h3>Popular technologies</h3>
+
+        <ul>
+            <li>CockroachDB</li>
+            <li>YugabyteDB</li>
+            <li>Google Cloud Spanner</li>
+        </ul>
+
+        <h3>When should you use distributed SQL?</h3>
+
+        <ul>
+            <li>Relational data must be distributed across many nodes.</li>
+            <li>High availability across machines or regions is required.</li>
+            <li>Horizontal scaling is needed alongside SQL and transactions.</li>
+            <li>The application has demanding availability and growth requirements.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> a global application needs relational
+            transactions while distributing its data across geographic
+            regions.
+        </p>
+
+        <p>
+            Distributed SQL is not a free upgrade from MySQL or PostgreSQL.
+            Network latency, transaction coordination, operational
+            complexity and consistency choices can introduce significant
+            trade-offs.
+        </p>
+
+        <h2>13. Specialized Databases</h2>
+
+        <p>
+            Some databases are designed for narrower domains or particular
+            workloads.
+        </p>
+
+        <h3>Spatial databases</h3>
+
+        <p>
+            Spatial databases support geographic data and queries such as
+            finding objects within a region or calculating distances.
+            PostgreSQL with PostGIS is a common example.
+        </p>
+
+        <p>
+            Use them for maps, delivery zones, geographic analysis and
+            location-based services.
+        </p>
+
+        <h3>Ledger databases</h3>
+
+        <p>
+            Ledger-oriented databases provide mechanisms for maintaining
+            verifiable, append-oriented histories of changes. Amazon
+            QLDB was a historical example, but it reached end of support
+            in 2025; it should not be selected for a new project.
+        </p>
+
+        <p>
+            Use a ledger-oriented design when tamper evidence and an
+            auditable history are central requirements. A database
+            marketed as a ledger does not automatically replace
+            accounting controls, backups or regulatory compliance.
+        </p>
+
+        <h3>Hierarchical databases</h3>
+
+        <p>
+            Hierarchical databases organize records in parent-child tree
+            structures. They are associated with some legacy enterprise
+            systems and workloads where hierarchical access is fundamental.
+        </p>
+
+        <p>
+            They are less common for new general-purpose web applications,
+            where relational, document and other models offer greater
+            flexibility for many use cases.
+        </p>
+
+        <h2>Database Type vs Database Deployment Architecture</h2>
+
+        <p>
+            It is important to distinguish a database's data model from
+            the way it is deployed.
+        </p>
+
+        <p>
+            For example, SQL vs NoSQL describes broad data-model and query
+            differences. Single-node vs distributed describes deployment
+            and data placement. These are different dimensions.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Concept</th>
+                <th>What it describes</th>
+                <th>Example</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>SQL / NoSQL</td>
+                <td>Data model, query model and associated capabilities</td>
+                <td>PostgreSQL vs MongoDB</td>
+            </tr>
+            <tr>
+                <td>Single-node / distributed</td>
+                <td>Where data is stored and processed</td>
+                <td>Single PostgreSQL server vs distributed cluster</td>
+            </tr>
+            <tr>
+                <td>Row / columnar storage</td>
+                <td>Physical organization optimized for different access patterns</td>
+                <td>Typical transactional engine vs ClickHouse</td>
+            </tr>
+            <tr>
+                <td>OLTP / OLAP</td>
+                <td>Transactional processing vs analytical processing</td>
+                <td>Order processing vs historical reporting</td>
+            </tr>
+            <tr>
+                <td>Managed / self-hosted</td>
+                <td>Who operates the database infrastructure</td>
+                <td>Managed cloud database vs self-managed server</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>SQL vs NoSQL</h2>
+
+        <p>
+            SQL databases are commonly associated with relational tables,
+            structured schemas and declarative queries. NoSQL is an umbrella
+            term for several non-relational models, including document,
+            key-value, wide-column and graph databases.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Aspect</th>
+                <th>Relational databases</th>
+                <th>NoSQL databases</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Data model</td>
+                <td>Tables and relationships</td>
+                <td>Documents, keys, graphs, wide columns or other models</td>
+            </tr>
+            <tr>
+                <td>Schema</td>
+                <td>Typically explicitly defined and enforced</td>
+                <td>Varies; may be flexible or query-driven</td>
+            </tr>
+            <tr>
+                <td>Relationships</td>
+                <td>Foreign keys and joins are common</td>
+                <td>May use embedding, references or graph edges</td>
+            </tr>
+            <tr>
+                <td>Transactions</td>
+                <td>Commonly strong transactional support</td>
+                <td>Capabilities vary significantly by product</td>
+            </tr>
+            <tr>
+                <td>Scaling</td>
+                <td>Vertical and horizontal options, depending on architecture</td>
+                <td>Many products are designed for distributed scaling</td>
+            </tr>
+            <tr>
+                <td>Query flexibility</td>
+                <td>Generally broad SQL querying capabilities</td>
+                <td>Often depends on the chosen data model and access patterns</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            NoSQL does not mean "no consistency," "no schema" or
+            "automatically faster." Modern relational databases can scale
+            significantly, and many NoSQL databases support transactions.
+            The important differences are the actual guarantees and
+            capabilities of each product.
+        </p>
+
+        <h2>OLTP vs OLAP</h2>
+
+        <p>
+            Another important distinction is whether the database primarily
+            supports day-to-day transactions or large analytical queries.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>OLTP</th>
+                <th>OLAP</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Online Transaction Processing</td>
+                <td>Online Analytical Processing</td>
+            </tr>
+            <tr>
+                <td>Processes individual business operations</td>
+                <td>Analyzes large volumes of historical data</td>
+            </tr>
+            <tr>
+                <td>Many short reads and writes</td>
+                <td>Large scans and aggregations</td>
+            </tr>
+            <tr>
+                <td>Examples: creating an order, updating an invoice</td>
+                <td>Examples: revenue by country, monthly transaction trends</td>
+            </tr>
+            <tr>
+                <td>Often uses row-oriented storage</td>
+                <td>Often uses columnar storage</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            A common architecture uses an OLTP database for the live
+            application and an analytical warehouse for reporting.
+            Data is transferred through events, change data capture,
+            scheduled pipelines or other ingestion mechanisms.
+        </p>
+
+        <h2>How to Choose the Right Database</h2>
+
+        <p>
+            Start with the problem you need to solve, not with a list
+            of popular technologies.
+        </p>
+
+        <h3>Step 1: Understand your data</h3>
+
+        <ul>
+            <li>Is the data relational or naturally document-shaped?</li>
+            <li>Are relationships and joins important?</li>
+            <li>Does the schema change frequently?</li>
+            <li>Must the data be retained permanently?</li>
+        </ul>
+
+        <h3>Step 2: Understand your access patterns</h3>
+
+        <ul>
+            <li>Do you retrieve records by ID?</li>
+            <li>Do you run complex filters and joins?</li>
+            <li>Do you search text by relevance?</li>
+            <li>Do you aggregate billions of historical records?</li>
+            <li>Do you traverse many relationships?</li>
+        </ul>
+
+        <h3>Step 3: Define your correctness requirements</h3>
+
+        <ul>
+            <li>Can reads be slightly stale?</li>
+            <li>Must concurrent updates never overwrite one another?</li>
+            <li>Do multiple writes need to succeed atomically?</li>
+            <li>Can the system tolerate losing some recent data?</li>
+            <li>Must the application continue during node or region failures?</li>
+        </ul>
+
+        <h3>Step 4: Consider scale and operations</h3>
+
+        <ul>
+            <li>How much data will be stored?</li>
+            <li>How many reads and writes occur per second?</li>
+            <li>What are the latency requirements?</li>
+            <li>How will backups, recovery and migrations work?</li>
+            <li>Can the team operate the technology reliably?</li>
+        </ul>
+
+        <p>
+            Do not introduce a specialized database until its advantages
+            justify the added complexity. An index, a better SQL query,
+            a read replica or a cache may solve the actual bottleneck.
+        </p>
+
+        <h2>Practical Backend Scenarios</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Scenario</th>
+                <th>Good starting point</th>
+                <th>Reason</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Payment and invoice records</td>
+                <td>PostgreSQL or MySQL</td>
+                <td>Transactions, constraints and relationships</td>
+            </tr>
+            <tr>
+                <td>Frequently accessed merchant configuration</td>
+                <td>Redis alongside a relational database</td>
+                <td>Low-latency caching</td>
+            </tr>
+            <tr>
+                <td>Flexible content with nested metadata</td>
+                <td>Document database or PostgreSQL JSONB</td>
+                <td>Natural representation of variable structures</td>
+            </tr>
+            <tr>
+                <td>Product search with relevance ranking</td>
+                <td>Elasticsearch or OpenSearch</td>
+                <td>Full-text search and filtering</td>
+            </tr>
+            <tr>
+                <td>Fraud detection across connected accounts</td>
+                <td>Graph database, depending on query patterns</td>
+                <td>Relationship traversal</td>
+            </tr>
+            <tr>
+                <td>Infrastructure metrics</td>
+                <td>Prometheus or a time-series platform</td>
+                <td>Timestamped measurements and time-based queries</td>
+            </tr>
+            <tr>
+                <td>Semantic search for a support chatbot</td>
+                <td>Vector database or PostgreSQL with pgvector</td>
+                <td>Similarity search over embeddings</td>
+            </tr>
+            <tr>
+                <td>Revenue reporting across years of transactions</td>
+                <td>Analytical database or warehouse</td>
+                <td>Large aggregations without burdening the OLTP workload</td>
+            </tr>
+            <tr>
+                <td>Offline mobile application</td>
+                <td>SQLite</td>
+                <td>Local storage with SQL and transactions</td>
+            </tr>
+            <tr>
+                <td>Massive distributed event ingestion</td>
+                <td>Cassandra, Bigtable or another suitable distributed store</td>
+                <td>High write throughput and horizontal distribution</td>
+            </tr>
+            <tr>
+                <td>Global relational application with demanding availability</td>
+                <td>Distributed SQL, if requirements justify it</td>
+                <td>Relational queries across a distributed architecture</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>Can One Application Use Multiple Databases?</h2>
+
+        <p>
+            Yes. This is commonly called polyglot persistence: using
+            different storage technologies for different workloads within
+            the same system.
+        </p>
+
+        <p>
+            For example, an e-commerce platform might use:
+        </p>
+
+        <pre><code>                  Client
+                    |
+                    v
+               Application
+                    |
+       +------------+------------+
+       |            |            |
+       v            v            v
+   PostgreSQL     Redis     Elasticsearch
+   (orders,       (cache,   (product
+   customers)     sessions) search)
+       |
+       v
+   Analytics Pipeline
+       |
+       v
+   Data Warehouse
+   (historical reports)</code></pre>
+
+        <ul>
+            <li>
+                <strong>PostgreSQL:</strong> authoritative order and customer
+                records.
+            </li>
+            <li>
+                <strong>Redis:</strong> frequently accessed temporary state.
+            </li>
+            <li>
+                <strong>Elasticsearch:</strong> a searchable index of products.
+            </li>
+            <li>
+                <strong>Data warehouse:</strong> large-scale historical analysis.
+            </li>
+        </ul>
+
+        <p>
+            Each additional database introduces operational costs, failure
+            modes, synchronization requirements and monitoring needs.
+            Use multiple databases when their distinct benefits are worth
+            those costs.
+        </p>
+
+        <h2>Common Mistakes</h2>
+
+        <h3>1. Choosing NoSQL because it sounds more scalable</h3>
+
+        <p>
+            Relational databases can handle substantial workloads. First
+            measure the bottleneck and understand the consistency and
+            query requirements.
+        </p>
+
+        <h3>2. Assuming one database is best at everything</h3>
+
+        <p>
+            A database optimized for transactions may not be the best
+            choice for full-text search or large analytical scans.
+        </p>
+
+        <h3>3. Ignoring access patterns</h3>
+
+        <p>
+            The same dataset can work well in one database and poorly in
+            another depending on how the application reads and writes it.
+        </p>
+
+        <h3>4. Forgetting consistency and durability</h3>
+
+        <p>
+            Understand what happens during concurrent updates, replication
+            lag, crashes and failover. These behaviors matter more than
+            a simple benchmark.
+        </p>
+
+        <h3>5. Introducing too many technologies</h3>
+
+        <p>
+            Every additional database requires deployment, monitoring,
+            backups, upgrades, security controls and operational knowledge.
+            Simplicity is a real architectural advantage.
+        </p>
+
+        <h3>6. Using a search index as the authoritative database</h3>
+
+        <p>
+            Search engines are often eventually consistent projections of
+            application data. Use the system of record for critical writes
+            unless the architecture explicitly establishes otherwise.
+        </p>
+
+        <h2>What Should I Remember?</h2>
+
+        <ul>
+            <li>
+                <strong>Relational databases</strong> are a strong default
+                for structured business data, relationships, transactions
+                and constraints.
+            </li>
+            <li>
+                <strong>Document databases</strong> work well for nested
+                records and flexible data structures.
+            </li>
+            <li>
+                <strong>Key-value databases</strong> excel at lookups by
+                known keys and simple access patterns.
+            </li>
+            <li>
+                <strong>Wide-column databases</strong> support large-scale
+                distributed workloads with query-driven data models.
+            </li>
+            <li>
+                <strong>Graph databases</strong> are useful when traversing
+                relationships is central to the application.
+            </li>
+            <li>
+                <strong>Time-series databases</strong> specialize in
+                timestamped measurements and time-based analysis.
+            </li>
+            <li>
+                <strong>Search engines</strong> support full-text search,
+                relevance ranking and rich filtering.
+            </li>
+            <li>
+                <strong>Vector databases</strong> support similarity search
+                over embeddings.
+            </li>
+            <li>
+                <strong>Analytical databases</strong> optimize large
+                aggregations and historical reporting.
+            </li>
+            <li>
+                <strong>In-memory databases</strong> provide low-latency
+                operations and useful data structures.
+            </li>
+            <li>
+                <strong>Embedded databases</strong> are useful for local
+                storage and application-specific workloads.
+            </li>
+            <li>
+                <strong>Distributed SQL databases</strong> combine relational
+                capabilities with distributed architectures, at the cost
+                of additional complexity.
+            </li>
+            <li>
+                SQL vs NoSQL, OLTP vs OLAP, and single-node vs distributed
+                describe different dimensions of a database system.
+            </li>
+            <li>
+                You do not need a different database for every feature.
+                Start simple and introduce specialized systems when a
+                concrete requirement justifies them.
+            </li>
+        </ul>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

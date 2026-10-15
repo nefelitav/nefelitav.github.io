@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Design Patterns Explained — learn the most useful software design patterns, including Strategy, Factory, Adapter, Decorator, Observer, Repository, and Dependency Injection, with practical backend examples.">
+    <meta property="og:title" content="Design Patterns Explained – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to software design patterns, when to use them, and how they help build maintainable backend applications.">
+    <meta property="og:type" content="article">
+
+    <title>Design Patterns Explained – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+        <h1>Design Patterns Explained</h1>
+        <time class="post-date" datetime="2026-10-15">15 October 2026</time>
+
+        <p>
+            Design patterns are reusable approaches to common software design problems.
+            They are not libraries, frameworks, or code that you must copy exactly.
+            They are blueprints that help you organize responsibilities, reduce coupling,
+            and make code easier to change.
+        </p>
+
+        <p>
+            For example, imagine your application supports payments through several
+            providers. You could put every provider's logic inside one enormous
+            <code>PaymentService</code>. Alternatively, you could use a design pattern
+            to isolate provider-specific behavior behind a common interface.
+        </p>
+
+        <p>
+            Understanding patterns helps you recognize recurring problems and communicate
+            solutions with other engineers. The goal is not to use as many patterns as
+            possible; it is to choose the simplest design that handles the problem well.
+        </p>
+
+        <h2>1. The Three Main Categories</h2>
+
+        <p>The classic Gang of Four design patterns are grouped into three categories.</p>
+
+        <h3>Creational patterns</h3>
+        <p>
+            Concerned with how objects are created. They help separate object construction
+            from the code that uses those objects.
+        </p>
+        <p><strong>Examples:</strong> Factory Method, Abstract Factory, Builder, Singleton.</p>
+
+        <h3>Structural patterns</h3>
+        <p>
+            Concerned with how objects and classes are combined to form larger structures.
+        </p>
+        <p><strong>Examples:</strong> Adapter, Decorator, Facade, Proxy.</p>
+
+        <h3>Behavioral patterns</h3>
+        <p>
+            Concerned with how objects communicate, delegate work, and select behavior.
+        </p>
+        <p><strong>Examples:</strong> Strategy, Observer, Command, State, Chain of Responsibility.</p>
+
+        <p>
+            These are the classic object-oriented patterns. Backend applications also use
+            enterprise and architectural patterns, such as Repository, Unit of Work,
+            Service Layer, and Transactional Outbox.
+        </p>
+
+        <h2>2. Strategy Pattern</h2>
+
+        <p>
+            <strong>Problem:</strong> You have several ways to perform an operation, and
+            you want to choose the appropriate algorithm without filling your code with
+            conditional branches.
+        </p>
+
+        <p>
+            The Strategy pattern defines a common interface for interchangeable algorithms.
+            Each strategy implements the same contract, and a caller selects which one to use.
+        </p>
+
+        <h3>Example: Payment providers</h3>
+
+        <p>Without Strategy, you might have code like this:</p>
+
+        <pre><code>function pay(string $provider, int $amount): void
+{
+    if ($provider === 'card') {
+        // Call card provider API
+    } elseif ($provider === 'bank_transfer') {
+        // Initiate bank transfer
+    } elseif ($provider === 'wallet') {
+        // Process wallet payment
+    }
+}</code></pre>
+
+        <p>
+            As providers and their rules grow, this method accumulates branches and
+            becomes harder to test.
+        </p>
+
+        <p>With Strategy, each implementation follows the same interface:</p>
+
+        <pre><code>interface PaymentStrategy
+{
+    public function pay(int $amount): void;
+}
+
+final class CardPayment implements PaymentStrategy
+{
+    public function pay(int $amount): void
+    {
+        // Process card payment
+    }
+}
+
+final class BankTransferPayment implements PaymentStrategy
+{
+    public function pay(int $amount): void
+    {
+        // Process bank transfer
+    }
+}
+
+final class PaymentService
+{
+    public function __construct(
+        private PaymentStrategy $strategy
+    ) {}
+
+    public function pay(int $amount): void
+    {
+        $this->strategy->pay($amount);
+    }
+}</code></pre>
+
+        <p>
+            The application can inject the appropriate implementation into
+            <code>PaymentService</code>.
+        </p>
+
+        <p><strong>Use it when:</strong></p>
+        <ul>
+            <li>You have multiple interchangeable algorithms.</li>
+            <li>New variants are likely to be added.</li>
+            <li>You want to test each implementation independently.</li>
+        </ul>
+
+        <p>
+            <strong>Common examples:</strong> payment methods, discount calculations,
+            shipping cost calculations, pricing rules, and different retry policies.
+        </p>
+
+        <p>
+            <strong>Don't use it automatically:</strong> if there are only two simple
+            branches and no expectation of growth, a straightforward conditional may
+            be easier to understand.
+        </p>
+
+        <h2>3. Factory Pattern</h2>
+
+        <p>
+            <strong>Problem:</strong> The calling code should not need to know all the
+            details of constructing a particular object.
+        </p>
+
+        <p>
+            A factory centralizes object creation and returns an object that the caller
+            can use. The term "Factory" is also commonly used for simple factory methods,
+            which are useful even when they are not the formal Gang of Four Factory Method
+            pattern.
+        </p>
+
+        <h3>Example: Choosing a payment provider</h3>
+
+        <pre><code>final class PaymentStrategyFactory
+{
+    public function create(string $provider): PaymentStrategy
+    {
+        return match ($provider) {
+            'card' => new CardPayment(),
+            'bank_transfer' => new BankTransferPayment(),
+            default => throw new InvalidArgumentException(
+                'Unsupported payment provider'
+            ),
+        };
+    }
+}</code></pre>
+
+        <p>
+            The caller asks the factory for a strategy instead of constructing
+            provider-specific classes itself.
+        </p>
+
+        <p><strong>Use it when:</strong></p>
+        <ul>
+            <li>Object creation involves non-trivial logic.</li>
+            <li>The concrete implementation depends on configuration or input.</li>
+            <li>You want to centralize construction rules.</li>
+        </ul>
+
+        <p>
+            <strong>Common examples:</strong> selecting payment clients, choosing file
+            parsers, constructing notification senders, or creating exporters based on
+            an output format.
+        </p>
+
+        <p>
+            In a dependency-injection framework, the container may already handle much
+            of the construction. Avoid adding a factory that merely forwards every call
+            without simplifying anything.
+        </p>
+
+        <h2>4. Adapter Pattern</h2>
+
+        <p>
+            <strong>Problem:</strong> An external library or service has an interface
+            that does not match what your application expects.
+        </p>
+
+        <p>
+            An Adapter translates one interface into another. It lets your application
+            work with a consistent contract while hiding provider-specific details.
+        </p>
+
+        <h3>Example: Integrating different invoicing providers</h3>
+
+        <p>
+            Imagine one provider returns a field called <code>invoice_id</code>, while
+            another returns <code>documentReference</code>. Their SDKs may also expose
+            different method names and error formats.
+        </p>
+
+        <p>Your application defines its own contract:</p>
+
+        <pre><code>interface InvoiceProvider
+{
+    public function submit(Invoice $invoice): string;
+}</code></pre>
+
+        <p>Each provider has an adapter:</p>
+
+        <pre><code>final class ProviderAAdapter implements InvoiceProvider
+{
+    public function __construct(
+        private ProviderAClient $client
+    ) {}
+
+    public function submit(Invoice $invoice): string
+    {
+        $response = $this->client->createInvoice(
+            $invoice->toProviderPayload()
+        );
+
+        return $response['invoice_id'];
+    }
+}</code></pre>
+
+        <p>
+            A second adapter can translate another provider's API into the same
+            <code>InvoiceProvider</code> contract.
+        </p>
+
+        <p><strong>Use it when:</strong></p>
+        <ul>
+            <li>You integrate with third-party APIs or SDKs.</li>
+            <li>You need to support multiple vendors.</li>
+            <li>You want to keep external API details out of business logic.</li>
+            <li>You need to isolate a legacy interface.</li>
+        </ul>
+
+        <p>
+            This pattern is particularly useful in backend systems that integrate with
+            payment providers, tax services, ERP systems, or messaging platforms.
+        </p>
+
+        <h2>5. Decorator Pattern</h2>
+
+        <p>
+            <strong>Problem:</strong> You want to add behavior to an object without
+            modifying its original implementation or creating many subclasses.
+        </p>
+
+        <p>
+            A decorator wraps an object that implements the same interface. It can add
+            behavior before or after delegating to the wrapped object.
+        </p>
+
+        <h3>Example: Logging an HTTP client</h3>
+
+        <pre><code>interface HttpClient
+{
+    public function get(string $url): Response;
+}
+
+final class LoggingHttpClient implements HttpClient
+{
+    public function __construct(
+        private HttpClient $inner,
+        private LoggerInterface $logger
+    ) {}
+
+    public function get(string $url): Response
+    {
+        $this->logger->info('Sending HTTP request', [
+            'url' => $url,
+        ]);
+
+        $response = $this->inner->get($url);
+
+        $this->logger->info('HTTP request completed', [
+            'status' => $response->statusCode(),
+        ]);
+
+        return $response;
+    }
+}</code></pre>
+
+        <p>
+            The wrapped client performs the actual request. The decorator adds logging
+            without changing that client's implementation.
+        </p>
+
+        <p>Other possible decorators can add:</p>
+        <ul>
+            <li>Metrics and tracing.</li>
+            <li>Retry behavior.</li>
+            <li>Caching.</li>
+            <li>Request or response transformations.</li>
+        </ul>
+
+        <p>
+            <strong>Use it when:</strong> you want to add optional, composable behavior
+            around an implementation.
+        </p>
+
+        <p>
+            Be careful when combining retries, logging, and HTTP requests. Retrying a
+            non-idempotent operation can accidentally create duplicate side effects.
+        </p>
+
+        <h2>6. Observer Pattern</h2>
+
+        <p>
+            <strong>Problem:</strong> When something happens, several independent parts
+            of the application need to react to it.
+        </p>
+
+        <p>
+            The Observer pattern allows one object to notify interested observers when
+            an event occurs. The publisher does not need to know all the details of
+            each observer.
+        </p>
+
+        <h3>Example: An order is placed</h3>
+
+        <p>When an order is placed, several actions may be needed:</p>
+
+        <ul>
+            <li>Send a confirmation email.</li>
+            <li>Update analytics.</li>
+            <li>Record an audit event.</li>
+        </ul>
+
+        <p>
+            In a simple in-process implementation, listeners subscribe to an event
+            such as <code>OrderPlaced</code>. When that event is dispatched, the
+            registered listeners are invoked.
+        </p>
+
+        <pre><code>OrderPlaced
+    |
+    +--> SendOrderConfirmation
+    |
+    +--> UpdateSalesMetrics
+    |
+    +--> RecordAuditEvent</code></pre>
+
+        <p>
+            Framework event systems often use this pattern or a closely related
+            event-dispatching design.
+        </p>
+
+        <p><strong>Use it when:</strong></p>
+        <ul>
+            <li>Multiple components react to the same event.</li>
+            <li>You want to avoid tightly coupling the publisher to every reaction.</li>
+            <li>New reactions should be easy to add.</li>
+        </ul>
+
+        <p>
+            <strong>Important distinction:</strong> in-process observers run within
+            your application process. They are not automatically durable or asynchronous.
+            If a listener fails or the process crashes, you need an explicit failure
+            strategy. For reliable cross-service communication, you may need a message
+            broker and patterns such as the Transactional Outbox.
+        </p>
+
+        <h2>7. Chain of Responsibility</h2>
+
+        <p>
+            <strong>Problem:</strong> A request needs to pass through several processing
+            steps, and each step should be able to handle, reject, or pass it onward.
+        </p>
+
+        <p>
+            Chain of Responsibility organizes handlers into a sequence. Each handler
+            decides whether to process the request or continue the chain.
+        </p>
+
+        <h3>Example: An HTTP request pipeline</h3>
+
+        <pre><code>Incoming Request
+       |
+       v
+Authentication
+       |
+       v
+Authorization
+       |
+       v
+Validation
+       |
+       v
+Controller</code></pre>
+
+        <p>
+            Middleware pipelines in web frameworks are a common practical example.
+            A handler can stop the request—for example, when authentication fails—or
+            pass it to the next handler.
+        </p>
+
+        <p>Other examples include:</p>
+        <ul>
+            <li>Validation rules.</li>
+            <li>Fraud checks.</li>
+            <li>Approval workflows.</li>
+            <li>Escalation and support routing.</li>
+        </ul>
+
+        <p>
+            <strong>Use it when:</strong> processing steps are ordered, independently
+            configurable, or likely to change.
+        </p>
+
+        <p>
+            <strong>Watch out for:</strong> a request silently passing through every
+            handler without being handled, or a long chain becoming difficult to trace.
+        </p>
+
+        <h2>8. Command Pattern</h2>
+
+        <p>
+            <strong>Problem:</strong> You want to represent an action as an object so
+            that it can be queued, retried, logged, scheduled, or executed later.
+        </p>
+
+        <p>
+            A command encapsulates a request and the data needed to execute it.
+        </p>
+
+        <h3>Example: Generating an invoice asynchronously</h3>
+
+        <pre><code>final class GenerateInvoice
+{
+    public function __construct(
+        public readonly string $invoiceId
+    ) {}
+
+    public function handle(InvoiceGenerator $generator): void
+    {
+        $generator->generate($this->invoiceId);
+    }
+}</code></pre>
+
+        <p>
+            The application can dispatch the command to a background queue rather than
+            generate the invoice during the HTTP request.
+        </p>
+
+        <p>Commands are useful for:</p>
+        <ul>
+            <li>Background jobs.</li>
+            <li>Scheduled tasks.</li>
+            <li>Retryable operations.</li>
+            <li>Auditable business actions.</li>
+            <li>Separating the request to perform an action from its execution.</li>
+        </ul>
+
+        <p>
+            Many job-queue systems use command-like objects. However, a command object
+            alone does not guarantee durable delivery, exactly-once execution, or safe
+            retries. Those properties depend on the execution infrastructure and
+            application design.
+        </p>
+
+        <h2>9. State Pattern</h2>
+
+        <p>
+            <strong>Problem:</strong> An object's behavior depends on its current state,
+            and many conditional branches are becoming difficult to maintain.
+        </p>
+
+        <p>
+            The State pattern represents states as separate objects or otherwise
+            encapsulates state-specific behavior. The object delegates behavior to
+            its current state.
+        </p>
+
+        <h3>Example: An invoice lifecycle</h3>
+
+        <pre><code>Draft
+  |
+  v
+Issued
+  |
+  +------> Paid
+  |
+  +------> Overdue
+  |
+  +------> Cancelled (if allowed)</code></pre>
+
+        <p>
+            The rules for each state may differ. For example, a draft invoice may be
+            editable, while an issued invoice may require a correction process instead
+            of direct editing.
+        </p>
+
+        <p>
+            A state-oriented design can keep those rules close to the relevant state
+            rather than scattering them throughout the application.
+        </p>
+
+        <p><strong>Use it when:</strong></p>
+        <ul>
+            <li>An entity has a meaningful lifecycle.</li>
+            <li>Allowed operations depend on its state.</li>
+            <li>State transitions have different business rules.</li>
+        </ul>
+
+        <p>
+            Examples include payment lifecycles, subscriptions, order processing,
+            document approval, and account activation.
+        </p>
+
+        <p>
+            You do not always need separate state classes. For a small lifecycle,
+            an enum and explicit transition validation may be simpler.
+        </p>
+
+        <h2>10. Builder Pattern</h2>
+
+        <p>
+            <strong>Problem:</strong> Constructing an object requires many parameters,
+            optional settings, or a sequence of configuration steps.
+        </p>
+
+        <p>
+            A Builder separates the construction process from the final object. It is
+            especially helpful when an object has many optional properties or must be
+            assembled in a readable way.
+        </p>
+
+        <h3>Example: Building an API request</h3>
+
+        <pre><code>$request = ApiRequestBuilder::create()
+    ->withMethod('POST')
+    ->withPath('/invoices')
+    ->withHeader('Idempotency-Key', $key)
+    ->withJsonBody($payload)
+    ->build();</code></pre>
+
+        <p>
+            The builder can apply defaults, validate required fields, and produce a
+            complete request object.
+        </p>
+
+        <p><strong>Use it when:</strong></p>
+        <ul>
+            <li>An object has many optional settings.</li>
+            <li>Construction has multiple steps.</li>
+            <li>You want readable test fixtures or configuration objects.</li>
+        </ul>
+
+        <p>
+            If an object only requires two or three straightforward parameters, a
+            regular constructor is often enough.
+        </p>
+
+        <h2>11. Facade Pattern</h2>
+
+        <p>
+            <strong>Problem:</strong> A subsystem contains many classes and steps, but
+            callers need only a simple operation.
+        </p>
+
+        <p>
+            A Facade provides a simplified interface over a more complicated subsystem.
+        </p>
+
+        <h3>Example: Checkout</h3>
+
+        <p>
+            Completing checkout may require inventory checks, payment authorization,
+            order persistence, and confirmation.
+        </p>
+
+        <pre><code>final class CheckoutService
+{
+    public function __construct(
+        private InventoryService $inventory,
+        private PaymentService $payments,
+        private OrderRepository $orders
+    ) {}
+
+    public function checkout(Cart $cart): Order
+    {
+        $this->inventory->assertAvailable($cart);
+
+        $payment = $this->payments->authorize($cart);
+
+        return $this->orders->createFromCart($cart, $payment);
+    }
+}</code></pre>
+
+        <p>
+            The caller invokes one high-level method instead of coordinating all the
+            subsystem classes itself.
+        </p>
+
+        <p>
+            <strong>Use it when:</strong> a subsystem has a complicated API or a common
+            workflow needs a simpler entry point.
+        </p>
+
+        <p>
+            A Facade should simplify orchestration, not become a giant class that
+            accumulates every business rule in the application.
+        </p>
+
+        <h2>12. Proxy Pattern</h2>
+
+        <p>
+            <strong>Problem:</strong> You need to control access to an object, add
+            lazy initialization, or perform work before delegating to the real object.
+        </p>
+
+        <p>
+            A Proxy provides an interface compatible with the object it represents,
+            while controlling access to it.
+        </p>
+
+        <h3>Example: Lazy-loading an expensive resource</h3>
+
+        <p>
+            An application may defer creating an expensive client or loading a resource
+            until it is first needed. A proxy can also enforce access control or
+            forward calls to a remote service.
+        </p>
+
+        <p>Common examples include:</p>
+        <ul>
+            <li>Lazy-loaded objects in ORM systems.</li>
+            <li>Access-control proxies.</li>
+            <li>Remote service proxies.</li>
+            <li>Framework-generated proxies used for interception.</li>
+        </ul>
+
+        <p>
+            <strong>Use it when:</strong> controlling access or deferring expensive
+            work is a real requirement.
+        </p>
+
+        <h2>13. Repository Pattern</h2>
+
+        <p>
+            <strong>Problem:</strong> Business logic is tightly coupled to SQL queries
+            and persistence details, making it harder to test or change data access.
+        </p>
+
+        <p>
+            A Repository provides a domain-oriented interface for retrieving and
+            persisting entities. It separates the code that uses those entities
+            from the details of how they are stored.
+        </p>
+
+        <h3>Example: Loading an invoice</h3>
+
+        <pre><code>interface InvoiceRepository
+{
+    public function findById(string $id): ?Invoice;
+
+    public function save(Invoice $invoice): void;
+}
+
+final class IssueInvoice
+{
+    public function __construct(
+        private InvoiceRepository $invoices
+    ) {}
+
+    public function execute(string $id): void
+    {
+        $invoice = $this->invoices->findById($id);
+
+        if ($invoice === null) {
+            throw new RuntimeException('Invoice not found');
+        }
+
+        $invoice->issue();
+
+        $this->invoices->save($invoice);
+    }
+}</code></pre>
+
+        <p>
+            The use case depends on the repository contract, not on a particular SQL
+            implementation. A MySQL-backed repository can implement that contract.
+        </p>
+
+        <p><strong>Use it when:</strong></p>
+        <ul>
+            <li>Domain logic should be independent of persistence details.</li>
+            <li>Data-access logic is duplicated across the application.</li>
+            <li>You need a clear boundary for testing or swapping implementations.</li>
+        </ul>
+
+        <p>
+            Not every application needs a custom repository class for every database
+            table. ORM models and query builders may already provide enough abstraction.
+            Avoid creating repositories that merely duplicate every ORM method without
+            adding meaningful value.
+        </p>
+
+        <h2>14. Dependency Injection</h2>
+
+        <p>
+            <strong>Problem:</strong> A class constructs its own dependencies, making
+            it difficult to replace them for tests or change implementations.
+        </p>
+
+        <p>
+            Dependency Injection means that a class receives the objects it needs
+            from the outside rather than constructing those dependencies internally.
+            It is a technique, not one of the classic 23 Gang of Four patterns.
+        </p>
+
+        <h3>Example</h3>
+
+        <pre><code>// Tightly coupled
+final class InvoiceService
+{
+    private MySqlInvoiceRepository $repository;
+
+    public function __construct()
+    {
+        $this->repository = new MySqlInvoiceRepository();
+    }
+}</code></pre>
+
+        <p>The class above decides which concrete repository to use.</p>
+
+        <pre><code>// Dependency injected
+final class InvoiceService
+{
+    public function __construct(
+        private InvoiceRepository $repository
+    ) {}
+}</code></pre>
+
+        <p>
+            Now the caller or dependency-injection container supplies the repository
+            implementation.
+        </p>
+
+        <p><strong>Benefits:</strong></p>
+        <ul>
+            <li>Dependencies are explicit.</li>
+            <li>Unit tests can provide fakes or mocks.</li>
+            <li>Implementations can be replaced with less impact on business logic.</li>
+            <li>Object creation can be centralized in a container.</li>
+        </ul>
+
+        <p>
+            Dependency Injection works particularly well with interfaces, but not every
+            dependency needs an interface. Introduce abstractions where they provide a
+            useful boundary, not merely because every class must have one.
+        </p>
+
+        <h2>15. How These Patterns Fit Together</h2>
+
+        <p>
+            Patterns are not isolated recipes. A single backend feature can use several
+            patterns because each addresses a different design problem.
+        </p>
+
+        <h3>Example: Issuing an invoice</h3>
+
+        <pre><code>HTTP Controller
+      |
+      v
+IssueInvoice Use Case
+      |
+      +----> InvoiceRepository
+      |
+      +----> InvoiceProviderFactory
+                    |
+                    v
+              Provider Adapter
+                    |
+                    v
+             External E-invoicing API</code></pre>
+
+        <ul>
+            <li><strong>Dependency Injection:</strong> supplies the repository and other dependencies.</li>
+            <li><strong>Repository:</strong> isolates persistence operations.</li>
+            <li><strong>Factory:</strong> selects or constructs a provider implementation when needed.</li>
+            <li><strong>Adapter:</strong> translates your application's interface to the provider's API.</li>
+            <li><strong>Strategy:</strong> can make provider-specific submission behavior interchangeable.</li>
+            <li><strong>Command:</strong> can represent invoice issuance as an asynchronous job.</li>
+            <li><strong>Observer:</strong> can notify in-process listeners when issuance succeeds.</li>
+        </ul>
+
+        <p>
+            You do not necessarily need all of these in one feature. Use only the
+            patterns that solve actual problems in the design.
+        </p>
+
+        <h2>16. Quick Reference: Which Pattern Should I Choose?</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Your problem</th>
+                <th>Pattern to consider</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Several interchangeable algorithms</td>
+                <td>Strategy</td>
+            </tr>
+            <tr>
+                <td>Object creation varies based on input or configuration</td>
+                <td>Factory</td>
+            </tr>
+            <tr>
+                <td>An external API has an incompatible interface</td>
+                <td>Adapter</td>
+            </tr>
+            <tr>
+                <td>Add logging, metrics, or caching around an object</td>
+                <td>Decorator</td>
+            </tr>
+            <tr>
+                <td>Several components react to the same event</td>
+                <td>Observer</td>
+            </tr>
+            <tr>
+                <td>A request passes through configurable processing steps</td>
+                <td>Chain of Responsibility</td>
+            </tr>
+            <tr>
+                <td>Represent an action for later execution or queuing</td>
+                <td>Command</td>
+            </tr>
+            <tr>
+                <td>Behavior depends on an entity's lifecycle state</td>
+                <td>State</td>
+            </tr>
+            <tr>
+                <td>Construct a complex object step by step</td>
+                <td>Builder</td>
+            </tr>
+            <tr>
+                <td>Simplify a complex subsystem behind one interface</td>
+                <td>Facade</td>
+            </tr>
+            <tr>
+                <td>Control or defer access to another object</td>
+                <td>Proxy</td>
+            </tr>
+            <tr>
+                <td>Separate domain logic from persistence details</td>
+                <td>Repository</td>
+            </tr>
+            <tr>
+                <td>Supply dependencies instead of constructing them internally</td>
+                <td>Dependency Injection</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>17. Other Patterns Worth Knowing</h2>
+
+        <p>
+            Once you understand the patterns above, these are useful additions to your
+            software-engineering vocabulary.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Singleton:</strong> restricts a class to one instance and exposes
+                a shared access point. Use carefully because global mutable state can
+                complicate testing and concurrency.
+            </li>
+            <li>
+                <strong>Template Method:</strong> defines the skeleton of an algorithm
+                in a base class while allowing subclasses to customize particular steps.
+            </li>
+            <li>
+                <strong>Composite:</strong> treats individual objects and groups of
+                objects through a common interface, often using a tree structure.
+            </li>
+            <li>
+                <strong>Bridge:</strong> separates an abstraction from its implementation
+                so both can evolve independently.
+            </li>
+            <li>
+                <strong>Abstract Factory:</strong> creates families of related objects
+                without exposing their concrete classes.
+            </li>
+            <li>
+                <strong>Mediator:</strong> centralizes communication between components
+                to reduce direct dependencies.
+            </li>
+            <li>
+                <strong>Iterator:</strong> provides a way to traverse a collection
+                without exposing its internal representation.
+            </li>
+        </ul>
+
+        <p>
+            There are also important distributed-system patterns that solve problems
+            beyond individual objects and classes:
+        </p>
+
+        <ul>
+            <li>
+                <strong>Transactional Outbox:</strong> records an event in the same
+                database transaction as the business change, then publishes it
+                asynchronously to help avoid lost events.
+            </li>
+            <li>
+                <strong>Retry with Backoff:</strong> retries transient failures while
+                spacing out attempts, often with increasing delays.
+            </li>
+            <li>
+                <strong>Circuit Breaker:</strong> temporarily stops calls to a failing
+                dependency to limit cascading failures.
+            </li>
+            <li>
+                <strong>Bulkhead:</strong> isolates resources or workloads so that
+                failures in one area do not exhaust the whole system.
+            </li>
+            <li>
+                <strong>Saga:</strong> coordinates a business process across multiple
+                independent transactions, using compensating actions when needed.
+            </li>
+        </ul>
+
+        <p>
+            These are often discussed alongside design patterns, but they operate at
+            different levels. The first group mostly structures code and objects;
+            the second group addresses workflows, resilience, and distributed systems.
+        </p>
+
+        <h2>18. When Should You Avoid a Design Pattern?</h2>
+
+        <p>
+            A design pattern is useful only when it makes the design easier to
+            understand, test, extend, or maintain.
+        </p>
+
+        <p>Common warning signs include:</p>
+
+        <ul>
+            <li>
+                <strong>Premature abstraction:</strong> you introduce interfaces and
+                layers for hypothetical future requirements.
+            </li>
+            <li>
+                <strong>Too many classes:</strong> a simple operation becomes difficult
+                to follow because every line delegates to another object.
+            </li>
+            <li>
+                <strong>Indirection without a benefit:</strong> a factory or facade adds
+                another layer but hides no meaningful complexity.
+            </li>
+            <li>
+                <strong>Pattern overfitting:</strong> you force a problem into a
+                familiar pattern even though a simpler design works better.
+            </li>
+        </ul>
+
+        <p>
+            Start with clear code and a well-defined responsibility. Introduce a pattern
+            when a recurring problem becomes visible or when it clearly simplifies the
+            design.
+        </p>
+
+        <h2>Conclusion</h2>
+
+        <p>
+            You do not need to memorize every design pattern to become a good software
+            engineer. Focus first on recognizing the problems they solve.
+        </p>
+
+        <p>
+            For backend development, start with Strategy, Factory, Adapter, Decorator,
+            Observer, Chain of Responsibility, Command, Repository, and Dependency
+            Injection. These are practical tools for handling integrations, business
+            rules, asynchronous work, and maintainable application boundaries.
+        </p>
+
+        <p>
+            As your systems grow, learn the patterns that address the problems you
+            encounter—whether that is state management, distributed messaging,
+            concurrency, or resilience.
+        </p>
+
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>
+                <a href="https://refactoring.guru/design-patterns" target="_blank" rel="noopener noreferrer">
+                    Refactoring.Guru — Design Patterns
+                </a>
+            </li>
+        </ul>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

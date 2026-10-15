@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Redis Use Cases Explained — learn how Redis works as a cache, session store, rate limiter, distributed lock, queue and real-time data store, with practical examples and trade-offs.">
+    <meta property="og:title" content="Redis Use Cases Explained – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to Redis for backend developers, covering caching, sessions, rate limiting, distributed locks, queues, counters and real-time data.">
+    <meta property="og:type" content="article">
+
+    <title>Redis Use Cases Explained – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+
+        <h1>Redis Use Cases Explained</h1>
+
+        <time class="post-date" datetime="2026-10-15">
+            15 October 2026
+        </time>
+
+        <p>
+            Redis is an in-memory data store commonly used to make backend
+            applications faster and to coordinate work across multiple
+            application instances.
+        </p>
+
+        <p>
+            Unlike a traditional relational database, Redis keeps its
+            working data primarily in memory and provides operations for
+            data structures such as strings, hashes, lists, sets and sorted
+            sets.
+        </p>
+
+        <p>
+            Redis is much more than a cache. It can also be used for session
+            storage, rate limiting, counters, distributed coordination,
+            queues and real-time features.
+        </p>
+
+        <p>
+            The important question is not just <em>"Can Redis store this
+            data?"</em> but <em>"Is Redis the right place to store and
+            manage this data?"</em>
+        </p>
+
+        <h2>The Big Picture</h2>
+
+        <ul>
+            <li>
+                <strong>Caching</strong> — avoid repeatedly calculating or
+                fetching the same data.
+            </li>
+            <li>
+                <strong>Session storage</strong> — share user sessions
+                across application instances.
+            </li>
+            <li>
+                <strong>Rate limiting</strong> — restrict how frequently
+                clients can perform operations.
+            </li>
+            <li>
+                <strong>Counters</strong> — atomically increment values
+                such as request counts or view counts.
+            </li>
+            <li>
+                <strong>Distributed locks</strong> — coordinate work
+                between multiple processes.
+            </li>
+            <li>
+                <strong>Queues and messaging</strong> — support certain
+                asynchronous processing patterns.
+            </li>
+            <li>
+                <strong>Real-time data</strong> — maintain leaderboards,
+                rankings and rapidly changing state.
+            </li>
+            <li>
+                <strong>Temporary data</strong> — store verification codes,
+                temporary tokens and short-lived application state.
+            </li>
+        </ul>
+
+        <h2>How Redis Fits Into a Backend Application</h2>
+
+        <p>
+            Imagine a typical backend application with several application
+            instances and a relational database.
+        </p>
+
+        <pre><code>              Client
+                |
+                v
+          Load Balancer
+                |
+          +-----+-----+
+          |           |
+          v           v
+       App A         App B
+          |           |
+          +-----+-----+
+                |
+          +-----+-----+
+          |           |
+          v           v
+        Redis      Database
+       (cache,     (durable
+       sessions,    records)
+       counters)</code></pre>
+
+        <p>
+            Redis can reduce database load, provide shared temporary state
+            and support fast operations. The relational database remains
+            responsible for durable business records in many architectures.
+        </p>
+
+        <p>
+            Both application instances can access the same Redis deployment.
+            This is important because data stored only in one application's
+            local memory is not automatically visible to another instance.
+        </p>
+
+        <h2>1. Caching</h2>
+
+        <p>
+            <strong>Caching is one of the most common Redis use cases.</strong>
+            Instead of querying a database or calling an external API every
+            time, an application can temporarily store the result in Redis.
+        </p>
+
+        <h3>Without caching</h3>
+
+        <pre><code>Client Request
+      |
+      v
+Application
+      |
+      v
+Database Query
+      |
+      v
+Return Result</code></pre>
+
+        <h3>With caching</h3>
+
+        <pre><code>Client Request
+      |
+      v
+Application
+      |
+      v
+Check Redis
+      |
+      +---- Cache hit ----> Return cached result
+      |
+      +---- Cache miss
+                 |
+                 v
+              Database
+                 |
+                 v
+           Store in Redis
+                 |
+                 v
+            Return result</code></pre>
+
+        <p>
+            A cache hit means the requested data already exists in Redis.
+            A cache miss means the application must retrieve or calculate
+            the data another way.
+        </p>
+
+        <h3>Example: Caching a merchant</h3>
+
+        <p>
+            Suppose your application frequently loads merchant configuration
+            from a database.
+        </p>
+
+        <pre><code>// Simplified PHP example using a Redis client.
+
+$key = 'merchant:123';
+
+$merchant = $redis->get($key);
+
+if ($merchant === false) {
+    $merchant = $database->findMerchant(123);
+
+    if ($merchant !== null) {
+        $redis->setex(
+            $key,
+            300,
+            json_encode($merchant)
+        );
+    }
+} else {
+    $merchant = json_decode($merchant, true);
+}</code></pre>
+
+        <p>
+            The example uses a five-minute TTL (time to live). The cached
+            value expires after 300 seconds.
+        </p>
+
+        <p>
+            This is illustrative code: actual Redis clients differ in their
+            return values, method names and serialization behavior. Production
+            code should handle database failures, serialization errors and
+            cache failures explicitly.
+        </p>
+
+        <h3>What should you cache?</h3>
+
+        <ul>
+            <li>Frequently requested configuration.</li>
+            <li>Product or merchant information.</li>
+            <li>Expensive database query results.</li>
+            <li>Computed reports or aggregates.</li>
+            <li>Responses from external APIs.</li>
+        </ul>
+
+        <h3>Cache-aside pattern</h3>
+
+        <p>
+            Cache-aside is a common caching strategy. The application checks
+            Redis first, loads missing data from the database and then
+            populates the cache.
+        </p>
+
+        <pre><code>function getMerchant(id) {
+    cached = redis.get("merchant:" + id)
+
+    if cached exists:
+        return cached
+
+    merchant = database.findMerchant(id)
+
+    if merchant exists:
+        redis.set("merchant:" + id, merchant, TTL)
+
+    return merchant
+}</code></pre>
+
+        <p>
+            When the merchant changes, the application must consider how
+            to invalidate or update the cached value.
+        </p>
+
+        <pre><code>Update merchant in database
+             |
+             v
+Delete merchant:123 from Redis
+             |
+             v
+Next request reloads fresh data</code></pre>
+
+        <p>
+            Invalidating the cache after a successful database update is a
+            common approach. It is not a perfect guarantee of consistency:
+            concurrent requests, failed invalidations and replication delays
+            can still create stale reads.
+        </p>
+
+        <h3>When should you use Redis caching?</h3>
+
+        <ul>
+            <li>Many requests read the same data.</li>
+            <li>Database queries are expensive.</li>
+            <li>The data can tolerate some staleness.</li>
+            <li>Recomputing or retrieving the data is possible after eviction.</li>
+        </ul>
+
+        <p>
+            Avoid caching everything by default. Redis introduces another
+            system to operate, and cache invalidation can be more complicated
+            than the original query.
+        </p>
+
+        <h2>2. Session Storage</h2>
+
+        <p>
+            Sessions allow an application to remember information associated
+            with a user across multiple requests.
+        </p>
+
+        <p>
+            For example, a session may contain a user identifier, a
+            temporary authentication state or other short-lived session data.
+        </p>
+
+        <h3>The problem with local session storage</h3>
+
+        <pre><code>             Load Balancer
+              /         \
+             v           v
+          App A         App B
+             |           |
+         Local Session  Local Session
+
+      User request 1 -> App A
+      User request 2 -> App B</code></pre>
+
+        <p>
+            If the session exists only in App A's local memory, App B may
+            not be able to access it. This can cause inconsistent behavior
+            when requests move between application instances.
+        </p>
+
+        <h3>Using Redis for sessions</h3>
+
+        <pre><code>             Load Balancer
+              /         \
+             v           v
+          App A         App B
+              \         /
+               \       /
+                  v
+                Redis
+             Shared Sessions</code></pre>
+
+        <p>
+            Both application instances can read and update session data
+            from the shared Redis store.
+        </p>
+
+        <p>
+            This is particularly useful when horizontally scaling an
+            application across multiple servers or containers.
+        </p>
+
+        <h3>Example</h3>
+
+        <pre><code>// Conceptual session storage.
+
+sessionId = "session:abc123"
+
+redis.setex(
+    sessionId,
+    1800,
+    serializedSession
+)</code></pre>
+
+        <p>
+            The session expires after 30 minutes in this example. Real
+            session systems may refresh expiration on activity and enforce
+            additional expiration and revocation rules.
+        </p>
+
+        <h3>When should you use Redis for sessions?</h3>
+
+        <ul>
+            <li>Multiple application instances need shared session state.</li>
+            <li>Sessions should expire automatically.</li>
+            <li>Fast session reads and writes are important.</li>
+            <li>Sessions can be reconstructed or users can reauthenticate if data is lost.</li>
+        </ul>
+
+        <p>
+            Session storage still needs appropriate security. Use secure
+            session identifiers, avoid storing unnecessary sensitive data,
+            and configure network access and authentication correctly.
+        </p>
+
+        <h2>3. Rate Limiting</h2>
+
+        <p>
+            Rate limiting restricts how frequently a client can perform an
+            action within a time window.
+        </p>
+
+        <p>For example:</p>
+
+        <ul>
+            <li>Allow 100 API requests per minute per API key.</li>
+            <li>Allow five password reset attempts per 15 minutes.</li>
+            <li>Limit OTP verification attempts.</li>
+            <li>Protect an expensive endpoint from excessive traffic.</li>
+        </ul>
+
+        <h3>Why Redis is useful</h3>
+
+        <p>
+            Imagine running four application instances. If each instance
+            maintains its own request counter, the user can potentially
+            exceed the intended limit by distributing requests across them.
+        </p>
+
+        <pre><code>Request 1 -> App A -> Local count: 1
+Request 2 -> App B -> Local count: 1
+Request 3 -> App C -> Local count: 1
+Request 4 -> App D -> Local count: 1</code></pre>
+
+        <p>
+            Redis provides shared counters so the instances can enforce
+            a common limit.
+        </p>
+
+        <h3>Simple fixed-window example</h3>
+
+        <pre><code>// Conceptual Redis commands.
+
+INCR rate-limit:user123:minute
+EXPIRE rate-limit:user123:minute 60</code></pre>
+
+        <p>
+            The application increments a counter and associates it with
+            a time window. When the counter exceeds the configured limit,
+            the request is rejected.
+        </p>
+
+        <p>
+            These commands must be coordinated correctly. If incrementing
+            and setting the expiration are separate operations, a failure
+            between them can leave a counter without an expiration. A
+            Lua script or another atomic implementation can avoid that
+            failure mode.
+        </p>
+
+        <h3>Common rate-limiting algorithms</h3>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Algorithm</th>
+                <th>How it works</th>
+                <th>Trade-off</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Fixed window</td>
+                <td>Counts requests within fixed time intervals.</td>
+                <td>Simple, but permits bursts at window boundaries.</td>
+            </tr>
+            <tr>
+                <td>Sliding window</td>
+                <td>Counts requests over a rolling interval.</td>
+                <td>More accurate, often requires more state or computation.</td>
+            </tr>
+            <tr>
+                <td>Token bucket</td>
+                <td>Requests consume tokens that refill over time.</td>
+                <td>Allows controlled bursts while limiting average traffic.</td>
+            </tr>
+            <tr>
+                <td>Leaky bucket</td>
+                <td>Processes or admits work at a controlled rate.</td>
+                <td>Useful for smoothing traffic, depending on implementation.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h3>When should you use Redis rate limiting?</h3>
+
+        <p>
+            Use Redis when limits need to be shared across application
+            instances and the request rate is too high or too distributed
+            for reliable in-process counters.
+        </p>
+
+        <p>
+            For strict security controls, think carefully about atomicity,
+            key expiration, failure behavior and whether your chosen
+            algorithm meets the intended policy.
+        </p>
+
+        <h2>4. Counters and Atomic Operations</h2>
+
+        <p>
+            Redis supports atomic increment and decrement operations.
+            This makes it useful for counters that are updated frequently.
+        </p>
+
+        <p>Examples include:</p>
+
+        <ul>
+            <li>Page views.</li>
+            <li>API request counts.</li>
+            <li>Temporary usage metrics.</li>
+            <li>Number of active jobs.</li>
+            <li>Attempt counters.</li>
+        </ul>
+
+        <h3>Example: Counting page views</h3>
+
+        <pre><code>INCR page:123:views</code></pre>
+
+        <p>
+            Each execution increments the counter by one. Redis performs
+            this increment atomically, so concurrent increments on the
+            same key do not overwrite one another.
+        </p>
+
+        <h3>Atomic does not mean durable</h3>
+
+        <p>
+            Atomicity means the individual operation executes without
+            interleaving with another operation in a way that breaks the
+            operation itself. It does not guarantee that the value will
+            survive every failure.
+        </p>
+
+        <p>
+            Redis persistence, replication and failover configuration
+            affect durability. For financial balances or other critical
+            business records, use a system with appropriate transactional
+            guarantees and durable storage as the source of truth.
+        </p>
+
+        <h3>When should you use Redis counters?</h3>
+
+        <p>
+            Redis counters are useful for high-frequency updates where
+            low latency matters and the counter's durability requirements
+            fit the configured Redis deployment.
+        </p>
+
+        <h2>5. Distributed Locks</h2>
+
+        <p>
+            A distributed lock coordinates access to a resource across
+            multiple processes or application instances.
+        </p>
+
+        <p>
+            A normal in-process mutex protects threads within one process.
+            It does not automatically coordinate separate servers.
+        </p>
+
+        <h3>Example problem: Duplicate processing</h3>
+
+        <p>
+            Imagine two workers receive the same logical task at nearly
+            the same time.
+        </p>
+
+        <pre><code>Worker A                 Worker B
+   |                         |
+   v                         v
+Process invoice         Process invoice
+   |                         |
+   +------------+------------+
+                |
+                v
+        Duplicate processing</code></pre>
+
+        <p>
+            If both workers must not process the same task concurrently,
+            a coordination mechanism may be needed.
+        </p>
+
+        <h3>Using a Redis lock</h3>
+
+        <p>
+            Redis supports conditional key creation. A client can attempt
+            to acquire a lock only when the lock key does not already exist.
+        </p>
+
+        <pre><code>SET lock:invoice:123 unique-token NX PX 30000</code></pre>
+
+        <ul>
+            <li><code>NX</code> — create the key only if it does not exist.</li>
+            <li><code>PX 30000</code> — set a 30-second expiration.</li>
+            <li><code>unique-token</code> — a unique ownership token generated by the client.</li>
+        </ul>
+
+        <p>
+            If Redis returns success, the client acquired the lock.
+            If the key already exists, another client may hold it.
+        </p>
+
+        <h3>Why use an expiration?</h3>
+
+        <p>
+            Without an expiration, a crashed worker could leave a lock
+            behind indefinitely.
+        </p>
+
+        <p>
+            An expiration helps recover from abandoned locks, but it
+            introduces an important risk: the original worker may continue
+            running after its lock expires, while another worker acquires
+            the same lock.
+        </p>
+
+        <h3>Important lock rules</h3>
+
+        <ul>
+            <li>Generate a unique ownership token for each acquisition.</li>
+            <li>Release the lock only if the stored token matches your token.</li>
+            <li>Use an atomic compare-and-delete operation to release it.</li>
+            <li>Choose a lease duration that accounts for execution time.</li>
+            <li>Consider renewal and failure scenarios for longer-running work.</li>
+            <li>Use fencing tokens or resource-level protections when stale lock holders could cause damage.</li>
+        </ul>
+
+        <p>
+            Never release a lock with an unconditional
+            <code>DEL lock:key</code> if another worker might have acquired
+            the lock after your lease expired.
+        </p>
+
+        <p>
+            Redis locks are useful for coordinating work, but they are not
+            a substitute for database uniqueness constraints, transactions
+            or idempotency. For critical operations, the protected resource
+            should enforce its own correctness whenever possible.
+        </p>
+
+        <h2>6. Queues and Asynchronous Processing</h2>
+
+        <p>
+            Redis can support background job processing and queue-like
+            workflows.
+        </p>
+
+        <p>
+            Instead of making the client wait for every operation, the
+            application can enqueue work and process it asynchronously.
+        </p>
+
+        <h3>Example: Sending an email</h3>
+
+        <pre><code>Client submits order
+        |
+        v
+Application saves order
+        |
+        v
+Enqueue email job
+        |
+        v
+Return response to client
+
+Background Worker
+        |
+        v
+Process email job
+        |
+        v
+Send confirmation email</code></pre>
+
+        <p>
+            Redis-backed job systems can help with tasks such as:
+        </p>
+
+        <ul>
+            <li>Sending emails and notifications.</li>
+            <li>Generating reports.</li>
+            <li>Processing images.</li>
+            <li>Calling external APIs.</li>
+            <li>Executing scheduled jobs.</li>
+        </ul>
+
+        <h3>Redis lists as a simple queue</h3>
+
+        <p>
+            Redis lists provide commands that can be used to enqueue and
+            retrieve items.
+        </p>
+
+        <pre><code>// Producer
+LPUSH jobs '{"type":"send_email","userId":123}'
+
+// Consumer
+BRPOP jobs 0</code></pre>
+
+        <p>
+            This demonstrates a basic blocking queue pattern. It is not
+            a complete production job-processing system: if a worker
+            retrieves a job and crashes before completing it, the job
+            may be lost.
+        </p>
+
+        <h3>What about retries and failed jobs?</h3>
+
+        <p>
+            Production job processing often needs:
+        </p>
+
+        <ul>
+            <li>Acknowledgements after successful processing.</li>
+            <li>Retries for transient failures.</li>
+            <li>Dead-letter handling for repeatedly failing jobs.</li>
+            <li>Job visibility and monitoring.</li>
+            <li>Idempotent handlers to tolerate duplicate delivery.</li>
+        </ul>
+
+        <p>
+            Redis Streams support consumer groups and explicit message
+            acknowledgement. Mature Redis-backed job libraries also provide
+            additional processing features.
+        </p>
+
+        <h3>Redis vs RabbitMQ vs Kafka</h3>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Technology</th>
+                <th>Common strengths</th>
+                <th>Typical use cases</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Redis</td>
+                <td>Low-latency data structures, simple queues, shared state.</td>
+                <td>Caching, counters and lightweight background jobs.</td>
+            </tr>
+            <tr>
+                <td>RabbitMQ</td>
+                <td>Message routing, acknowledgements, queueing and delivery controls.</td>
+                <td>Business workflows and asynchronous service communication.</td>
+            </tr>
+            <tr>
+                <td>Kafka</td>
+                <td>Durable event logs, replay and high-throughput event streams.</td>
+                <td>Event-driven architectures, analytics and event pipelines.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            These technologies overlap. Redis Streams, RabbitMQ and Kafka
+            can all support messaging, but their operational models and
+            guarantees differ. Choose based on delivery requirements,
+            replay needs, throughput, routing and operational complexity.
+        </p>
+
+        <h2>7. Real-Time Leaderboards and Rankings</h2>
+
+        <p>
+            Redis sorted sets store unique members associated with scores.
+            Members can be retrieved in score order, making sorted sets
+            useful for rankings.
+        </p>
+
+        <p>Common examples include:</p>
+
+        <ul>
+            <li>Game leaderboards.</li>
+            <li>Top-selling products.</li>
+            <li>Popular articles.</li>
+            <li>Trending content.</li>
+            <li>Ranked search results based on application-defined scores.</li>
+        </ul>
+
+        <h3>Example: Game leaderboard</h3>
+
+        <pre><code>// Add or update a player's score.
+ZADD leaderboard 1500 player:123
+
+// Get the top 10 players, highest score first.
+ZRANGE leaderboard 0 9 REV WITHSCORES
+
+// Get a player's rank, with rank 0 being the lowest.
+ZREVRANK leaderboard player:123</code></pre>
+
+        <p>
+            Redis maintains the sorted set so the application can query
+            rankings without loading every player's score and sorting
+            the entire collection itself.
+        </p>
+
+        <p>
+            Redis sorted sets are also useful for scheduling and prioritizing
+            items by score, such as due timestamps or application-defined
+            priority values.
+        </p>
+
+        <h2>8. Temporary Data and Expiring Keys</h2>
+
+        <p>
+            Many application values should exist only for a limited time.
+            Redis supports key expiration, which is useful for automatically
+            removing temporary data.
+        </p>
+
+        <p>Examples include:</p>
+
+        <ul>
+            <li>Password reset tokens.</li>
+            <li>Email verification codes.</li>
+            <li>Temporary API state.</li>
+            <li>Short-lived idempotency records.</li>
+            <li>Temporary workflow data.</li>
+        </ul>
+
+        <h3>Example: Verification code</h3>
+
+        <pre><code>SET verification:user123 482901 EX 300</code></pre>
+
+        <p>
+            This stores a verification code with a five-minute expiration.
+            After the TTL expires, Redis makes the key eligible for removal.
+        </p>
+
+        <p>
+            For security-sensitive tokens, expiration alone is insufficient.
+            The application should also enforce attempt limits, appropriate
+            token entropy, one-time use, secure transport and the correct
+            association with the user and intended action.
+        </p>
+
+        <h2>9. Idempotency and Duplicate Request Protection</h2>
+
+        <p>
+            Idempotency means that repeating an operation with the same
+            identifier does not cause the business effect to happen more
+            than once.
+        </p>
+
+        <p>
+            For example, a payment API may receive the same request multiple
+            times because the client timed out and retried.
+        </p>
+
+        <pre><code>Client sends payment request
+          |
+          v
+Server processes payment
+          |
+          v
+Response is lost
+          |
+          v
+Client retries request
+          |
+          v
+Could process payment twice</code></pre>
+
+        <p>
+            A Redis key can help track whether an idempotency key has
+            already been observed.
+        </p>
+
+        <pre><code>SET idempotency:request-abc processing NX EX 3600</code></pre>
+
+        <p>
+            If the key is created successfully, the application can proceed
+            with the initial request. If it already exists, the application
+            can check the existing operation's state.
+        </p>
+
+        <p>
+            This command alone is not a complete idempotency implementation.
+            It does not atomically combine the Redis write with a database
+            transaction or an external payment. A crash after creating the
+            key but before completing the operation needs explicit handling.
+        </p>
+
+        <p>
+            For critical business operations, a durable database record,
+            unique constraint or provider-supported idempotency mechanism
+            is often necessary. Redis can provide a fast coordination layer
+            when its failure behavior is accounted for.
+        </p>
+
+        <h2>10. Pub/Sub and Real-Time Notifications</h2>
+
+        <p>
+            Redis Pub/Sub lets publishers send messages to channels that
+            subscribers listen to.
+        </p>
+
+        <pre><code>// Publisher
+PUBLISH notifications "New order created"
+
+// Subscriber
+SUBSCRIBE notifications</code></pre>
+
+        <p>
+            Subscribers receive messages while they are connected and
+            subscribed. Redis Pub/Sub does not persist messages for
+            disconnected subscribers.
+        </p>
+
+        <p>It can be useful for:</p>
+
+        <ul>
+            <li>Live dashboard updates.</li>
+            <li>Lightweight notifications between application instances.</li>
+            <li>Broadcasting cache invalidation signals.</li>
+            <li>Simple real-time features.</li>
+        </ul>
+
+        <p>
+            If a subscriber is disconnected when a message is published,
+            it will not receive that missed message later.
+        </p>
+
+        <p>
+            When message persistence, replay, acknowledgements or recovery
+            are required, consider Redis Streams or a dedicated messaging
+            platform instead.
+        </p>
+
+        <h2>11. Geospatial Data</h2>
+
+        <p>
+            Redis supports geospatial operations for storing coordinates
+            and querying locations within a radius or near another point.
+        </p>
+
+        <p>Possible use cases include:</p>
+
+        <ul>
+            <li>Finding nearby delivery drivers.</li>
+            <li>Locating nearby stores.</li>
+            <li>Showing nearby users or vehicles.</li>
+            <li>Maintaining live location data.</li>
+        </ul>
+
+        <h3>Example</h3>
+
+        <pre><code>GEOADD drivers -0.1276 51.5072 driver:123
+
+GEOSEARCH drivers
+    FROMLONLAT -0.12 51.50
+    BYRADIUS 5 km
+    ASC</code></pre>
+
+        <p>
+            The example adds a driver's longitude and latitude and searches
+            for drivers within five kilometres of a specified point.
+        </p>
+
+        <p>
+            Redis can be useful for fast, frequently changing location
+            lookups. Complex geographic analysis, advanced spatial joins
+            and authoritative location records may be better handled by
+            a dedicated geospatial database.
+        </p>
+
+        <h2>12. Frequently Accessed Configuration</h2>
+
+        <p>
+            Redis can hold configuration that needs to be read frequently
+            by many application instances.
+        </p>
+
+        <p>For example:</p>
+
+        <pre><code>merchant:123:settings
+feature:checkout:enabled
+pricing:current:version</code></pre>
+
+        <p>
+            This can reduce repeated database reads when many requests need
+            the same settings.
+        </p>
+
+        <p>
+            However, configuration changes require a clear invalidation or
+            update strategy. If stale configuration could cause incorrect
+            financial or security behavior, the application should define
+            how freshness is guaranteed and what happens when Redis is
+            unavailable.
+        </p>
+
+        <h2>Redis Data Structures</h2>
+
+        <p>
+            Choosing the appropriate Redis data structure helps keep
+            operations simple and efficient.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Data structure</th>
+                <th>What it stores</th>
+                <th>Common use case</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>String</td>
+                <td>A string or binary-safe value.</td>
+                <td>Cache entries, counters, tokens.</td>
+            </tr>
+            <tr>
+                <td>Hash</td>
+                <td>Field-value pairs under one key.</td>
+                <td>Compact records or session fields.</td>
+            </tr>
+            <tr>
+                <td>List</td>
+                <td>An ordered sequence of values.</td>
+                <td>Simple queues and recent-item lists.</td>
+            </tr>
+            <tr>
+                <td>Set</td>
+                <td>Unique members.</td>
+                <td>Tags, membership and deduplication helpers.</td>
+            </tr>
+            <tr>
+                <td>Sorted set</td>
+                <td>Unique members ordered by score.</td>
+                <td>Leaderboards and priority ordering.</td>
+            </tr>
+            <tr>
+                <td>Stream</td>
+                <td>An append-oriented sequence of entries.</td>
+                <td>Message processing and consumer groups.</td>
+            </tr>
+            <tr>
+                <td>Bitmap</td>
+                <td>Bit-level flags addressed by offset.</td>
+                <td>Compact boolean tracking.</td>
+            </tr>
+            <tr>
+                <td>HyperLogLog</td>
+                <td>A probabilistic summary of unique elements.</td>
+                <td>Approximate distinct counts.</td>
+            </tr>
+            <tr>
+                <td>Geospatial index</td>
+                <td>Coordinates with geographic query operations.</td>
+                <td>Nearby-location searches.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>Redis vs a Relational Database</h2>
+
+        <p>
+            Redis and relational databases solve overlapping but different
+            problems. Redis should not automatically replace a database
+            simply because it is fast.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Requirement</th>
+                <th>Redis</th>
+                <th>Relational database</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Fast cache lookups</td>
+                <td>Excellent fit</td>
+                <td>Possible, but often unnecessary for a separate cache layer</td>
+            </tr>
+            <tr>
+                <td>Complex joins</td>
+                <td>Not its main strength</td>
+                <td>Strong fit</td>
+            </tr>
+            <tr>
+                <td>Relational constraints</td>
+                <td>Limited compared with relational databases</td>
+                <td>Strong fit</td>
+            </tr>
+            <tr>
+                <td>Atomic counter increments</td>
+                <td>Native operation</td>
+                <td>Also supported through atomic SQL updates</td>
+            </tr>
+            <tr>
+                <td>Durable business records</td>
+                <td>Possible with appropriate configuration, but requires careful evaluation</td>
+                <td>Common choice for authoritative records</td>
+            </tr>
+            <tr>
+                <td>Expiring temporary data</td>
+                <td>Native key expiration</td>
+                <td>Usually requires cleanup logic or database-specific features</td>
+            </tr>
+            <tr>
+                <td>Complex transactions</td>
+                <td>Supports atomic operations, transactions and scripts, with different semantics</td>
+                <td>Strong transactional and relational capabilities</td>
+            </tr>
+            <tr>
+                <td>Aggregations and reporting</td>
+                <td>Limited compared with SQL analytics</td>
+                <td>Strong fit for relational queries and aggregations</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            The best architecture often uses both: the database stores
+            authoritative business data, while Redis handles workloads
+            that benefit from low-latency access or specialized data
+            structures.
+        </p>
+
+        <h2>Redis vs Local In-Memory Caching</h2>
+
+        <p>
+            You do not always need Redis just because you want a cache.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Local cache</th>
+                <th>Redis cache</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Stored inside application memory.</td>
+                <td>Stored in a separate Redis service.</td>
+            </tr>
+            <tr>
+                <td>Very fast to access without a network call.</td>
+                <td>Requires communication with Redis.</td>
+            </tr>
+            <tr>
+                <td>Not automatically shared across application instances.</td>
+                <td>Can be shared across instances.</td>
+            </tr>
+            <tr>
+                <td>Lost when the process restarts.</td>
+                <td>Persistence and recovery depend on configuration.</td>
+            </tr>
+            <tr>
+                <td>Can be simpler to operate.</td>
+                <td>Requires a separate service and operational monitoring.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            A local cache is often enough for small, process-specific
+            workloads. Redis becomes attractive when state must be shared
+            across instances, memory needs to be managed separately, or
+            Redis-specific operations are useful.
+        </p>
+
+        <h2>What Happens If Redis Goes Down?</h2>
+
+        <p>
+            The impact depends on what Redis is responsible for.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Cache:</strong> requests may fall back to the database,
+                increasing latency and database load.
+            </li>
+            <li>
+                <strong>Sessions:</strong> users may temporarily lose access
+                to session data, depending on the deployment and recovery setup.
+            </li>
+            <li>
+                <strong>Rate limiting:</strong> limits may become unavailable
+                or inconsistent.
+            </li>
+            <li>
+                <strong>Locks:</strong> coordination assumptions can break
+                during failures and failover.
+            </li>
+            <li>
+                <strong>Queues:</strong> queued jobs may become temporarily
+                unavailable, and durability depends on persistence,
+                replication and acknowledgement behavior.
+            </li>
+        </ul>
+
+        <p>
+            This is why Redis should not be treated as an invisible,
+            infallible performance layer. Applications need explicit
+            failure behavior.
+        </p>
+
+        <h3>Should the application fail open or fail closed?</h3>
+
+        <p>
+            The right behavior depends on the feature.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Cache:</strong> often fail open and query the database,
+                provided the database can handle the additional load.
+            </li>
+            <li>
+                <strong>Security rate limit:</strong> failing open may allow
+                excessive requests; failing closed may block legitimate users.
+                Choose deliberately.
+            </li>
+            <li>
+                <strong>Distributed lock:</strong> if lock acquisition fails,
+                do not assume that the protected operation is safe to execute.
+            </li>
+            <li>
+                <strong>Background jobs:</strong> use recovery, retry and
+                monitoring mechanisms appropriate to the required delivery
+                guarantees.
+            </li>
+        </ul>
+
+        <h2>Common Redis Mistakes</h2>
+
+        <h3>1. Treating the cache as the source of truth</h3>
+
+        <p>
+            If cached data can be deleted at any time, the application
+            should know how to rebuild it or recover safely.
+        </p>
+
+        <h3>2. Never setting TTLs</h3>
+
+        <p>
+            Temporary keys without expiration can accumulate indefinitely.
+            Not every key needs a TTL, but the lifetime should be intentional.
+        </p>
+
+        <h3>3. Using Redis for everything</h3>
+
+        <p>
+            A relational database is usually a better fit for complex
+            relationships, SQL queries, constraints and durable business
+            records.
+        </p>
+
+        <h3>4. Ignoring cache invalidation</h3>
+
+        <p>
+            Cached data can become stale after database updates. Define
+            how the application refreshes or invalidates cached values.
+        </p>
+
+        <h3>5. Assuming every Redis operation is durable</h3>
+
+        <p>
+            Fast in-memory operations do not guarantee that acknowledged
+            data will survive every crash or failover. Understand the
+            configured persistence and replication guarantees.
+        </p>
+
+        <h3>6. Using unsafe distributed locks</h3>
+
+        <p>
+            A lock can expire while the original process is still working.
+            Ownership checks, fencing where appropriate, and protections
+            at the underlying resource matter.
+        </p>
+
+        <h3>7. Using Redis Pub/Sub for messages that must never be lost</h3>
+
+        <p>
+            Pub/Sub does not retain messages for disconnected subscribers.
+            Use a durable messaging approach when missed messages are
+            unacceptable.
+        </p>
+
+        <h3>8. Creating an unbounded cache</h3>
+
+        <p>
+            Redis memory is finite. Configure memory limits and eviction
+            policies based on the workload, and monitor memory consumption.
+        </p>
+
+        <h3>9. Making expensive cache misses worse</h3>
+
+        <p>
+            If many requests simultaneously miss the same key, they may all
+            query the database. This is known as a cache stampede.
+            Techniques such as request coalescing, short-lived locks,
+            randomized TTLs and stale-while-revalidate can help.
+        </p>
+
+        <h2>How to Decide Whether to Use Redis</h2>
+
+        <pre><code>Does the application need this data?
+                 |
+                 v
+       Is the database already
+       fast enough for the workload?
+              /       \
+            Yes        No
+             |          |
+             v          v
+       Keep it simple   Identify bottleneck
+                            |
+                            v
+                   Is repeated access or
+                   shared fast state the issue?
+                       /          \
+                     Yes           No
+                      |             |
+                      v             v
+                Consider Redis   Consider query
+                                 optimization,
+                                 indexes or another
+                                 architecture change</code></pre>
+
+        <p>
+            Redis should solve a specific problem. Measure latency,
+            database load, request patterns and memory needs before
+            introducing another system.
+        </p>
+
+        <h2>Practical Backend Scenarios</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Scenario</th>
+                <th>Would you use Redis?</th>
+                <th>Why?</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>A merchant's settings are read on every request.</td>
+                <td>Yes, potentially</td>
+                <td>Cache frequently accessed settings and reduce repeated database reads.</td>
+            </tr>
+            <tr>
+                <td>A customer submits the same payment request twice.</td>
+                <td>Possibly, alongside durable safeguards</td>
+                <td>Help coordinate idempotency, but preserve correctness in the durable payment workflow.</td>
+            </tr>
+            <tr>
+                <td>An API must limit requests per API key.</td>
+                <td>Yes, often</td>
+                <td>Share counters and enforce limits across application instances.</td>
+            </tr>
+            <tr>
+                <td>Two workers might process the same scheduled task.</td>
+                <td>Possibly</td>
+                <td>A distributed lock can help coordinate workers, but idempotency and durable state remain important.</td>
+            </tr>
+            <tr>
+                <td>A dashboard needs to display the top 10 products.</td>
+                <td>Possibly</td>
+                <td>Sorted sets can maintain rankings for frequently changing scores.</td>
+            </tr>
+            <tr>
+                <td>A financial ledger must preserve every transaction.</td>
+                <td>Not as the sole source of truth</td>
+                <td>Use durable transactional storage with appropriate constraints and recovery guarantees.</td>
+            </tr>
+            <tr>
+                <td>An application must replay every event from last week.</td>
+                <td>Maybe, depending on requirements</td>
+                <td>Redis Streams may fit some workloads; Kafka or another event log may be a better choice for long-term replay.</td>
+            </tr>
+            <tr>
+                <td>Several application instances need shared sessions.</td>
+                <td>Yes, often</td>
+                <td>Redis provides shared session storage with expiration support.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>What Should I Remember?</h2>
+
+        <ul>
+            <li>
+                Redis is an in-memory data store, not just a cache.
+            </li>
+            <li>
+                <strong>Caching</strong> reduces repeated database queries and
+                expensive computations.
+            </li>
+            <li>
+                <strong>Session storage</strong> allows multiple application
+                instances to share session state.
+            </li>
+            <li>
+                <strong>Rate limiting</strong> uses shared counters and
+                atomic operations to control request frequency.
+            </li>
+            <li>
+                <strong>Counters</strong> benefit from Redis atomic increment
+                operations.
+            </li>
+            <li>
+                <strong>Distributed locks</strong> help coordinate processes,
+                but expiration and failure scenarios must be handled carefully.
+            </li>
+            <li>
+                Redis can support <strong>background jobs and queues</strong>,
+                but delivery guarantees depend on the commands, libraries
+                and configuration used.
+            </li>
+            <li>
+                <strong>Sorted sets</strong> are useful for leaderboards
+                and ranking systems.
+            </li>
+            <li>
+                <strong>TTL</strong> allows temporary keys to expire
+                automatically.
+            </li>
+            <li>
+                <strong>Pub/Sub</strong> is useful for transient notifications,
+                but does not provide durable message delivery.
+            </li>
+            <li>
+                Redis can fail. Plan how the application behaves when
+                Redis is unavailable.
+            </li>
+            <li>
+                Redis persistence, replication, eviction and failover
+                settings influence reliability.
+            </li>
+            <li>
+                Do not use Redis as the sole source of truth for critical
+                business data without explicitly evaluating its durability
+                and consistency guarantees.
+            </li>
+            <li>
+                Use Redis when it solves a measurable problem, not simply
+                because it is fast.
+            </li>
+        </ul>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

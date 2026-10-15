@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="ACID vs BASE Explained — understand transaction guarantees, isolation levels, eventual consistency, distributed databases and when each approach makes sense.">
+    <meta property="og:title" content="ACID vs BASE Explained – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to database consistency, transaction guarantees, isolation levels, eventual consistency and distributed systems trade-offs.">
+    <meta property="og:type" content="article">
+
+    <title>ACID vs BASE Explained – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+
+        <h1>ACID vs BASE: What They Actually Guarantee</h1>
+
+        <time class="post-date" datetime="2026-10-15">
+            15 October 2026
+        </time>
+
+        <p>
+            When working with databases, you will often hear about ACID
+            transactions and BASE systems. They describe different approaches
+            to handling data correctness, consistency and availability,
+            particularly when multiple operations or distributed servers
+            are involved.
+        </p>
+
+        <p>
+            ACID is commonly associated with relational databases such as
+            PostgreSQL and MySQL. BASE is commonly associated with
+            distributed NoSQL databases such as Cassandra and DynamoDB.
+        </p>
+
+        <p>
+            However, the distinction is not simply "SQL is consistent,
+            NoSQL is eventually consistent." Many NoSQL databases support
+            transactions, and many databases let you choose between
+            different consistency guarantees.
+        </p>
+
+        <p>
+            The important question is:
+            <em>What exactly does the database guarantee when requests
+                succeed, transactions overlap, or servers fail?</em>
+        </p>
+
+        <h2>The Big Picture</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Concept</th>
+                <th>Main idea</th>
+                <th>Typical priority</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>ACID</td>
+                <td>Reliable transactions with defined correctness guarantees.</td>
+                <td>Atomicity, isolation and durable commits.</td>
+            </tr>
+            <tr>
+                <td>BASE</td>
+                <td>A distributed-systems approach that can tolerate temporarily inconsistent views of data.</td>
+                <td>High availability and scalability, with convergence where applicable.</td>
+            </tr>
+            <tr>
+                <td>Strong consistency</td>
+                <td>Reads respect a defined ordering of completed writes.</td>
+                <td>Predictable visibility of updates.</td>
+            </tr>
+            <tr>
+                <td>Eventual consistency</td>
+                <td>If updates stop and the system recovers, replicas will eventually converge under the model's assumptions.</td>
+                <td>Replication flexibility and availability trade-offs.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            ACID and BASE are useful conceptual models, but they are not
+            exact opposites. ACID describes transaction properties, while
+            BASE describes a broad approach to distributed data management.
+            A system can provide ACID transactions and still replicate
+            data asynchronously to other systems.
+        </p>
+
+        <h2>1. ACID Explained</h2>
+
+        <p>
+            ACID stands for Atomicity, Consistency, Isolation and Durability.
+            These properties help ensure that database transactions behave
+            reliably.
+        </p>
+
+        <h3>A — Atomicity</h3>
+
+        <p>
+            <strong>Either all changes in a transaction happen, or none
+                of them do.</strong>
+        </p>
+
+        <p>
+            Imagine transferring €100 from Account A to Account B.
+            The database must subtract €100 from A and add €100 to B
+            as one transaction.
+        </p>
+
+        <pre><code>BEGIN TRANSACTION;
+
+UPDATE accounts
+SET balance = balance - 100
+WHERE id = 'A';
+
+UPDATE accounts
+SET balance = balance + 100
+WHERE id = 'B';
+
+COMMIT;</code></pre>
+
+        <p>
+            If the second update fails and the transaction is rolled back,
+            the first update is also undone.
+        </p>
+
+        <pre><code>Account A: €500
+Account B: €200
+
+Transfer €100
+      |
+      v
+Account A: €400
+Account B: €300
+      |
+      v
+Both updates commit together</code></pre>
+
+        <p>
+            Without atomicity, the application might subtract money from
+            A and fail before crediting B.
+        </p>
+
+        <p>
+            <strong>What atomicity does not guarantee:</strong> it does not
+            make an entire business workflow atomic if that workflow also
+            includes an external payment provider, an email service or
+            another independent database.
+        </p>
+
+        <h3>C — Consistency</h3>
+
+        <p>
+            <strong>A committed transaction must preserve the database's
+                defined integrity rules.</strong>
+        </p>
+
+        <p>
+            In ACID, consistency means that a transaction takes the database
+            from one valid state to another, assuming the transaction
+            correctly implements the required rules.
+        </p>
+
+        <p>For example, a database might enforce:</p>
+
+        <pre><code>CREATE TABLE accounts (
+    id BIGINT PRIMARY KEY,
+    balance DECIMAL(12, 2) NOT NULL,
+    CONSTRAINT non_negative_balance
+        CHECK (balance >= 0)
+);</code></pre>
+
+        <p>
+            If the constraint is enforced by the database, an update that
+            would make the balance negative is rejected.
+        </p>
+
+        <p>
+            Other examples include:
+        </p>
+
+        <ul>
+            <li>Primary keys must be unique.</li>
+            <li>Foreign keys must reference valid records.</li>
+            <li>Required fields cannot be NULL.</li>
+            <li>Check constraints must be satisfied.</li>
+        </ul>
+
+        <p>
+            <strong>Important:</strong> ACID consistency does not mean
+            every read across every server immediately returns the latest
+            global value. It is about preserving defined integrity rules,
+            not a blanket guarantee of distributed read consistency.
+        </p>
+
+        <p>
+            It also does not automatically enforce every business rule.
+            If the application allows an invalid state and the database
+            has no constraint preventing it, ACID does not magically
+            discover the mistake.
+        </p>
+
+        <h3>I — Isolation</h3>
+
+        <p>
+            <strong>Concurrent transactions are controlled so that their
+                interactions follow the database's isolation guarantees.</strong>
+        </p>
+
+        <p>
+            Imagine two customers trying to purchase the last item in stock.
+        </p>
+
+        <pre><code>Initial stock: 1
+
+Transaction A              Transaction B
+     |                           |
+     v                           v
+Read stock = 1             Read stock = 1
+     |                           |
+     v                           v
+Purchase item              Purchase item
+     |                           |
+     +-------------+-------------+
+                   |
+                   v
+          Potential overselling</code></pre>
+
+        <p>
+            Without appropriate concurrency control, both transactions
+            might make decisions based on the same stock value.
+        </p>
+
+        <p>
+            A conditional update can help prevent overselling:
+        </p>
+
+        <pre><code>UPDATE products
+SET stock = stock - 1
+WHERE id = 123
+  AND stock > 0;</code></pre>
+
+        <p>
+            The application checks the number of affected rows. If zero
+            rows were affected, the item was not available for purchase.
+            The database evaluates the update atomically.
+        </p>
+
+        <p>
+            Other approaches include row locks, optimistic locking,
+            unique constraints and transactions with suitable isolation.
+        </p>
+
+        <h3>Isolation levels matter</h3>
+
+        <p>
+            ACID does not mean every transaction runs as if it were the
+            only transaction in the entire system. Databases provide
+            different isolation levels with different trade-offs.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Isolation level</th>
+                <th>What it generally permits</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>READ UNCOMMITTED</td>
+                <td>May allow dirty reads, depending on the database.</td>
+            </tr>
+            <tr>
+                <td>READ COMMITTED</td>
+                <td>Prevents dirty reads, but repeated reads may see different committed values.</td>
+            </tr>
+            <tr>
+                <td>REPEATABLE READ</td>
+                <td>Provides stronger repeat-read guarantees; exact behavior varies by database.</td>
+            </tr>
+            <tr>
+                <td>SERIALIZABLE</td>
+                <td>Provides behavior equivalent to some serial ordering of transactions, possibly by aborting transactions that must be retried.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            For example, PostgreSQL and MySQL's InnoDB engine have different
+            implementations of REPEATABLE READ. Do not assume an isolation
+            level has identical behavior across every database.
+        </p>
+
+        <p>
+            Even SERIALIZABLE transactions may fail with a serialization
+            error and need to be retried. The application must handle
+            those failures correctly.
+        </p>
+
+        <h3>D — Durability</h3>
+
+        <p>
+            <strong>Once a transaction is successfully committed, its
+                changes are expected to survive subsequent failures according
+                to the database's durability configuration.</strong>
+        </p>
+
+        <p>
+            Suppose an invoice is committed successfully and the database
+            server immediately crashes. After recovery, the committed
+            invoice should still exist.
+        </p>
+
+        <pre><code>BEGIN TRANSACTION;
+
+INSERT INTO invoices (id, total)
+VALUES (123, 250.00);
+
+COMMIT;
+
+-- The server crashes.
+
+-- After recovery:
+-- The committed invoice should still exist.</code></pre>
+
+        <p>
+            Durability relies on mechanisms such as write-ahead logging,
+            persistent storage and recovery procedures.
+        </p>
+
+        <p>
+            The exact failure guarantees depend on configuration. Asynchronous
+            replication, storage guarantees and acknowledged-commit settings
+            can affect whether the most recent writes survive a server or
+            regional failure.
+        </p>
+
+        <p>
+            Durability also does not mean protection against every possible
+            disaster. Backups, recovery testing and replication are still
+            important.
+        </p>
+
+        <h2>2. What ACID Actually Guarantees — and What It Doesn't</h2>
+
+        <p>
+            This is the most important distinction to understand: ACID
+            guarantees are scoped to the transactions and database
+            configuration that provide them.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Requirement</th>
+                <th>Does ACID guarantee it?</th>
+                <th>Explanation</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Two database updates succeed or fail together</td>
+                <td>Yes, within one transaction</td>
+                <td>Atomicity prevents partial commits.</td>
+            </tr>
+            <tr>
+                <td>Enforced constraints remain valid</td>
+                <td>Yes, when correctly defined and enforced</td>
+                <td>Consistency preserves database integrity rules.</td>
+            </tr>
+            <tr>
+                <td>Concurrent updates are handled safely</td>
+                <td>With the chosen isolation guarantees</td>
+                <td>Some isolation levels permit anomalies that stronger levels prevent.</td>
+            </tr>
+            <tr>
+                <td>Committed data survives a crash</td>
+                <td>According to durability configuration</td>
+                <td>Storage and replication settings matter.</td>
+            </tr>
+            <tr>
+                <td>Every read from every replica is immediately up to date</td>
+                <td>No, not automatically</td>
+                <td>Replica consistency is a separate concern.</td>
+            </tr>
+            <tr>
+                <td>An external payment and a database update commit together</td>
+                <td>No, not by a local transaction alone</td>
+                <td>They are independent systems unless a distributed protocol coordinates them.</td>
+            </tr>
+            <tr>
+                <td>A request is processed exactly once</td>
+                <td>No</td>
+                <td>Retries and external side effects require idempotency and other safeguards.</td>
+            </tr>
+            <tr>
+                <td>The application implements the correct business logic</td>
+                <td>No</td>
+                <td>The database cannot automatically correct incorrect application decisions.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>3. BASE Explained</h2>
+
+        <p>
+            BASE is a conceptual model often associated with highly
+            distributed databases. It stands for:
+        </p>
+
+        <ul>
+            <li><strong>Basically Available</strong></li>
+            <li><strong>Soft State</strong></li>
+            <li><strong>Eventually Consistent</strong></li>
+        </ul>
+
+        <p>
+            BASE emphasizes designing systems that can continue serving
+            requests and distributing updates even when some nodes are
+            temporarily unavailable or replicas have not yet converged.
+        </p>
+
+        <p>
+            BASE is not a precise, universally implemented database
+            specification. The actual guarantees depend on the database,
+            configuration, consistency level and operation being performed.
+        </p>
+
+        <h3>B — Basically Available</h3>
+
+        <p>
+            The system aims to continue providing useful responses despite
+            certain failures or partial outages.
+        </p>
+
+        <p>
+            For example, an application might still allow users to browse
+            a product catalog when one replica is unavailable.
+        </p>
+
+        <p>
+            However, availability does not mean every request must always
+            succeed or return the latest data. A system may return stale
+            information, reject a write or fail when a required quorum
+            cannot be reached.
+        </p>
+
+        <h3>S — Soft State</h3>
+
+        <p>
+            The system's observed state may change over time even when
+            no new application request is made, as distributed updates
+            propagate between replicas or background reconciliation runs.
+        </p>
+
+        <p>
+            Imagine a product's stock count being replicated to several
+            locations. One replica may temporarily show an older value
+            while synchronization is still in progress.
+        </p>
+
+        <p>
+            Soft state does not mean the data is random or that it must
+            disappear. It means the visible state may evolve as
+            synchronization and reconciliation occur.
+        </p>
+
+        <h3>E — Eventually Consistent</h3>
+
+        <p>
+            If updates stop and the system can successfully complete
+            synchronization, replicas will eventually converge under
+            the system's assumptions and conflict-resolution rules.
+        </p>
+
+        <p>
+            Imagine a user changing their profile picture.
+        </p>
+
+        <pre><code>User updates profile picture
+             |
+             v
+        Primary node
+             |
+             +------> Replica A updated
+             |
+             +------> Replica B still old
+             |
+             v
+        Replication continues
+             |
+             v
+        Replica B updated</code></pre>
+
+        <p>
+            During replication, a read from Replica B might return the
+            old picture. Once replication catches up, both replicas
+            can return the new picture.
+        </p>
+
+        <p>
+            Eventual consistency does not guarantee a fixed convergence
+            time, and it does not automatically resolve every conflicting
+            update correctly. Conflict-resolution policies are important.
+        </p>
+
+        <h2>4. A Real Example: Updating a User Profile</h2>
+
+        <p>
+            Suppose a user changes their display name from "Alex" to
+            "Alexandra". The application stores the update and replicates
+            it to several database nodes.
+        </p>
+
+        <h3>With a strongly consistent read</h3>
+
+        <pre><code>Write: name = "Alexandra"
+              |
+              v
+      Write acknowledged
+              |
+              v
+      Subsequent guaranteed
+      consistent read
+              |
+              v
+      name = "Alexandra"</code></pre>
+
+        <p>
+            Under an appropriate strong consistency guarantee, a read
+            that occurs after the successful write must respect that
+            write, subject to the database's documented semantics.
+        </p>
+
+        <h3>With an eventually consistent replica</h3>
+
+        <pre><code>Write: name = "Alexandra"
+              |
+              v
+      Primary accepts update
+              |
+              v
+      Replica has not caught up
+              |
+              v
+      Read returns "Alex"
+              |
+              v
+      Replication completes
+              |
+              v
+      Read returns "Alexandra"</code></pre>
+
+        <p>
+            The second behavior can be acceptable for some workloads,
+            such as recommendations, analytics dashboards or cached
+            profile information.
+        </p>
+
+        <p>
+            It may be unacceptable for an operation where the user
+            immediately expects to read back a security setting or a
+            financial state they just changed.
+        </p>
+
+        <h2>5. ACID vs BASE: The Practical Differences</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Aspect</th>
+                <th>ACID-oriented design</th>
+                <th>BASE-oriented design</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Primary concern</td>
+                <td>Transaction correctness and integrity</td>
+                <td>Distributed operation and availability trade-offs</td>
+            </tr>
+            <tr>
+                <td>Updates</td>
+                <td>Can be committed atomically within a transaction</td>
+                <td>May propagate asynchronously across replicas</td>
+            </tr>
+            <tr>
+                <td>Reads</td>
+                <td>Depend on isolation and consistency guarantees</td>
+                <td>May observe stale data depending on read policy</td>
+            </tr>
+            <tr>
+                <td>Conflicting writes</td>
+                <td>Managed using transactions, locks, constraints or aborts</td>
+                <td>May require conflict resolution or application reconciliation</td>
+            </tr>
+            <tr>
+                <td>Availability during partitions</td>
+                <td>Depends on architecture and consistency requirements</td>
+                <td>Often designed to preserve some operations during partial failures</td>
+            </tr>
+            <tr>
+                <td>Typical examples</td>
+                <td>Order processing, accounting, transactional records</td>
+                <td>Replicated catalogs, activity feeds, certain distributed workloads</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            These are tendencies, not absolute product categories.
+            Relational databases can use asynchronous replication, and
+            distributed NoSQL databases can support strongly consistent
+            reads and transactional operations.
+        </p>
+
+        <h2>6. How CAP Relates to ACID and BASE</h2>
+
+        <p>
+            CAP is another distributed-systems concept. It describes
+            a trade-off involving three properties when a network partition
+            occurs:
+        </p>
+
+        <ul>
+            <li>
+                <strong>Consistency:</strong> in the CAP sense, reads and
+                writes behave as if there were a single up-to-date copy,
+                according to the model's guarantees.
+            </li>
+            <li>
+                <strong>Availability:</strong> every request to a
+                non-failing node receives a non-error response.
+            </li>
+            <li>
+                <strong>Partition tolerance:</strong> the system continues
+                operating despite communication failures between nodes.
+            </li>
+        </ul>
+
+        <p>
+            When a network partition occurs, a distributed system cannot
+            guarantee both CAP consistency and CAP availability for every
+            request. It must sometimes reject or delay operations to
+            preserve consistency, or serve some operations without
+            guaranteeing the latest globally consistent state.
+        </p>
+
+        <p>
+            This does not mean that every database is permanently either
+            CP or AP in every situation. Real systems have different
+            operations, consistency settings and failure behaviors.
+        </p>
+
+        <h3>Example: A network partition</h3>
+
+        <pre><code>          Node A
+             |
+             X   Network failure
+             |
+          Node B
+
+Node A cannot communicate with Node B.</code></pre>
+
+        <p>
+            Suppose both nodes could accept a withdrawal from the same
+            account while disconnected. If each independently approves
+            spending based on the same balance, the account could be
+            overdrawn.
+        </p>
+
+        <p>
+            A system prioritizing strong consistency may reject or block
+            some writes until it can safely coordinate. A system designed
+            to remain available for those writes may accept them and need
+            to reconcile conflicts later.
+        </p>
+
+        <p>
+            The exact outcome depends on the database's consistency
+            protocol and application design.
+        </p>
+
+        <h2>7. Strong Consistency vs Eventual Consistency</h2>
+
+        <p>
+            These terms describe how updates become visible to readers.
+            They are not the same as ACID vs BASE.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Requirement</th>
+                <th>Strong consistency</th>
+                <th>Eventual consistency</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Read immediately after a successful write</td>
+                <td>Can guarantee visibility under the documented model</td>
+                <td>May return an older value</td>
+            </tr>
+            <tr>
+                <td>Replica synchronization</td>
+                <td>Reads coordinate to preserve the required guarantee</td>
+                <td>Updates can propagate asynchronously</td>
+            </tr>
+            <tr>
+                <td>Latency</td>
+                <td>May incur coordination overhead</td>
+                <td>Can allow faster local reads in some architectures</td>
+            </tr>
+            <tr>
+                <td>Conflict handling</td>
+                <td>Often prevents conflicting results through coordination</td>
+                <td>May require conflict resolution or reconciliation</td>
+            </tr>
+            <tr>
+                <td>Suitable workloads</td>
+                <td>Balances, inventory reservations, critical configuration</td>
+                <td>Feeds, analytics, replicated content and approximate counters</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            Strong consistency does not necessarily mean every request
+            must be slow. The performance impact depends on the topology,
+            protocol, network latency and operation.
+        </p>
+
+        <p>
+            Eventual consistency does not necessarily mean data is
+            unreliable or lost. It means readers may temporarily observe
+            different states while updates propagate.
+        </p>
+
+        <h2>8. When Should You Prefer ACID Guarantees?</h2>
+
+        <p>
+            Prefer strong transactional guarantees when partial updates,
+            conflicting operations or stale reads could violate important
+            business rules.
+        </p>
+
+        <h3>Example: Processing an invoice payment</h3>
+
+        <p>
+            Suppose a system records a payment and marks an invoice as paid.
+            Both database changes should succeed or fail together.
+        </p>
+
+        <pre><code>BEGIN;
+
+INSERT INTO payments (
+    invoice_id,
+    amount,
+    status
+)
+VALUES (
+    123,
+    250.00,
+    'completed'
+);
+
+UPDATE invoices
+SET status = 'paid'
+WHERE id = 123;
+
+COMMIT;</code></pre>
+
+        <p>
+            This example assumes the payment completion has already been
+            established by the relevant business workflow. In a real
+            integration, a database transaction alone cannot make an
+            external payment provider and your database commit atomically.
+        </p>
+
+        <p>
+            ACID-oriented transactions are especially useful for:
+        </p>
+
+        <ul>
+            <li>Financial records and account balances.</li>
+            <li>Inventory reservations and order creation.</li>
+            <li>Maintaining relationships and uniqueness constraints.</li>
+            <li>Updating multiple related database records.</li>
+            <li>Preventing invalid concurrent state changes.</li>
+        </ul>
+
+        <h2>9. When Can Eventual Consistency Be Acceptable?</h2>
+
+        <p>
+            Eventual consistency can be useful when immediate agreement
+            between all replicas is unnecessary and the system benefits
+            from distributed operation.
+        </p>
+
+        <h3>Example: An activity feed</h3>
+
+        <p>
+            A user posts a comment. The primary system accepts the comment,
+            and the update propagates to feed-generation workers and
+            read replicas.
+        </p>
+
+        <p>
+            Some users might see the comment a little later. This is often
+            an acceptable trade-off for a social feed.
+        </p>
+
+        <p>Other possible use cases include:</p>
+
+        <ul>
+            <li>Social feeds and activity timelines.</li>
+            <li>Analytics dashboards with slightly delayed metrics.</li>
+            <li>Search indexes updated asynchronously.</li>
+            <li>Replicated product descriptions.</li>
+            <li>Recommendation data that is periodically refreshed.</li>
+        </ul>
+
+        <p>
+            The application must still handle conflicting writes, failed
+            replication, retries and reconciliation where necessary.
+            Eventual consistency is not an excuse to ignore correctness.
+        </p>
+
+        <h2>10. A Critical Distinction: Transactions Across Services</h2>
+
+        <p>
+            One of the most common misunderstandings is assuming that
+            an ACID transaction automatically covers every operation
+            performed by a backend application.
+        </p>
+
+        <p>
+            Consider an order workflow that updates a database and then
+            sends a message to a queue.
+        </p>
+
+        <pre><code>1. Save order in database
+2. Publish OrderCreated event
+3. Return success</code></pre>
+
+        <p>
+            What happens if the database commit succeeds but publishing
+            the message fails?
+        </p>
+
+        <p>
+            The order exists, but downstream services never learn about it.
+            A local database transaction cannot automatically roll back
+            an external message publication.
+        </p>
+
+        <p>
+            A common solution is the <strong>transactional outbox pattern</strong>:
+        </p>
+
+        <pre><code>BEGIN TRANSACTION;
+
+INSERT INTO orders (...);
+
+INSERT INTO outbox_events (...);
+
+COMMIT;
+
+Background publisher
+        |
+        v
+Read unpublished outbox event
+        |
+        v
+Publish message
+        |
+        v
+Mark event as published</code></pre>
+
+        <p>
+            The order and the event record are committed atomically in
+            the same database. A background publisher then sends the
+            event, typically with retries.
+        </p>
+
+        <p>
+            The publisher may send an event more than once, so consumers
+            should be idempotent. This pattern bridges reliable database
+            transactions and asynchronous distributed processing without
+            pretending that the whole workflow is one ACID transaction.
+        </p>
+
+        <h2>11. Common Misconceptions</h2>
+
+        <h3>"ACID means reads always return the latest data."</h3>
+
+        <p>
+            Not necessarily. Transaction isolation, replica configuration
+            and the consistency guarantees of the particular read determine
+            which versions are visible.
+        </p>
+
+        <h3>"BASE means the database can lose data."</h3>
+
+        <p>
+            No. Eventual consistency concerns convergence and visibility,
+            not an automatic permission to lose acknowledged writes.
+            Durability must be evaluated separately.
+        </p>
+
+        <h3>"NoSQL databases do not support transactions."</h3>
+
+        <p>
+            Many NoSQL databases support transactions or atomic operations.
+            The scope and guarantees vary by product.
+        </p>
+
+        <h3>"ACID and BASE are mutually exclusive."</h3>
+
+        <p>
+            No. A system can provide ACID transactions within one database
+            and replicate the resulting data asynchronously to other
+            systems.
+        </p>
+
+        <h3>"Eventual consistency is always faster."</h3>
+
+        <p>
+            Not necessarily. Performance depends on the query, data model,
+            network, replication protocol, workload and consistency settings.
+        </p>
+
+        <h3>"Strong consistency solves every concurrency problem."</h3>
+
+        <p>
+            Strong consistency does not automatically make an application
+            workflow correct. You still need appropriate transactions,
+            constraints, idempotency and business logic.
+        </p>
+
+        <h2>12. Practical Decision Guide</h2>
+
+        <pre><code>Does the operation involve important
+business invariants or related updates?
+                 |
+          +------+------+
+          |             |
+         Yes            No
+          |             |
+          v             v
+Use suitable       Can readers tolerate
+transactions       temporarily stale data?
+and constraints          |
+                    +----+----+
+                    |         |
+                   Yes        No
+                    |         |
+                    v         v
+             Eventual may   Use suitable
+             be acceptable  consistency
+             if conflicts   guarantees
+             are handled</code></pre>
+
+        <p>
+            This is a starting point, not a complete architecture decision.
+            Also consider durability, availability, latency, recovery
+            requirements and the actual guarantees offered by your database.
+        </p>
+
+        <h2>What Should I Remember?</h2>
+
+        <ul>
+            <li>
+                <strong>Atomicity:</strong> all changes in one transaction
+                succeed together or are rolled back.
+            </li>
+            <li>
+                <strong>Consistency:</strong> committed transactions preserve
+                enforced integrity rules when the transaction and database
+                are correctly designed.
+            </li>
+            <li>
+                <strong>Isolation:</strong> concurrent transactions follow
+                the guarantees of the selected isolation level.
+            </li>
+            <li>
+                <strong>Durability:</strong> committed changes survive
+                failures according to the configured durability guarantees.
+            </li>
+            <li>
+                ACID does not automatically guarantee globally fresh reads,
+                exactly-once processing or atomicity across independent services.
+            </li>
+            <li>
+                <strong>BASE</strong> describes an approach that emphasizes
+                distributed availability and allows temporarily divergent
+                state where appropriate.
+            </li>
+            <li>
+                <strong>Eventual consistency</strong> means replicas can
+                converge when updates stop and synchronization succeeds.
+            </li>
+            <li>
+                ACID and BASE are not strict opposites. A system can use
+                ACID transactions and asynchronous replication at the same time.
+            </li>
+            <li>
+                <strong>CAP</strong> concerns consistency and availability
+                during network partitions, a different question from ACID
+                transaction properties.
+            </li>
+            <li>
+                Use strong transactional guarantees when business correctness
+                depends on them. Allow eventual consistency where stale
+                reads are acceptable and the trade-offs are understood.
+            </li>
+        </ul>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

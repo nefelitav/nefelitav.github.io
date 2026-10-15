@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Docker vs Kubernetes vs Helm vs Argo CD vs Virtual Machines: understand containers, orchestration, deployment automation, and when to use each technology.">
+    <meta property="og:title" content="Docker vs Kubernetes vs Helm vs Argo CD vs VMs – Nefeli Tavoulari">
+    <meta property="og:description" content="Learn how Docker, Kubernetes, Helm, Argo CD, and virtual machines differ, how they work together, and when to use each.">
+    <meta property="og:type" content="article">
+
+    <title>Docker vs Kubernetes vs Helm vs Argo CD vs VMs – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+<body>
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+        <h1>Docker vs Kubernetes vs Helm vs Argo CD vs VMs</h1>
+        <time class="post-date" datetime="2026-10-15">15 October 2026</time>
+
+        <p>Docker, Kubernetes, Helm, Argo CD, and virtual machines (VMs) are often mentioned together when discussing infrastructure and deployment. However, they solve different problems.</p>
+
+        <p>Some package applications, some run and manage them, and others automate deployment. Understanding their responsibilities makes it easier to decide which tools your application actually needs.</p>
+
+        <h2>1. The Big Picture</h2>
+
+        <p>Think of deploying an application as a series of responsibilities:</p>
+
+        <ul>
+            <li><strong>Virtual machines:</strong> provide virtualized computers on which you can run operating systems and applications.</li>
+            <li><strong>Docker:</strong> packages an application and its dependencies into a container image.</li>
+            <li><strong>Kubernetes:</strong> orchestrates containers across a cluster of machines.</li>
+            <li><strong>Helm:</strong> packages and configures Kubernetes resources using reusable charts.</li>
+            <li><strong>Argo CD:</strong> automatically reconciles a Kubernetes cluster with the configuration stored in Git.</li>
+        </ul>
+
+        <pre><code>Developer writes application code
+             |
+             v
+       Build Docker image
+             |
+             v
+    Push image to a registry
+             |
+             v
+ Update Kubernetes manifests
+       or Helm values in Git
+             |
+             v
+          Argo CD
+             |
+             v
+       Kubernetes cluster
+             |
+             v
+    Application containers run
+    on worker nodes / VMs</code></pre>
+
+        <p>These tools are complementary rather than direct replacements for one another. You can use Docker without Kubernetes, Kubernetes without Helm, and Kubernetes without Argo CD.</p>
+
+        <h2>2. Virtual Machines (VMs)</h2>
+
+        <p>A virtual machine is a software-defined computer with virtualized hardware, its own operating system, memory, CPU allocation, and storage. A hypervisor manages the virtual machines running on a physical host.</p>
+
+        <pre><code>Physical Server
+       |
+       v
+    Hypervisor
+       |
+       +-------------------+
+       |                   |
+       v                   v
+     VM 1                 VM 2
+  Linux OS              Linux OS
+       |                   |
+       v                   v
+   Application A       Application B</code></pre>
+
+        <h3>When would you use VMs?</h3>
+
+        <ul>
+            <li><strong>Running traditional applications:</strong> applications that expect a full operating system or are not containerized.</li>
+            <li><strong>Isolation:</strong> separating workloads into distinct operating system environments.</li>
+            <li><strong>Legacy systems:</strong> applications that depend on specific operating system configurations.</li>
+            <li><strong>Running Kubernetes:</strong> cloud Kubernetes clusters commonly use VMs as worker nodes.</li>
+            <li><strong>Full OS control:</strong> when you need to manage system services, kernel settings, or OS-level software.</li>
+        </ul>
+
+        <h3>Advantages</h3>
+
+        <ul>
+            <li>Strong isolation boundaries compared with ordinary containers sharing a host kernel.</li>
+            <li>Independent operating system environments.</li>
+            <li>Suitable for a wide variety of workloads, including legacy applications.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+
+        <ul>
+            <li>Typically require more resources than individual containers.</li>
+            <li>Operating systems need patching, configuration, and maintenance.</li>
+            <li>Managing many VMs can become operationally complex.</li>
+        </ul>
+
+        <h2>3. Docker</h2>
+
+        <p>Docker is a platform and ecosystem for building, distributing, and running containers. A container packages an application with the libraries and other dependencies it needs.</p>
+
+        <p>Unlike a VM, a typical Linux container does not run its own guest operating system. Containers share the host kernel while providing process and filesystem isolation.</p>
+
+        <pre><code>Host Operating System
+          |
+          v
+     Container Runtime
+          |
+     +----+----+
+     |         |
+     v         v
+ Container A  Container B
+ App + libs   App + libs</code></pre>
+
+        <h3>Example: Dockerfile</h3>
+
+        <p>A Dockerfile describes how to build an application image.</p>
+
+        <pre><code>FROM php:8.4-cli
+
+WORKDIR /app
+
+COPY . .
+
+CMD ["php", "app.php"]</code></pre>
+
+        <p>Build and run the image:</p>
+
+        <pre><code># Build an image
+docker build -t my-app:1.0 .
+
+# Run a container
+docker run --rm my-app:1.0</code></pre>
+
+        <p>This is a simplified example. A production PHP web application may need a web server, PHP-FPM, dependencies installed through Composer, and additional configuration.</p>
+
+        <h3>When would you use Docker?</h3>
+
+        <ul>
+            <li><strong>Consistent environments:</strong> reduce differences between development, testing, and production.</li>
+            <li><strong>CI/CD:</strong> build a deployable artifact once and promote it across environments.</li>
+            <li><strong>Microservices:</strong> package each service with its own dependencies.</li>
+            <li><strong>Local development:</strong> run databases, caches, and application services without installing everything directly on your machine.</li>
+            <li><strong>Deployment:</strong> distribute an application image to a server or container platform.</li>
+        </ul>
+
+        <h3>Important distinction: image vs container</h3>
+
+        <ul>
+            <li><strong>Image:</strong> the packaged, versioned template used to start containers.</li>
+            <li><strong>Container:</strong> a running or stopped instance created from an image.</li>
+            <li><strong>Registry:</strong> a place to store and distribute images, such as Docker Hub or a cloud container registry.</li>
+        </ul>
+
+        <p>Docker alone does not automatically provide multi-machine orchestration, automatic recovery across a cluster, or sophisticated rolling deployments. Those capabilities require additional infrastructure or a platform.</p>
+
+        <h2>4. Kubernetes</h2>
+
+        <p>Kubernetes is a container orchestration platform. It manages containerized workloads across a cluster and continuously tries to make the actual system match the desired configuration.</p>
+
+        <p>Instead of manually starting containers on individual servers, you describe what should run and let Kubernetes manage scheduling, restarts, networking, and scaling.</p>
+
+        <pre><code>Kubernetes Cluster
+       |
+       +----------------------+
+       |                      |
+       v                      v
+    Worker Node 1          Worker Node 2
+       |                      |
+       v                      v
+   Application Pod        Application Pod
+   Application Pod        Application Pod</code></pre>
+
+        <h3>Important Kubernetes concepts</h3>
+
+        <ul>
+            <li><strong>Cluster:</strong> the collection of machines managed by Kubernetes.</li>
+            <li><strong>Node:</strong> a machine, physical or virtual, that runs workloads.</li>
+            <li><strong>Pod:</strong> the smallest deployable Kubernetes unit, containing one or more closely related containers.</li>
+            <li><strong>Deployment:</strong> manages replicated application Pods and supports controlled rollouts.</li>
+            <li><strong>Service:</strong> provides a stable network endpoint for accessing a group of Pods.</li>
+            <li><strong>Ingress / Gateway:</strong> provides HTTP routing into the cluster when the corresponding controller or implementation is installed.</li>
+            <li><strong>ConfigMap / Secret:</strong> provide configuration and references to sensitive configuration data.</li>
+            <li><strong>Horizontal Pod Autoscaler:</strong> adjusts replica counts based on configured metrics and policies.</li>
+        </ul>
+
+        <h3>Example: Kubernetes Deployment</h3>
+
+        <p>This manifest asks Kubernetes to maintain three replicas of an application.</p>
+
+        <pre><code>apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-app
+          image: my-registry/my-app:1.0
+          ports:
+            - containerPort: 8080</code></pre>
+
+        <p>Apply the manifest:</p>
+
+        <pre><code>kubectl apply -f deployment.yaml
+
+kubectl get deployments
+kubectl get pods</code></pre>
+
+        <p>Kubernetes attempts to maintain three replicas. If a Pod fails, the controller can create a replacement. This does not guarantee that the application itself is healthy or that requests will never fail.</p>
+
+        <h3>When would you use Kubernetes?</h3>
+
+        <ul>
+            <li><strong>Multiple services:</strong> manage many containerized workloads consistently.</li>
+            <li><strong>High availability:</strong> replace failed Pods and distribute workloads across nodes when configured appropriately.</li>
+            <li><strong>Scaling:</strong> increase or decrease replicas based on traffic or metrics.</li>
+            <li><strong>Rolling deployments:</strong> gradually replace application versions.</li>
+            <li><strong>Service discovery:</strong> let services communicate through stable names and endpoints.</li>
+            <li><strong>Platform standardization:</strong> provide common deployment mechanisms across development teams.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+
+        <ul>
+            <li>Significant learning and operational complexity.</li>
+            <li>Networking, storage, permissions, upgrades, and observability require careful setup.</li>
+            <li>A cluster does not automatically make an application highly available; replicas, topology, health checks, capacity, and dependencies matter.</li>
+            <li>Managed Kubernetes reduces control-plane maintenance but does not remove all operational responsibilities.</li>
+        </ul>
+
+        <p><strong>Rule of thumb:</strong> Docker packages and runs containers; Kubernetes manages containerized workloads across a cluster.</p>
+
+        <h2>5. Helm</h2>
+
+        <p>Helm is a package manager for Kubernetes. It helps you define, configure, version, install, upgrade, and roll back collections of Kubernetes resources.</p>
+
+        <p>Without Helm, you might maintain many YAML files for each application and environment. Helm charts let you reuse templates and provide different values for development, staging, and production.</p>
+
+        <h3>Example: Helm chart structure</h3>
+
+        <pre><code>my-app/
+  Chart.yaml
+  values.yaml
+  templates/
+    deployment.yaml
+    service.yaml
+    ingress.yaml</code></pre>
+
+        <p>The <code>values.yaml</code> file contains configurable values:</p>
+
+        <pre><code>replicaCount: 3
+
+image:
+  repository: my-registry/my-app
+  tag: "1.0"
+
+service:
+  port: 80</code></pre>
+
+        <p>A template can reference those values:</p>
+
+        <pre><code>spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    spec:
+      containers:
+        - name: my-app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"</code></pre>
+
+        <p>Helm renders the templates into ordinary Kubernetes manifests using the selected values.</p>
+
+        <h3>Common commands</h3>
+
+        <pre><code># Install a chart
+helm install my-app ./my-app
+
+# Upgrade an existing release
+helm upgrade my-app ./my-app \
+  --set image.tag=1.1
+
+# Inspect the rendered manifests
+helm template my-app ./my-app
+
+# List releases
+helm list
+
+# Roll back to a previous release revision
+helm rollback my-app 1</code></pre>
+
+        <h3>When would you use Helm?</h3>
+
+        <ul>
+            <li><strong>Reusable configuration:</strong> deploy the same application with different settings.</li>
+            <li><strong>Complex applications:</strong> package multiple Kubernetes resources together.</li>
+            <li><strong>Third-party software:</strong> install applications distributed as Helm charts.</li>
+            <li><strong>Environment-specific values:</strong> vary replicas, image tags, resource limits, and other settings.</li>
+            <li><strong>Versioned releases:</strong> track chart versions and manage upgrades.</li>
+        </ul>
+
+        <h3>What Helm does not do</h3>
+
+        <p>Helm does not run containers, schedule Pods, or provide a continuous deployment controller by itself. Kubernetes still performs those responsibilities.</p>
+
+        <p>Helm also does not inherently provide GitOps. It can be used directly from a CI/CD pipeline or through tools such as Argo CD.</p>
+
+        <h2>6. Argo CD</h2>
+
+        <p>Argo CD is a declarative continuous delivery tool for Kubernetes. It implements a GitOps workflow: the desired application configuration is stored in Git, and Argo CD compares that configuration with the live cluster.</p>
+
+        <p>When the cluster differs from the desired state, Argo CD can report the difference and, when configured, synchronize the cluster to the desired configuration.</p>
+
+        <pre><code>Developer changes application
+          |
+          v
+   Build and push image
+          |
+          v
+   Update configuration in Git
+          |
+          v
+        Argo CD
+          |
+          v
+ Compare Git with live cluster
+          |
+          v
+    Synchronize if configured
+          |
+          v
+   Kubernetes applies changes</code></pre>
+
+        <h3>What is GitOps?</h3>
+
+        <p>GitOps uses a version-controlled repository as the source of truth for declarative infrastructure and application configuration.</p>
+
+        <p>Instead of relying only on a CI pipeline to issue deployment commands directly to the cluster, an agent inside or associated with the cluster observes the repository and reconciles the live state.</p>
+
+        <h3>Example workflow</h3>
+
+        <ol>
+            <li>A developer merges a code change.</li>
+            <li>A CI pipeline runs tests and builds a Docker image.</li>
+            <li>The image is pushed to a container registry.</li>
+            <li>The deployment repository is updated with the new image tag.</li>
+            <li>Argo CD detects the configuration change.</li>
+            <li>Argo CD synchronizes the application if automatic synchronization is enabled, or an operator triggers synchronization.</li>
+            <li>Kubernetes performs the rollout.</li>
+        </ol>
+
+        <h3>When would you use Argo CD?</h3>
+
+        <ul>
+            <li><strong>GitOps deployments:</strong> make Git the source of truth for deployed configuration.</li>
+            <li><strong>Auditability:</strong> review configuration changes through pull requests and Git history.</li>
+            <li><strong>Drift detection:</strong> identify differences between Git and the live cluster.</li>
+            <li><strong>Multiple environments or clusters:</strong> manage deployments using consistent declarative configuration.</li>
+            <li><strong>Controlled releases:</strong> combine manual approvals, automated synchronization, and repository protections.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+
+        <ul>
+            <li>Introduces another component to configure, monitor, and maintain.</li>
+            <li>Requires a sensible repository structure and clear ownership of configuration changes.</li>
+            <li>Secrets must be handled securely; putting plaintext secrets in Git is not safe.</li>
+            <li>Automatic synchronization can apply unintended changes if repository protections and validation are inadequate.</li>
+        </ul>
+
+        <p><strong>Important:</strong> Argo CD is not a replacement for CI. CI typically builds and tests the application, while Argo CD focuses on synchronizing the desired state of Kubernetes applications.</p>
+
+        <h2>7. Comparison Table</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>Technology</th>
+                    <th>Main responsibility</th>
+                    <th>What it manages</th>
+                    <th>Required?</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>VMs</td>
+                    <td>Virtualize computers</td>
+                    <td>Operating systems and virtual hardware</td>
+                    <td>No, not always</td>
+                </tr>
+                <tr>
+                    <td>Docker</td>
+                    <td>Build and run containers</td>
+                    <td>Images and containers</td>
+                    <td>Some container runtime is needed for containers, but Docker specifically is optional</td>
+                </tr>
+                <tr>
+                    <td>Kubernetes</td>
+                    <td>Orchestrate workloads</td>
+                    <td>Pods, deployments, services, and cluster resources</td>
+                    <td>Only if you need Kubernetes</td>
+                </tr>
+                <tr>
+                    <td>Helm</td>
+                    <td>Package and configure Kubernetes resources</td>
+                    <td>Charts and releases</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td>Argo CD</td>
+                    <td>GitOps continuous delivery</td>
+                    <td>Desired application state in Kubernetes</td>
+                    <td>No</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>8. How Do They Work Together in Production?</h2>
+
+        <p>Imagine you are building a backend API with a database, a cache, and background workers.</p>
+
+        <h3>Step 1: Package the application</h3>
+
+        <p>You create a Docker image containing the application and its runtime dependencies. CI builds the image, runs tests, and pushes the versioned image to a registry.</p>
+
+        <h3>Step 2: Provide computing infrastructure</h3>
+
+        <p>You provision machines. They might be cloud VMs in a managed Kubernetes cluster, physical servers, or infrastructure provided by a cloud platform.</p>
+
+        <h3>Step 3: Run the application with Kubernetes</h3>
+
+        <p>Kubernetes schedules Pods on worker nodes and manages their lifecycle. Services provide stable network access, and Deployments manage replicated stateless application instances.</p>
+
+        <h3>Step 4: Define reusable resources with Helm</h3>
+
+        <p>You package the application's Deployments, Services, and other resources into a Helm chart. Different values configure staging and production.</p>
+
+        <h3>Step 5: Deploy with Argo CD</h3>
+
+        <p>You store the chart configuration and environment-specific values in Git. Argo CD monitors the repository and reconciles the cluster with the desired configuration.</p>
+
+        <pre><code>                    Git Repository
+                          |
+                          v
+                       Argo CD
+                          |
+                          v
+                    Helm / Manifests
+                          |
+                          v
+                    Kubernetes
+                          |
+                          v
+                    Worker Nodes
+                          |
+                          v
+                    Container Runtime
+                          |
+                          v
+                    Application Pods
+
+    CI Pipeline ------> Container Registry
+                            |
+                            v
+                     Versioned Image
+                            |
+                            v
+                    Referenced by the
+                    Kubernetes workload</code></pre>
+
+        <p>Notice that the container registry and Git repository serve different purposes: the registry stores application images, while Git stores the desired deployment configuration.</p>
+
+        <h2>9. Do You Always Need All Five?</h2>
+
+        <p>No. The right setup depends on your application's scale, reliability requirements, team size, and operational capacity.</p>
+
+        <h3>Scenario A: Small application or side project</h3>
+
+        <p><strong>Possible choice:</strong> a VM running Docker Compose, or a managed application platform.</p>
+
+        <p>You can deploy your API and supporting services without introducing a Kubernetes cluster, Helm, or Argo CD.</p>
+
+        <pre><code>VM
+ |
+ +-- Docker container: API
+ +-- Docker container: Worker
+ +-- Docker container: Cache</code></pre>
+
+        <p>This is often easier to operate for a small number of services.</p>
+
+        <h3>Scenario B: Several services and growing operational needs</h3>
+
+        <p><strong>Possible choice:</strong> managed Kubernetes, with Helm if reusable templating is useful.</p>
+
+        <p>Kubernetes can standardize deployment, scaling, networking, and recovery across many services. However, adopting it is worthwhile only if its benefits outweigh the additional complexity.</p>
+
+        <h3>Scenario C: Many services and frequent releases</h3>
+
+        <p><strong>Possible choice:</strong> Kubernetes + Helm + Argo CD.</p>
+
+        <p>Helm standardizes application configuration, while Argo CD automates reconciliation and gives teams a consistent GitOps deployment workflow.</p>
+
+        <h3>Scenario D: Legacy application with OS-level requirements</h3>
+
+        <p><strong>Possible choice:</strong> VMs, possibly without Docker or Kubernetes.</p>
+
+        <p>If an application requires a particular operating system configuration or is difficult to containerize, running it directly on a VM can be the simpler solution.</p>
+
+        <h2>10. Common Misconceptions</h2>
+
+        <ul>
+            <li><strong>"Docker and Kubernetes are alternatives."</strong> Docker packages applications into containers; Kubernetes orchestrates workloads. They solve different problems.</li>
+            <li><strong>"Kubernetes requires Docker Engine."</strong> Kubernetes uses a compatible container runtime, commonly containerd or CRI-O. Docker Engine is not required on Kubernetes nodes.</li>
+            <li><strong>"Helm is a container runtime."</strong> Helm manages Kubernetes application packages and configuration; it does not run containers.</li>
+            <li><strong>"Argo CD replaces Kubernetes."</strong> Argo CD deploys and reconciles resources in Kubernetes; Kubernetes runs and manages the workloads.</li>
+            <li><strong>"Argo CD replaces CI."</strong> CI normally tests and builds artifacts. Argo CD focuses on continuous delivery through GitOps.</li>
+            <li><strong>"Kubernetes automatically scales everything."</strong> Scaling requires appropriate replica settings, autoscaling configuration, metrics, and enough cluster capacity.</li>
+            <li><strong>"Containers are VMs."</strong> Containers generally share a host kernel, while VMs run separate guest operating systems.</li>
+            <li><strong>"Every application needs Kubernetes."</strong> Simpler deployment options may be cheaper and easier to maintain.</li>
+        </ul>
+
+        <h2>11. What Should a Software Developer Learn First?</h2>
+
+        <p>You do not need to become a DevOps engineer to understand how your application gets deployed. A practical learning order is:</p>
+
+        <ol>
+            <li><strong>Docker:</strong> understand images, containers, Dockerfiles, registries, volumes, networking, and Docker Compose.</li>
+            <li><strong>Deployment fundamentals:</strong> learn environment variables, secrets, health checks, logs, resource limits, and CI pipelines.</li>
+            <li><strong>Kubernetes basics:</strong> understand Pods, Deployments, Services, ConfigMaps, Secrets, and how rolling updates work.</li>
+            <li><strong>Helm:</strong> learn how charts and values make Kubernetes configuration reusable.</li>
+            <li><strong>Argo CD:</strong> understand GitOps, synchronization, drift detection, and how a Git change reaches a running application.</li>
+            <li><strong>Infrastructure fundamentals:</strong> understand VMs, networking, load balancing, storage, permissions, and monitoring.</li>
+        </ol>
+
+        <p>You should be able to follow the path from a code change to a running application, diagnose a failed deployment, inspect logs, and understand which system is responsible for each step.</p>
+
+        <h2>12. What Should I Remember?</h2>
+
+        <ul>
+            <li><strong>VMs:</strong> provide virtual computers and operating system environments.</li>
+            <li><strong>Docker:</strong> packages applications into portable container images.</li>
+            <li><strong>Kubernetes:</strong> orchestrates containerized workloads across a cluster.</li>
+            <li><strong>Helm:</strong> packages and configures Kubernetes resources.</li>
+            <li><strong>Argo CD:</strong> reconciles Kubernetes deployments with configuration stored in Git.</li>
+        </ul>
+
+        <p>The most important idea is that these tools operate at different layers. Start with the simplest deployment architecture that meets your needs, and introduce additional tools when they solve a real problem.</p>
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+</body>
+</html>

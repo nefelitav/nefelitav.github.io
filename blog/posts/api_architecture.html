@@ -1,0 +1,813 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="REST vs GraphQL vs SOAP vs gRPC vs WebSockets vs MQTT — understand how they work, their trade-offs, and when to choose each API communication style.">
+    <meta property="og:title" content="REST vs GraphQL vs SOAP vs gRPC vs WebSockets vs MQTT – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to API architectural styles, communication protocols, and when to use each one.">
+    <meta property="og:type" content="article">
+
+    <title>REST vs GraphQL vs SOAP vs gRPC vs WebSockets vs MQTT – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+        <h1>REST vs GraphQL vs SOAP vs gRPC vs WebSockets vs MQTT</h1>
+        <time class="post-date" datetime="2026-10-15">15 October 2026</time>
+
+        <p>
+            APIs allow applications and services to communicate, but they don't all communicate in the same way.
+            Some expose resources over HTTP, some let clients request exactly the data they need, some use
+            strict message contracts, and others support continuous, real-time communication.
+        </p>
+
+        <p>
+            REST, GraphQL, SOAP, gRPC, WebSockets, and MQTT are often compared as if they were interchangeable.
+            In reality, they solve different problems and operate at different levels.
+        </p>
+
+        <h2>1. Quick Comparison</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>Technology</th>
+                    <th>Communication model</th>
+                    <th>Typical format</th>
+                    <th>Best suited for</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>REST</td>
+                    <td>Request-response</td>
+                    <td>Usually JSON</td>
+                    <td>Public APIs, CRUD, web backends</td>
+                </tr>
+                <tr>
+                    <td>GraphQL</td>
+                    <td>Client-defined queries</td>
+                    <td>Usually JSON</td>
+                    <td>Flexible data fetching for frontend applications</td>
+                </tr>
+                <tr>
+                    <td>SOAP</td>
+                    <td>Structured message exchange</td>
+                    <td>XML</td>
+                    <td>Enterprise systems with strict contracts and WS-* standards</td>
+                </tr>
+                <tr>
+                    <td>gRPC</td>
+                    <td>Remote procedure calls</td>
+                    <td>Usually Protocol Buffers</td>
+                    <td>Efficient communication between backend services</td>
+                </tr>
+                <tr>
+                    <td>WebSockets</td>
+                    <td>Persistent, bidirectional connection</td>
+                    <td>Application-defined messages</td>
+                    <td>Chat, live dashboards, multiplayer applications</td>
+                </tr>
+                <tr>
+                    <td>MQTT</td>
+                    <td>Publish-subscribe messaging</td>
+                    <td>Application-defined payloads</td>
+                    <td>IoT devices, sensors, unreliable networks</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>
+            <strong>Important:</strong> REST and GraphQL describe API approaches; SOAP defines a messaging protocol;
+            gRPC is an RPC framework; WebSockets provide a persistent, bidirectional communication channel; and
+            MQTT is a lightweight publish-subscribe messaging protocol. They are related, but they are not all
+            alternatives at exactly the same architectural level.
+        </p>
+
+        <h2>2. REST (Representational State Transfer)</h2>
+
+        <p>
+            REST is an architectural style commonly used to build HTTP APIs. It organizes an API around
+            <strong>resources</strong>, identified by URLs, and uses HTTP methods to perform operations on them.
+        </p>
+
+        <h3>Example</h3>
+
+        <pre><code>GET    /users/42
+POST   /users
+PUT    /users/42
+PATCH  /users/42
+DELETE /users/42</code></pre>
+
+        <p>A typical response might look like this:</p>
+
+        <pre><code>{
+    "id": 42,
+    "name": "Nefeli",
+    "email": "nefeli@example.com"
+}</code></pre>
+
+        <h3>How it works</h3>
+
+        <ol>
+            <li>The client sends an HTTP request.</li>
+            <li>The server processes it.</li>
+            <li>The server returns an HTTP response with a status code and, often, a JSON body.</li>
+        </ol>
+
+        <p>
+            Each request is generally independent. REST's stateless constraint means the server does not rely on
+            client session state stored between requests to understand the request. Authentication can still use
+            tokens, cookies, or other mechanisms.
+        </p>
+
+        <h3>When to use REST</h3>
+
+        <ul>
+            <li>Building a conventional backend for a web or mobile application.</li>
+            <li>Exposing a public API to third-party developers.</li>
+            <li>Implementing CRUD operations for users, products, orders, and invoices.</li>
+            <li>Integrating systems that communicate naturally over HTTP.</li>
+            <li>Building APIs that benefit from HTTP caching, standard status codes, and familiar tooling.</li>
+        </ul>
+
+        <h3>Advantages</h3>
+
+        <ul>
+            <li>Simple and widely understood.</li>
+            <li>Excellent ecosystem of libraries, documentation, gateways, and debugging tools.</li>
+            <li>Works naturally with HTTP infrastructure.</li>
+            <li>Easy to inspect using a browser, curl, or an API client.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+
+        <ul>
+            <li>A response may include fields the client does not need.</li>
+            <li>A frontend may need multiple requests to build one screen.</li>
+            <li>API versioning and backward compatibility require deliberate design.</li>
+            <li>Request-response alone is not a natural solution for continuous real-time updates.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> A billing backend exposes <code>GET /invoices/123</code> to retrieve an
+            invoice and <code>POST /invoices</code> to create one.
+        </p>
+
+        <h2>3. GraphQL</h2>
+
+        <p>
+            GraphQL is a query language for APIs and a runtime for executing those queries. Instead of defining
+            many resource-specific endpoints, an API commonly exposes a GraphQL endpoint where clients specify
+            which data they want.
+        </p>
+
+        <h3>Example</h3>
+
+        <pre><code>query {
+    user(id: 42) {
+        name
+        email
+        orders {
+            id
+            total
+        }
+    }
+}</code></pre>
+
+        <p>The server returns the requested fields:</p>
+
+        <pre><code>{
+    "data": {
+        "user": {
+            "name": "Nefeli",
+            "email": "nefeli@example.com",
+            "orders": [
+                {
+                    "id": "order-123",
+                    "total": 49.99
+                }
+            ]
+        }
+    }
+}</code></pre>
+
+        <p>
+            The client requested the user, their name and email, and some fields from their orders. It did not
+            need to call separate endpoints for each resource.
+        </p>
+
+        <h3>What problem does it solve?</h3>
+
+        <p>
+            Imagine a mobile screen that needs a user's name, profile picture, and the titles of their latest
+            five orders. A REST API might require multiple requests or return more data than the screen needs.
+            GraphQL allows the client to describe the desired data in one query.
+        </p>
+
+        <h3>When to use GraphQL</h3>
+
+        <ul>
+            <li>Frontend applications with complex screens that combine many related resources.</li>
+            <li>Mobile applications where reducing unnecessary data transfer matters.</li>
+            <li>Products with multiple clients that need different views of the same underlying data.</li>
+            <li>APIs where the data requirements change frequently across frontend teams.</li>
+        </ul>
+
+        <h3>Advantages</h3>
+
+        <ul>
+            <li>Clients choose the fields they need.</li>
+            <li>Related data can often be fetched in one request.</li>
+            <li>A schema describes available types, fields, and operations.</li>
+            <li>It can reduce over-fetching and under-fetching.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+
+        <ul>
+            <li>More complexity in authorization, query validation, and execution.</li>
+            <li>Deep or expensive queries can overload the backend without limits and cost controls.</li>
+            <li>Caching is less straightforward than caching individual REST resources by URL, although it is possible.</li>
+            <li>Poor resolver design can cause the N+1 query problem.</li>
+        </ul>
+
+        <p>
+            <strong>Important:</strong> GraphQL does not automatically make an API faster. The server still needs
+            efficient database queries, batching, caching, pagination, and query limits.
+        </p>
+
+        <p>
+            GraphQL can also support subscriptions for updates, but these require an appropriate transport and
+            infrastructure; WebSockets are commonly used.
+        </p>
+
+        <h2>4. SOAP (Simple Object Access Protocol)</h2>
+
+        <p>
+            SOAP is a protocol for exchanging structured messages. It uses XML-based envelopes and supports
+            formal service contracts. SOAP is common in established enterprise integrations, including some
+            banking, insurance, and government systems.
+        </p>
+
+        <h3>Example</h3>
+
+        <pre><code>&lt;soap:Envelope
+    xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"&gt;
+    &lt;soap:Body&gt;
+        &lt;GetInvoice&gt;
+            &lt;InvoiceId&gt;123&lt;/InvoiceId&gt;
+        &lt;/GetInvoice&gt;
+    &lt;/soap:Body&gt;
+&lt;/soap:Envelope&gt;</code></pre>
+
+        <p>
+            A SOAP request wraps an operation and its parameters inside an XML envelope. A SOAP service may
+            describe its operations and message structures using a WSDL (Web Services Description Language) contract.
+        </p>
+
+        <h3>What makes SOAP different?</h3>
+
+        <ul>
+            <li><strong>XML messaging:</strong> messages follow a defined structure.</li>
+            <li><strong>WSDL:</strong> describes service operations and the expected message types.</li>
+            <li><strong>WS-* standards:</strong> provide extensions for capabilities such as message-level security
+                and reliable messaging.</li>
+            <li><strong>Protocol independence:</strong> SOAP is not inherently limited to HTTP, although HTTP is common.</li>
+        </ul>
+
+        <h3>When to use SOAP</h3>
+
+        <ul>
+            <li>Integrating with an external provider that only offers a SOAP API.</li>
+            <li>Working with legacy enterprise systems built around WSDL contracts.</li>
+            <li>Interoperating with systems that require particular WS-* standards.</li>
+            <li>Supporting formal, schema-driven contracts in an established enterprise environment.</li>
+        </ul>
+
+        <h3>Advantages</h3>
+
+        <ul>
+            <li>Strict message contracts and XML schemas.</li>
+            <li>A mature ecosystem for enterprise integrations.</li>
+            <li>Standardized extensions for specific security and messaging requirements.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+
+        <ul>
+            <li>XML messages are often more verbose than JSON.</li>
+            <li>Tooling and configuration can be more complex.</li>
+            <li>It is often unnecessarily heavyweight for a new, simple web API.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> Your service needs to retrieve payment information from a bank whose
+            integration contract defines SOAP operations. You implement the required SOAP client rather than
+            choosing REST simply because it is more common for modern web APIs.
+        </p>
+
+        <h2>5. gRPC (Google Remote Procedure Call)</h2>
+
+        <p>
+            gRPC is a remote procedure call (RPC) framework. Instead of thinking primarily in terms of resources
+            and HTTP methods, a client calls a method exposed by another service.
+        </p>
+
+        <p>
+            It commonly uses HTTP/2 for transport and Protocol Buffers (Protobuf) for compact, strongly typed
+            message serialization.
+        </p>
+
+        <h3>Define a service</h3>
+
+        <pre><code>syntax = "proto3";
+
+service InvoiceService {
+    rpc GetInvoice (GetInvoiceRequest)
+        returns (Invoice);
+}
+
+message GetInvoiceRequest {
+    string invoice_id = 1;
+}
+
+message Invoice {
+    string invoice_id = 1;
+    int64 amount_cents = 2;
+    string currency = 3;
+}</code></pre>
+
+        <p>A client can then call the generated method in its language-specific client library, conceptually like this:</p>
+
+        <pre><code>invoice = invoiceClient.GetInvoice({
+    invoice_id: "inv_123"
+});</code></pre>
+
+        <p>
+            The actual generated method signatures depend on the programming language and client library.
+            The important point is that the service contract defines the available methods and message types.
+        </p>
+
+        <h3>gRPC supports four communication patterns</h3>
+
+        <ul>
+            <li><strong>Unary:</strong> one request, one response.</li>
+            <li><strong>Server streaming:</strong> one request, multiple responses.</li>
+            <li><strong>Client streaming:</strong> multiple requests, one response.</li>
+            <li><strong>Bidirectional streaming:</strong> both sides can stream messages.</li>
+        </ul>
+
+        <h3>When to use gRPC</h3>
+
+        <ul>
+            <li>Communication between backend microservices.</li>
+            <li>High-throughput, low-latency internal service calls.</li>
+            <li>Systems that benefit from strongly typed service contracts and generated clients.</li>
+            <li>Streaming between services.</li>
+            <li>Polyglot environments where services use different programming languages.</li>
+        </ul>
+
+        <h3>Advantages</h3>
+
+        <ul>
+            <li>Compact binary messages through Protobuf.</li>
+            <li>Generated clients and service definitions reduce manual integration work.</li>
+            <li>HTTP/2 enables features such as multiplexing and streaming.</li>
+            <li>Supports deadlines, cancellation, and metadata.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+
+        <ul>
+            <li>Harder to inspect manually than a JSON-based API.</li>
+            <li>Browser integration may require gRPC-Web or a compatible gateway.</li>
+            <li>Protobuf schema evolution needs care.</li>
+            <li>Requires compatible client and server tooling.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> An Order Service calls a Payment Service to authorize a payment.
+            Both are backend services maintained by your organization, and you want typed contracts and efficient communication.
+            gRPC could be a good fit.
+        </p>
+
+        <h2>6. WebSockets</h2>
+
+        <p>
+            Traditional HTTP follows a request-response model: the client sends a request, and the server sends
+            a response. WebSockets establish a persistent connection that allows both sides to send messages
+            independently.
+        </p>
+
+        <p>
+            A WebSocket connection commonly begins with an HTTP handshake and then upgrades to the WebSocket
+            protocol.
+        </p>
+
+        <h3>How it works</h3>
+
+        <ol>
+            <li>The browser establishes a WebSocket connection to the server.</li>
+            <li>The connection remains open while both sides are connected.</li>
+            <li>The server can send an update without waiting for another client request.</li>
+            <li>The client can also send messages over the same connection.</li>
+        </ol>
+
+        <h3>Browser example</h3>
+
+        <pre><code>const socket = new WebSocket("wss://example.com/live");
+
+socket.addEventListener("open", () => {
+    socket.send(JSON.stringify({
+        type: "subscribe",
+        channel: "invoice-status"
+    }));
+});
+
+socket.addEventListener("message", (event) => {
+    const message = JSON.parse(event.data);
+    console.log("Received update:", message);
+});</code></pre>
+
+        <p>The server could send a message when an invoice changes status:</p>
+
+        <pre><code>{
+    "type": "invoice.updated",
+    "invoiceId": "inv_123",
+    "status": "paid"
+}</code></pre>
+
+        <h3>When to use WebSockets</h3>
+
+        <ul>
+            <li>Chat and messaging applications.</li>
+            <li>Live dashboards and real-time notifications.</li>
+            <li>Multiplayer games and collaborative editing.</li>
+            <li>Applications where clients and servers exchange frequent updates in both directions.</li>
+        </ul>
+
+        <h3>Advantages</h3>
+
+        <ul>
+            <li>Bidirectional communication over a persistent connection.</li>
+            <li>Low overhead for repeated messages after the connection is established.</li>
+            <li>Servers can push updates immediately.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+
+        <ul>
+            <li>Connections consume server and infrastructure resources.</li>
+            <li>Reconnection, authentication, heartbeat handling, and horizontal scaling require planning.</li>
+            <li>Applications need to define their own message format and semantics.</li>
+            <li>WebSockets do not automatically provide durable message delivery or replay after disconnection.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> A merchant keeps an invoice page open and receives a live notification when
+            the invoice is paid, instead of repeatedly polling an HTTP endpoint.
+        </p>
+
+        <p>
+            If the browser only needs occasional updates and can tolerate a delay, ordinary HTTP polling or
+            Server-Sent Events (SSE) may be simpler alternatives.
+        </p>
+
+        <h2>7. MQTT (Message Queuing Telemetry Transport)</h2>
+
+        <p>
+            MQTT is a lightweight publish-subscribe messaging protocol designed for devices and networks where
+            bandwidth, power, or connectivity may be limited.
+        </p>
+
+        <p>
+            Instead of sending a message directly to a particular recipient, a publisher sends it to a topic
+            through an MQTT broker. Subscribers receive messages for the topics they have subscribed to.
+        </p>
+
+        <h3>Example</h3>
+
+        <p>Imagine a temperature sensor publishing readings to this topic:</p>
+
+        <pre><code>factory/room-1/temperature</code></pre>
+
+        <p>It publishes a payload such as:</p>
+
+        <pre><code>{
+    "temperature": 22.4
+}</code></pre>
+
+        <p>A monitoring service subscribes to the topic and receives new readings through the broker.</p>
+
+        <h3>How it works</h3>
+
+        <ol>
+            <li>A device connects to an MQTT broker.</li>
+            <li>The device publishes a message to a topic.</li>
+            <li>The broker forwards the message to matching subscribers.</li>
+            <li>Subscribers process the message independently of the publisher.</li>
+        </ol>
+
+        <h3>Quality of Service (QoS)</h3>
+
+        <p>MQTT defines three message delivery QoS levels:</p>
+
+        <ul>
+            <li><strong>QoS 0 — At most once:</strong> the message is sent without a protocol-level delivery acknowledgement. It may be lost.</li>
+            <li><strong>QoS 1 — At least once:</strong> delivery is acknowledged, but duplicates may occur.</li>
+            <li><strong>QoS 2 — Exactly once:</strong> the MQTT protocol uses a handshake to deliver the message exactly once within the relevant protocol exchange.</li>
+        </ul>
+
+        <p>
+            QoS 2 does not guarantee that your business operation runs exactly once end to end. Applications
+            still need to consider persistent sessions, broker configuration, consumer processing, database
+            transactions, and idempotency.
+        </p>
+
+        <h3>When to use MQTT</h3>
+
+        <ul>
+            <li>IoT devices and sensors.</li>
+            <li>Smart homes, industrial monitoring, and telemetry.</li>
+            <li>Devices operating over slow or unreliable networks.</li>
+            <li>Many devices publishing data to multiple independent consumers.</li>
+            <li>Battery-powered devices where lightweight communication matters.</li>
+        </ul>
+
+        <h3>Advantages</h3>
+
+        <ul>
+            <li>Lightweight protocol with relatively low message overhead.</li>
+            <li>Publish-subscribe decouples publishers from subscribers.</li>
+            <li>QoS options allow different delivery trade-offs.</li>
+            <li>Supports retained messages and session features, depending on configuration.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+
+        <ul>
+            <li>Requires an MQTT broker and appropriate operational management.</li>
+            <li>Not a natural replacement for a conventional public CRUD API.</li>
+            <li>Security, topic permissions, connection limits, and message handling need careful design.</li>
+            <li>Delivery guarantees depend on QoS and configuration, and do not automatically guarantee business-level correctness.</li>
+        </ul>
+
+        <p>
+            <strong>Example:</strong> Thousands of temperature sensors send measurements to a broker. Multiple
+            services independently subscribe to readings for alerting, analytics, and storage.
+        </p>
+
+        <h2>8. The Most Important Differences</h2>
+
+        <h3>REST vs GraphQL</h3>
+
+        <p>
+            Both are commonly used for HTTP APIs, but they shape data access differently.
+        </p>
+
+        <ul>
+            <li><strong>REST:</strong> the server exposes resource-oriented endpoints and defines their responses.</li>
+            <li><strong>GraphQL:</strong> the client describes the fields and related data it wants from a schema.</li>
+        </ul>
+
+        <p>
+            Choose REST for straightforward resource APIs. Consider GraphQL when many clients need different
+            combinations of related data and the flexibility justifies the additional complexity.
+        </p>
+
+        <h3>REST vs gRPC</h3>
+
+        <ul>
+            <li><strong>REST:</strong> typically uses HTTP methods, URLs, and JSON representations.</li>
+            <li><strong>gRPC:</strong> calls explicitly defined service methods and commonly uses Protobuf over HTTP/2.</li>
+        </ul>
+
+        <p>
+            REST is often convenient for public APIs and browser-facing applications. gRPC is often attractive
+            for internal service-to-service communication. Neither is automatically faster or better in every system.
+        </p>
+
+        <h3>SOAP vs REST</h3>
+
+        <ul>
+            <li><strong>SOAP:</strong> formal XML messaging protocol with an established ecosystem of enterprise standards.</li>
+            <li><strong>REST:</strong> architectural style commonly implemented with HTTP and JSON.</li>
+        </ul>
+
+        <p>
+            For a new, simple HTTP API, REST is often easier. If a partner requires SOAP or relies on specific
+            SOAP standards, use SOAP to meet that contract.
+        </p>
+
+        <h3>WebSockets vs MQTT</h3>
+
+        <ul>
+            <li><strong>WebSockets:</strong> provide a persistent, bidirectional connection between two endpoints.</li>
+            <li><strong>MQTT:</strong> provides publish-subscribe messaging through a broker.</li>
+        </ul>
+
+        <p>
+            Use WebSockets for direct, real-time interaction between an application and its server. Use MQTT
+            when lightweight messaging and decoupling many publishers from many subscribers are central requirements.
+        </p>
+
+        <p>
+            These are not mutually exclusive. An application can use WebSockets to update a browser while using
+            MQTT to receive messages from IoT devices.
+        </p>
+
+        <h2>9. How to Choose: Real Scenarios</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>Scenario</th>
+                    <th>Likely choice</th>
+                    <th>Why</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Build an API for a web shop</td>
+                    <td>REST</td>
+                    <td>Resource-based endpoints are straightforward to build and consume.</td>
+                </tr>
+                <tr>
+                    <td>A mobile screen needs selected fields from many related resources</td>
+                    <td>GraphQL</td>
+                    <td>The client can request the exact data it needs.</td>
+                </tr>
+                <tr>
+                    <td>Integrate with a bank that requires a SOAP contract</td>
+                    <td>SOAP</td>
+                    <td>You must comply with the provider's protocol and schema.</td>
+                </tr>
+                <tr>
+                    <td>Two internal microservices exchange typed requests frequently</td>
+                    <td>gRPC</td>
+                    <td>Generated contracts and compact messages can be useful.</td>
+                </tr>
+                <tr>
+                    <td>A browser receives live chat messages</td>
+                    <td>WebSockets</td>
+                    <td>The server can push messages over a persistent connection.</td>
+                </tr>
+                <tr>
+                    <td>Thousands of sensors publish readings</td>
+                    <td>MQTT</td>
+                    <td>Lightweight pub-sub suits device telemetry and multiple consumers.</td>
+                </tr>
+                <tr>
+                    <td>External developers need a stable, documented API</td>
+                    <td>REST or GraphQL</td>
+                    <td>Choose based on resource-oriented access versus flexible queries.</td>
+                </tr>
+                <tr>
+                    <td>A backend service streams a sequence of results to another service</td>
+                    <td>gRPC streaming</td>
+                    <td>It supports typed streaming RPCs.</td>
+                </tr>
+                <tr>
+                    <td>A live dashboard updates when backend events occur</td>
+                    <td>WebSockets or SSE</td>
+                    <td>Use WebSockets for bidirectional interaction; SSE for server-to-client updates only.</td>
+                </tr>
+                <tr>
+                    <td>Multiple independent systems consume domain events</td>
+                    <td>A message broker or event bus</td>
+                    <td>Asynchronous messaging may be a better fit than direct API calls. MQTT is one option for suitable messaging needs.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>10. Can You Combine Them?</h2>
+
+        <p>Absolutely. Real systems often use different communication styles for different purposes.</p>
+
+        <pre><code>                 Web / Mobile App
+                        |
+                 REST or GraphQL
+                        |
+                  API Backend
+                   /       \
+                gRPC       Message Broker
+                 |              |
+          Internal Services   MQTT / Events
+                                  |
+                              IoT Devices</code></pre>
+
+        <p>For example, an e-commerce system might use:</p>
+
+        <ul>
+            <li><strong>REST</strong> for its public product and order API.</li>
+            <li><strong>GraphQL</strong> for a frontend that needs flexible, related data.</li>
+            <li><strong>gRPC</strong> for internal calls between Order and Payment services.</li>
+            <li><strong>WebSockets</strong> to send live order-status updates to the browser.</li>
+            <li><strong>MQTT</strong> for communication with warehouse sensors or connected devices.</li>
+            <li><strong>SOAP</strong> when integrating with a legacy external provider that requires it.</li>
+        </ul>
+
+        <p>
+            You do not need to select one technology for the entire application. Select the communication
+            approach that fits each interaction, while keeping the overall architecture as simple as possible.
+        </p>
+
+        <h2>11. Common Misconceptions</h2>
+
+        <ul>
+            <li>
+                <strong>"GraphQL is always better than REST."</strong>
+                No. GraphQL provides flexible queries, but adds complexity. REST can be simpler and easier to cache.
+            </li>
+            <li>
+                <strong>"gRPC is always faster."</strong>
+                Not necessarily. Its binary serialization and transport can help, but performance depends on
+                payloads, network conditions, application logic, and implementation.
+            </li>
+            <li>
+                <strong>"WebSockets guarantee message delivery."</strong>
+                No. A persistent connection does not automatically provide durable storage, retries, or replay.
+            </li>
+            <li>
+                <strong>"MQTT is just WebSockets for IoT."</strong>
+                No. MQTT defines a publish-subscribe messaging protocol with broker-based delivery semantics.
+                WebSockets define a bidirectional communication channel.
+            </li>
+            <li>
+                <strong>"SOAP is obsolete."</strong>
+                SOAP is less common for many new web APIs, but remains relevant when existing enterprise systems
+                and contracts depend on it.
+            </li>
+            <li>
+                <strong>"REST means JSON."</strong>
+                REST does not require JSON. JSON is simply a common representation format for REST APIs.
+            </li>
+            <li>
+                <strong>"All six are competing protocols."</strong>
+                They operate at different levels and can coexist in the same system.
+            </li>
+        </ul>
+
+        <h2>12. What Should I Remember?</h2>
+
+        <ul>
+            <li><strong>REST:</strong> resource-oriented HTTP APIs; a strong default for conventional web backends.</li>
+            <li><strong>GraphQL:</strong> clients request the fields and relationships they need.</li>
+            <li><strong>SOAP:</strong> structured XML messaging with formal contracts and enterprise standards.</li>
+            <li><strong>gRPC:</strong> typed remote procedure calls, commonly used between backend services.</li>
+            <li><strong>WebSockets:</strong> persistent, bidirectional communication for real-time applications.</li>
+            <li><strong>MQTT:</strong> lightweight, broker-based publish-subscribe messaging, especially for IoT.</li>
+        </ul>
+
+        <p>
+            The most useful question is not "Which API style is the best?" but
+            <strong>"What communication problem am I solving?"</strong>
+        </p>
+
+        <p>
+            Consider who is communicating, whether communication is synchronous or asynchronous, whether data
+            should be pushed or requested, how strict the contract must be, and what reliability and performance
+            requirements the system has. Those requirements should guide the choice.
+        </p>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Java Environment Explained — understand the JDK, JRE, JVM, bytecode, memory management, concurrency, type erasure and the Java backend ecosystem.">
+    <meta property="og:title" content="Java Environment Explained – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical Java guide for backend developers, covering the JVM, JDK, memory, concurrency, generics, Streams and common Java ecosystem tools.">
+    <meta property="og:type" content="article">
+
+    <title>Java Environment Explained – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+
+        <h1>Java Environment Explained</h1>
+
+        <time class="post-date" datetime="2026-10-15">
+            15 October 2026
+        </time>
+
+        <p>
+            Java is more than a programming language. To develop and run Java
+            applications, you need an environment that can compile your code,
+            execute it and provide the libraries it depends on.
+        </p>
+
+        <p>
+            Coming from PHP, some concepts will feel familiar, but Java has
+            important differences in its type system, memory management,
+            concurrency model and runtime. Understanding these differences
+            helps you write safer code and debug production issues.
+        </p>
+
+        <h2>The Big Picture</h2>
+
+        <ul>
+            <li><strong>JDK (Java Development Kit)</strong> — development tools, including the compiler.</li>
+            <li><strong>JRE (Java Runtime Environment)</strong> — the traditional set of components required to run Java applications.</li>
+            <li><strong>JVM (Java Virtual Machine)</strong> — executes Java bytecode.</li>
+            <li><strong>Bytecode</strong> — platform-independent instructions produced by the Java compiler.</li>
+            <li><strong>Classpath</strong> — tells Java where to find classes and libraries.</li>
+            <li><strong>JAVA_HOME</strong> — conventionally points to a JDK installation.</li>
+            <li><strong>PATH</strong> — tells the operating system where to find executable commands.</li>
+            <li><strong>Garbage collector</strong> — automatically reclaims memory occupied by unreachable objects.</li>
+            <li><strong>JIT compiler</strong> — can compile frequently executed bytecode into native machine instructions at runtime.</li>
+        </ul>
+
+        <h2>How Java Code Runs</h2>
+
+        <p>
+            Java typically uses two main steps: compilation and execution.
+            The compiler translates source code into bytecode, which a
+            compatible JVM can execute.
+        </p>
+
+        <pre><code>Java Source Code
+    Main.java
+        |
+        | javac (compiler)
+        v
+Java Bytecode
+    Main.class
+        |
+        | java (launcher)
+        v
+JVM
+        |
+        v
+Program Execution</code></pre>
+
+        <p>For example, create a file named <code>Main.java</code>:</p>
+
+        <pre><code>public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, Java!");
+    }
+}</code></pre>
+
+        <p>Compile the source file:</p>
+
+        <pre><code>javac Main.java</code></pre>
+
+        <p>This generates <code>Main.class</code>, containing Java bytecode.</p>
+
+        <p>Run the program:</p>
+
+        <pre><code>java Main</code></pre>
+
+        <p>Output:</p>
+
+        <pre><code>Hello, Java!</code></pre>
+
+        <p>
+            Notice that you use <code>java Main</code>, not
+            <code>java Main.class</code>. The launcher expects a class name
+            when launching a class from the classpath.
+        </p>
+
+        <h2>JDK vs JRE vs JVM</h2>
+
+        <h3>JVM — Java Virtual Machine</h3>
+
+        <p>
+            The JVM is the runtime engine that loads and executes Java
+            bytecode. It manages runtime operations such as class loading,
+            memory allocation and garbage collection.
+        </p>
+
+        <pre><code>Java Bytecode
+       |
+       v
+      JVM
+       |
+   +---+---+
+   |       |
+Windows   Linux
+   |       |
+   v       v
+Execution Execution</code></pre>
+
+        <p>
+            The JVM is platform-specific, even though Java bytecode is
+            designed to be portable.
+        </p>
+
+        <h3>JRE — Java Runtime Environment</h3>
+
+        <p>
+            The JRE traditionally refers to the JVM together with the
+            libraries and components required to run Java applications.
+            It does not include development tools such as the Java compiler.
+        </p>
+
+        <p>
+            Modern Java distributions do not always offer a separate JRE
+            download. Developers commonly install a JDK, which also contains
+            the components needed to run Java applications.
+        </p>
+
+        <h3>JDK — Java Development Kit</h3>
+
+        <p>
+            The JDK is what developers normally install. It includes the
+            Java runtime and tools for compiling, debugging and packaging
+            Java applications.
+        </p>
+
+        <pre><code>JDK
+ |
+ +-- Java compiler (javac)
+ |
+ +-- Java launcher (java)
+ |
+ +-- Debugging and development tools
+ |
+ +-- Runtime components
+      |
+      +-- JVM
+      |
+      +-- Core libraries</code></pre>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Component</th>
+                <th>Main purpose</th>
+                <th>Compiler included?</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>JVM</td>
+                <td>Execute bytecode</td>
+                <td>No</td>
+            </tr>
+            <tr>
+                <td>JRE (traditional concept)</td>
+                <td>Run Java applications</td>
+                <td>No</td>
+            </tr>
+            <tr>
+                <td>JDK</td>
+                <td>Develop and run applications</td>
+                <td>Yes</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>Why Does Java Use Bytecode?</h2>
+
+        <p>
+            Bytecode sits between Java source code and the underlying
+            machine. The compiler translates Java code into a standardized
+            format that a compatible JVM can execute.
+        </p>
+
+        <pre><code>             Main.java
+                 |
+                 v
+            Java Compiler
+                 |
+                 v
+             Main.class
+             (bytecode)
+                 |
+        +--------+--------+
+        |                 |
+        v                 v
+    Windows JVM        Linux JVM
+        |                 |
+        v                 v
+    Execution          Execution</code></pre>
+
+        <p>
+            This is the foundation of Java's
+            <strong>"Write Once, Run Anywhere"</strong> idea. Compatibility
+            still depends on the Java version, available libraries and
+            any platform-specific dependencies.
+        </p>
+
+        <h3>The JIT Compiler</h3>
+
+        <p>
+            The JVM can interpret bytecode and use a Just-In-Time (JIT)
+            compiler to compile frequently executed code into native
+            machine instructions at runtime.
+        </p>
+
+        <pre><code>Bytecode
+    |
+    v
+JVM Interpreter
+    |
+    +---- Frequently executed code
+                    |
+                    v
+               JIT Compiler
+                    |
+                    v
+             Native Machine Code</code></pre>
+
+        <p>
+            The JVM can optimize code based on how the application actually
+            behaves. This is one reason Java performance can improve after
+            an application has been running for a while.
+        </p>
+
+        <h2>JAVA_HOME vs PATH</h2>
+
+        <h3>JAVA_HOME</h3>
+
+        <p>
+            <code>JAVA_HOME</code> conventionally points to the root
+            directory of a JDK installation.
+        </p>
+
+        <pre><code>JAVA_HOME=/path/to/jdk</code></pre>
+
+        <p>For example:</p>
+
+        <pre><code>JAVA_HOME=/usr/lib/jvm/jdk-21</code></pre>
+
+        <p>
+            Build tools, IDEs and other applications may use this variable
+            to locate Java.
+        </p>
+
+        <h3>PATH</h3>
+
+        <p>
+            <code>PATH</code> is a list of directories that the operating
+            system searches when you run a command.
+        </p>
+
+        <pre><code>PATH=$JAVA_HOME/bin:$PATH</code></pre>
+
+        <p>
+            This is common Unix-like shell syntax. Windows uses different
+            syntax for configuring environment variables.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Variable</th>
+                <th>Purpose</th>
+                <th>Example</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>JAVA_HOME</td>
+                <td>Identify the JDK installation</td>
+                <td><code>/usr/lib/jvm/jdk-21</code></td>
+            </tr>
+            <tr>
+                <td>PATH</td>
+                <td>Locate executable commands</td>
+                <td><code>$JAVA_HOME/bin</code></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            Setting JAVA_HOME does not automatically guarantee that the
+            correct Java executable is used. PATH ordering and IDE or
+            build-tool configuration also matter.
+        </p>
+
+        <h2>How to Check Your Java Installation</h2>
+
+        <pre><code>java -version
+javac -version</code></pre>
+
+        <p>Check command locations on Linux or macOS:</p>
+
+        <pre><code>which java
+which javac</code></pre>
+
+        <p>On Windows:</p>
+
+        <pre><code>where java
+where javac</code></pre>
+
+        <p>Check JAVA_HOME on Linux or macOS:</p>
+
+        <pre><code>echo $JAVA_HOME</code></pre>
+
+        <p>On Windows Command Prompt:</p>
+
+        <pre><code>echo %JAVA_HOME%</code></pre>
+
+        <p>
+            If <code>java</code> works but <code>javac</code> is missing,
+            the JDK may not be installed or its bin directory may not
+            be available through PATH.
+        </p>
+
+        <h2>What Is the Classpath?</h2>
+
+        <p>
+            The classpath tells Java where to find compiled classes and
+            JAR files required by an application.
+        </p>
+
+        <pre><code>project/
+ |
+ +-- Main.class
+ |
+ +-- lib/
+      |
+      +-- library.jar</code></pre>
+
+        <p>Linux or macOS:</p>
+
+        <pre><code>java -cp ".:lib/library.jar" Main</code></pre>
+
+        <p>Windows:</p>
+
+        <pre><code>java -cp ".;lib/library.jar" Main</code></pre>
+
+        <p>
+            The current directory is represented by <code>.</code>.
+            Unix-like systems separate classpath entries with a colon,
+            while Windows uses a semicolon.
+        </p>
+
+        <p>
+            PATH helps the operating system locate executables.
+            The classpath helps Java locate application classes and libraries.
+            They solve different problems.
+        </p>
+
+        <h2>What Is a JAR File?</h2>
+
+        <p>
+            A JAR (Java Archive) packages compiled classes, resources and
+            metadata into a single file. It uses the ZIP archive format.
+        </p>
+
+        <pre><code>my-application.jar
+ |
+ +-- Main.class
+ |
+ +-- com/example/Service.class
+ |
+ +-- application.properties
+ |
+ +-- META-INF/MANIFEST.MF</code></pre>
+
+        <p>
+            A JAR can be launched with <code>java -jar</code> when it has
+            the appropriate manifest and entry point.
+        </p>
+
+        <pre><code>java -jar my-application.jar</code></pre>
+
+        <h2>Java's Type System</h2>
+
+        <p>
+            PHP supports type declarations, but Java uses a more extensive
+            compile-time type system. Many type errors can be detected
+            before the application runs.
+        </p>
+
+        <pre><code>List&lt;String&gt; names = new ArrayList<>();
+
+names.add("Nefeli");
+// names.add(123); // Compile-time error</code></pre>
+
+        <p>
+            Java's generic collections specify the type of elements they
+            accept. This improves type safety and reduces the need for
+            manual casting.
+        </p>
+
+        <h3>Type Erasure</h3>
+
+        <p>
+            An important Java-specific detail is that generic type
+            information is mostly erased at runtime.
+        </p>
+
+        <pre><code>List&lt;String&gt; names = new ArrayList<>();
+List&lt;Integer&gt; numbers = new ArrayList<>();</code></pre>
+
+        <p>
+            Although these lists have different generic types at compile
+            time, their runtime class is generally the same:
+            <code>ArrayList</code>.
+        </p>
+
+        <p>
+            This is called <strong>type erasure</strong>. It means you
+            generally cannot check whether an arbitrary object is a
+            <code>List&lt;String&gt;</code> at runtime.
+        </p>
+
+        <h2>Primitives vs Wrapper Classes</h2>
+
+        <p>
+            Java has primitive types such as <code>int</code>,
+            <code>long</code>, <code>double</code> and <code>boolean</code>,
+            alongside object wrappers such as <code>Integer</code>,
+            <code>Long</code>, <code>Double</code> and <code>Boolean</code>.
+        </p>
+
+        <pre><code>int count = 5;
+Integer boxedCount = count;
+
+List&lt;Integer&gt; counts = new ArrayList<>();
+counts.add(5);</code></pre>
+
+        <p>
+            Generic collections use object types rather than primitive types.
+            Java automatically converts between primitives and their wrappers
+            through boxing and unboxing.
+        </p>
+
+        <p>
+            A primitive variable cannot be null, but a wrapper object can.
+            Unboxing a null wrapper can throw a NullPointerException.
+        </p>
+
+        <h2>Object Equality: == vs equals()</h2>
+
+        <p>
+            This is one of the most important differences to understand
+            when coming from PHP.
+        </p>
+
+        <p>
+            For Java objects, <code>==</code> compares references:
+            it checks whether both variables refer to the same object.
+            <code>equals()</code> can compare logical equality when the
+            class implements it appropriately.
+        </p>
+
+        <pre><code>String a = new String("hello");
+String b = new String("hello");
+
+System.out.println(a == b);      // false
+System.out.println(a.equals(b)); // true</code></pre>
+
+        <p>
+            In PHP, two strings with the same value compare equal using
+            <code>===</code>. In Java, use <code>equals()</code> when
+            you want to compare the contents of ordinary objects such
+            as strings.
+        </p>
+
+        <h3>equals() and hashCode()</h3>
+
+        <p>
+            Java hash-based collections, such as HashMap and HashSet,
+            rely on both <code>equals()</code> and <code>hashCode()</code>.
+        </p>
+
+        <pre><code>Map&lt;Customer, String&gt; customers = new HashMap<>();</code></pre>
+
+        <p>
+            If two objects are equal according to <code>equals()</code>,
+            they must return the same hash code. Otherwise, hash-based
+            collections may behave unexpectedly.
+        </p>
+
+        <p>
+            If you override <code>equals()</code>, you should normally
+            override <code>hashCode()</code> consistently as well.
+        </p>
+
+        <h2>Java Passes Arguments by Value</h2>
+
+        <p>
+            Java always passes arguments by value, including when the
+            argument is an object reference.
+        </p>
+
+        <pre><code>class Customer {
+    String name;
+}
+
+static void changeName(Customer customer) {
+    customer.name = "Alex";
+}
+
+static void replaceCustomer(Customer customer) {
+    customer = new Customer();
+    customer.name = "New Customer";
+}</code></pre>
+
+        <p>
+            Calling <code>changeName()</code> modifies the original object.
+            Calling <code>replaceCustomer()</code> does not replace the
+            caller's reference because the method only reassigns its local
+            copy of that reference.
+        </p>
+
+        <h2>static, final and Immutability</h2>
+
+        <h3>static</h3>
+
+        <p>
+            A static member belongs to the class rather than to an individual
+            instance. Static fields are shared by instances of the same
+            loaded class.
+        </p>
+
+        <pre><code>class Counter {
+    static int total = 0;
+}</code></pre>
+
+        <h3>final</h3>
+
+        <p>
+            A final variable can only be assigned once. For a reference,
+            this prevents reassignment but does not automatically make
+            the referenced object immutable.
+        </p>
+
+        <pre><code>final List&lt;String&gt; names = new ArrayList<>();
+
+names.add("Nefeli"); // Allowed
+// names = new ArrayList<>(); // Not allowed</code></pre>
+
+        <h3>Records</h3>
+
+        <p>
+            Records provide a concise way to declare data-carrier classes.
+            They automatically provide accessors, equals(), hashCode()
+            and toString().
+        </p>
+
+        <pre><code>public record Money(long amount, String currency) {}
+
+Money money = new Money(1000, "EUR");
+
+System.out.println(money.amount());
+System.out.println(money.currency());</code></pre>
+
+        <p>
+            Records are useful for DTOs and value-like data. They are
+            shallowly immutable: a record containing a mutable object
+            does not automatically make that object immutable.
+        </p>
+
+        <h2>Checked vs Unchecked Exceptions</h2>
+
+        <p>
+            Unlike PHP, Java distinguishes checked exceptions from unchecked
+            exceptions. The compiler requires checked exceptions to be caught
+            or declared in a method's signature.
+        </p>
+
+        <pre><code>try {
+    String content = Files.readString(Path.of("data.txt"));
+} catch (IOException e) {
+    System.err.println("Could not read file");
+}</code></pre>
+
+        <ul>
+            <li><strong>Checked exception:</strong> IOException.</li>
+            <li><strong>Unchecked exception:</strong> NullPointerException.</li>
+            <li><strong>Unchecked exception:</strong> IllegalArgumentException.</li>
+        </ul>
+
+        <p>
+            Checked exceptions are useful for some recoverable error
+            conditions, but they can also add boilerplate. Understanding
+            which exceptions an API throws is important when designing
+            service boundaries.
+        </p>
+
+        <h3>Try-with-resources</h3>
+
+        <p>
+            Java provides try-with-resources to close resources automatically
+            when execution leaves the block, including when an exception occurs.
+        </p>
+
+        <pre><code>try (var reader = Files.newBufferedReader(path)) {
+    String line = reader.readLine();
+}</code></pre>
+
+        <p>
+            This works with resources that implement AutoCloseable, such as
+            many file, stream and database resource types.
+        </p>
+
+        <h2>Heap, Stack and Garbage Collection</h2>
+
+        <p>
+            Java manages memory automatically, but understanding the JVM's
+            memory model is important for debugging performance issues.
+        </p>
+
+        <pre><code>Thread
+ |
+ +-- Stack
+ |    |
+ |    +-- Method calls
+ |    +-- Local variables
+ |    +-- Object references
+ |
+Heap
+ |
+ +-- Objects
+ +-- Arrays
+ +-- Collections</code></pre>
+
+        <ul>
+            <li>
+                <strong>Stack:</strong> holds method execution frames and
+                local execution state. Local primitive values and references
+                may be stored in these frames.
+            </li>
+            <li>
+                <strong>Heap:</strong> where objects and arrays are generally
+                allocated.
+            </li>
+            <li>
+                <strong>Garbage collector:</strong> reclaims memory used by
+                objects that are no longer reachable.
+            </li>
+        </ul>
+
+        <p>
+            You do not manually free ordinary Java objects, but memory leaks
+            can still occur. For example, a static collection or an unbounded
+            cache can retain objects that the application no longer needs.
+        </p>
+
+        <p>
+            A memory leak in Java often means unnecessary objects remain
+            reachable, preventing the garbage collector from reclaiming them.
+        </p>
+
+        <h2>Threads and Concurrency</h2>
+
+        <p>
+            Java applications commonly use multiple threads within a single
+            process. Threads can access shared objects, which means that
+            concurrent operations can interfere with one another.
+        </p>
+
+        <pre><code>class Counter {
+    private int count = 0;
+
+    void increment() {
+        count++;
+    }
+}</code></pre>
+
+        <p>
+            If multiple threads call <code>increment()</code> simultaneously,
+            some updates can be lost. The increment operation is not atomic.
+        </p>
+
+        <h3>synchronized</h3>
+
+        <p>
+            The synchronized keyword allows only one thread at a time to
+            execute a synchronized block guarded by the same monitor.
+        </p>
+
+        <pre><code>class Counter {
+    private int count = 0;
+
+    synchronized void increment() {
+        count++;
+    }
+}</code></pre>
+
+        <p>
+            This protects increments made through this synchronized method
+            on the same Counter instance. All access paths to shared state
+            must follow a compatible synchronization strategy.
+        </p>
+
+        <h3>Atomic Classes</h3>
+
+        <p>
+            Java also provides atomic classes for common thread-safe
+            operations.
+        </p>
+
+        <pre><code>AtomicInteger counter = new AtomicInteger(0);
+
+counter.incrementAndGet();</code></pre>
+
+        <p>
+            AtomicInteger makes this increment atomic. It does not automatically
+            make a sequence of multiple operations atomic.
+        </p>
+
+        <h3>Thread Pools and Futures</h3>
+
+        <p>
+            Creating and managing threads manually is often unnecessary.
+            ExecutorService manages task execution, while Future and
+            CompletableFuture represent results that may become available later.
+        </p>
+
+        <pre><code>ExecutorService executor =
+    Executors.newFixedThreadPool(4);
+
+try {
+    Future&lt;Integer&gt; result =
+        executor.submit(() -> 1 + 2);
+
+    System.out.println(result.get());
+} finally {
+    executor.shutdown();
+}</code></pre>
+
+        <p>
+            This is a simplified example. Production applications should
+            consider task timeouts, cancellation, exception handling and
+            appropriate executor sizing.
+        </p>
+
+        <h3>Virtual Threads</h3>
+
+        <p>
+            Virtual threads, permanently available since Java 21, are
+            lightweight threads managed by the Java runtime. They can make
+            applications with many blocking I/O tasks easier to structure.
+        </p>
+
+        <pre><code>try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+    executor.submit(() -> {
+        System.out.println("Running in a virtual thread");
+        return null;
+    });
+}</code></pre>
+
+        <p>
+            Virtual threads do not make CPU-intensive tasks execute faster
+            by themselves. Database connection limits, synchronization and
+            other resource constraints still matter.
+        </p>
+
+        <h2>Streams and Lambdas</h2>
+
+        <p>
+            Java Streams provide a declarative way to filter, transform
+            and aggregate collections. Lambdas and method references
+            make these operations concise.
+        </p>
+
+        <pre><code>List&lt;String&gt; activeNames = customers.stream()
+    .filter(Customer::isActive)
+    .map(Customer::getName)
+    .toList();</code></pre>
+
+        <p>
+            This filters active customers and extracts their names.
+            Intermediate stream operations are generally lazy, and a stream
+            is normally consumed only once.
+        </p>
+
+        <p>
+            Parallel streams are also available, but they should not be
+            assumed to be faster. Parallel execution introduces overhead
+            and can be inappropriate for blocking I/O or operations with
+            shared mutable state.
+        </p>
+
+        <h2>Optional and Null Handling</h2>
+
+        <p>
+            Java references can be null. Optional provides an explicit
+            way for APIs to represent a value that might be absent.
+        </p>
+
+        <pre><code>Optional&lt;Customer&gt; customer =
+    customerRepository.findById(id);
+
+customer.ifPresent(this::sendNotification);</code></pre>
+
+        <p>Other useful methods include:</p>
+
+        <ul>
+            <li><code>map()</code> — transform a present value.</li>
+            <li><code>orElse()</code> — provide a fallback value, evaluated eagerly.</li>
+            <li><code>orElseGet()</code> — provide a fallback through a lazily invoked supplier.</li>
+            <li><code>orElseThrow()</code> — return the value or throw an exception.</li>
+        </ul>
+
+        <pre><code>String name = optionalName.orElse("Unknown");
+
+String name = optionalName.orElseGet(
+    () -> loadDefaultName()
+);</code></pre>
+
+        <p>
+            Optional is commonly used as a return type for potentially
+            absent results. It does not eliminate nulls everywhere, and
+            calling methods on a null Optional still throws an exception.
+        </p>
+
+        <h2>Class Loading and Reflection</h2>
+
+        <p>
+            Java loads classes into the runtime dynamically through class
+            loaders. Classes may be loaded when they are first needed,
+            rather than all at application startup.
+        </p>
+
+        <p>
+            Reflection allows code to inspect classes, methods, fields
+            and annotations at runtime.
+        </p>
+
+        <pre><code>Class&lt;?&gt; type = Customer.class;
+
+System.out.println(type.getName());
+
+for (var method : type.getDeclaredMethods()) {
+    System.out.println(method.getName());
+}</code></pre>
+
+        <p>
+            Frameworks such as Spring use class metadata, annotations,
+            reflection and related runtime mechanisms to configure
+            applications and inject dependencies.
+        </p>
+
+        <p>
+            These mechanisms also explain why some problems appear at
+            runtime rather than during compilation.
+        </p>
+
+        <h2>Java Versions</h2>
+
+        <p>
+            Java has multiple releases, including Java 8, 11, 17, 21
+            and 25. Newer releases introduce language features, APIs
+            and runtime improvements.
+        </p>
+
+        <p>Three versions can matter in a project:</p>
+
+        <ul>
+            <li>
+                <strong>Development JDK:</strong> the JDK used to compile
+                the application.
+            </li>
+            <li>
+                <strong>Target Java version:</strong> the release the
+                compiled application is intended to support.
+            </li>
+            <li>
+                <strong>Runtime Java version:</strong> the version used
+                to execute the application.
+            </li>
+        </ul>
+
+        <p>
+            A newer JDK can compile code for an older target release
+            using <code>--release</code>, subject to language and API
+            compatibility.
+        </p>
+
+        <pre><code>javac --release 17 Main.java</code></pre>
+
+        <p>
+            This targets Java 17 language rules and the documented Java 17
+            API surface. Third-party dependencies and native libraries
+            must also be compatible with the target environment.
+        </p>
+
+        <h2>Maven and Gradle</h2>
+
+        <p>
+            Real-world Java applications usually use build tools rather
+            than compiling every source file manually.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Maven:</strong> manages dependencies and builds
+                projects using a conventional lifecycle and
+                <code>pom.xml</code>.
+            </li>
+            <li>
+                <strong>Gradle:</strong> provides a flexible build system
+                configured using build scripts.
+            </li>
+        </ul>
+
+        <pre><code>Source Code
+     |
+     v
+Maven / Gradle
+     |
+     +-- Resolve dependencies
+     |
+     +-- Compile source code
+     |
+     +-- Run tests
+     |
+     +-- Package application
+              |
+              v
+          JAR file</code></pre>
+
+        <p>
+            Build tools can also specify the Java version used to compile
+            code. That version may differ from the JDK selected by your
+            terminal or IDE.
+        </p>
+
+        <h2>Common Java Environment Problems</h2>
+
+        <h3>1. java: command not found</h3>
+
+        <p>
+            Java may not be installed, or its executable directory may
+            be missing from PATH.
+        </p>
+
+        <h3>2. javac: command not found</h3>
+
+        <p>
+            The JDK may not be installed, or the JDK's bin directory
+            may not be available through PATH.
+        </p>
+
+        <h3>3. Unsupported class file version</h3>
+
+        <p>
+            The runtime may be too old to load classes compiled for
+            a newer Java release.
+        </p>
+
+        <pre><code>Compiled with newer Java version
+             |
+             v
+Older runtime loads the class
+             |
+             v
+Unsupported class file version</code></pre>
+
+        <h3>4. ClassNotFoundException</h3>
+
+        <p>
+            Java cannot find a class that the application attempts to
+            load. Check the classpath, dependencies and class name.
+        </p>
+
+        <h3>5. Works in the IDE but not in the terminal</h3>
+
+        <p>
+            Your IDE and terminal may use different JDK installations,
+            environment variables or project configurations.
+        </p>
+
+        <h3>6. OutOfMemoryError</h3>
+
+        <p>
+            The JVM may be unable to allocate more memory for a particular
+            operation. Investigate heap usage, object retention, configured
+            memory limits and garbage collection before simply increasing
+            the heap size.
+        </p>
+
+        <h3>7. Race conditions</h3>
+
+        <p>
+            Multiple threads may read or modify shared state concurrently.
+            Look for unsafe shared mutable objects, missing synchronization
+            and operations that are assumed to be atomic.
+        </p>
+
+        <h2>Java vs PHP: Key Differences</h2>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Concept</th>
+                <th>Java</th>
+                <th>Typical PHP application</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Type system</td>
+                <td>Strong compile-time type checking</td>
+                <td>Type declarations and runtime checks, with different enforcement rules</td>
+            </tr>
+            <tr>
+                <td>Execution</td>
+                <td>Compiled to bytecode and executed by the JVM</td>
+                <td>Typically executed through the PHP runtime, often using OPcache</td>
+            </tr>
+            <tr>
+                <td>Memory</td>
+                <td>Managed by the JVM and garbage collector</td>
+                <td>Managed by the PHP runtime with request-oriented lifecycles in common deployments</td>
+            </tr>
+            <tr>
+                <td>Concurrency</td>
+                <td>Multiple threads can share mutable objects</td>
+                <td>Many conventional PHP-FPM deployments isolate each request in its own worker execution</td>
+            </tr>
+            <tr>
+                <td>Generics</td>
+                <td>Compile-time generic types, mostly erased at runtime</td>
+                <td>No equivalent built-in Java-style generic type system</td>
+            </tr>
+            <tr>
+                <td>Exceptions</td>
+                <td>Checked and unchecked exceptions</td>
+                <td>No checked-exception requirement</td>
+            </tr>
+            <tr>
+                <td>Build tools</td>
+                <td>Maven and Gradle are common</td>
+                <td>Composer is commonly used for dependencies</td>
+            </tr>
+            <tr>
+                <td>Deployment</td>
+                <td>Often packaged as a JAR and run on a JVM</td>
+                <td>Often deployed with a PHP runtime and a web server or application server</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <p>
+            These are typical deployment patterns, not absolute language
+            limitations. PHP can also run long-lived processes and use
+            concurrency frameworks, while Java applications can be designed
+            around many different execution models.
+        </p>
+
+        <h2>Important Java Backend Ecosystem Concepts</h2>
+
+        <ul>
+            <li>
+                <strong>Spring / Spring Boot:</strong> application framework,
+                dependency injection, HTTP APIs and configuration.
+            </li>
+            <li>
+                <strong>JUnit / Mockito:</strong> testing and mocking dependencies.
+            </li>
+            <li>
+                <strong>JDBC / JPA / Hibernate:</strong> database access,
+                persistence and ORM.
+            </li>
+            <li>
+                <strong>SLF4J / Logback:</strong> logging APIs and implementations.
+            </li>
+            <li>
+                <strong>JVM profiling:</strong> diagnosing CPU, memory,
+                garbage collection and thread contention issues.
+            </li>
+            <li>
+                <strong>Graceful shutdown:</strong> stopping application
+                processes without unnecessarily interrupting active work.
+            </li>
+        </ul>
+
+        <h2>What Should I Remember?</h2>
+
+        <ul>
+            <li>
+                The <strong>JDK</strong> provides tools to develop Java
+                applications; the <strong>JVM</strong> executes bytecode.
+            </li>
+            <li>
+                Java source code is compiled into bytecode, which a
+                compatible JVM can execute.
+            </li>
+            <li>
+                The <strong>JIT compiler</strong> can optimize frequently
+                executed code at runtime.
+            </li>
+            <li>
+                <strong>JAVA_HOME</strong> identifies the JDK installation
+                by convention, while <strong>PATH</strong> helps locate
+                executables.
+            </li>
+            <li>
+                The <strong>classpath</strong> tells Java where to find
+                classes and libraries.
+            </li>
+            <li>
+                Java's generic type information is mostly erased at runtime.
+            </li>
+            <li>
+                For objects, <code>==</code> compares references, while
+                <code>equals()</code> can compare logical equality.
+            </li>
+            <li>
+                <code>equals()</code> and <code>hashCode()</code> must
+                follow a consistent contract for hash-based collections.
+            </li>
+            <li>
+                The JVM manages memory, but memory leaks can still occur
+                when unnecessary objects remain reachable.
+            </li>
+            <li>
+                Multiple threads can access shared state, so synchronization
+                and thread safety matter.
+            </li>
+            <li>
+                Streams, lambdas, Optional, records and virtual threads
+                are useful modern Java features to learn.
+            </li>
+            <li>
+                Maven or Gradle, Spring Boot, testing tools and JVM
+                diagnostics are essential parts of many Java backend jobs.
+            </li>
+        </ul>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

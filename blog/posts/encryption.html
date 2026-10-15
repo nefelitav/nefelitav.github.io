@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Symmetric vs asymmetric encryption: understand shared keys, public and private keys, digital signatures, TLS, and common cryptographic algorithms.">
+    <meta property="og:title" content="Symmetric vs Asymmetric Encryption – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical introduction to encryption, public-key cryptography, digital signatures, and how TLS uses both.">
+    <meta property="og:type" content="article">
+    <title>Symmetric vs Asymmetric Encryption – Nefeli Tavoulari</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+<body>
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+<header><div class="container">
+    <div class="container-text"><a class="site-name" href="../../index.html">Nefeli Tavoulari</a></div>
+    <label class="switch" aria-label="Toggle dark mode">
+        <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+        <span class="slider round" aria-hidden="true"></span>
+    </label>
+</div></header>
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+    <article class="post">
+        <h1>Symmetric vs Asymmetric Encryption</h1>
+        <time class="post-date" datetime="2026-10-15">15 October 2026</time>
+
+        <p>Encryption protects information by transforming readable plaintext into ciphertext. Only someone with the appropriate key should be able to recover the original data. Two major approaches are symmetric and asymmetric cryptography.</p>
+
+        <h2>1. Symmetric Encryption</h2>
+        <p>Symmetric encryption uses the same secret key to encrypt and decrypt data. Both parties need access to that key, and it must remain confidential.</p>
+
+        <pre><code>Plaintext + Secret Key
+          |
+          v
+       Encrypt
+          |
+          v
+       Ciphertext
+          |
+          | Same Secret Key
+          v
+       Decrypt
+          |
+          v
+       Plaintext</code></pre>
+
+        <h3>Example use cases</h3>
+        <ul>
+            <li>Encrypting files and database backups.</li>
+            <li>Protecting application data at rest.</li>
+            <li>Encrypting network traffic after a secure connection has been established.</li>
+        </ul>
+
+        <h3>Common algorithms</h3>
+        <ul>
+            <li><strong>AES:</strong> widely used symmetric block cipher.</li>
+            <li><strong>ChaCha20-Poly1305:</strong> authenticated encryption construction combining encryption and integrity protection.</li>
+        </ul>
+
+        <p>For application data, prefer authenticated encryption modes or constructions such as AES-GCM or ChaCha20-Poly1305 rather than using a bare cipher without integrity protection.</p>
+
+        <h3>Advantages</h3>
+        <ul>
+            <li>Fast and efficient for large amounts of data.</li>
+            <li>Suitable for high-throughput data encryption.</li>
+        </ul>
+
+        <h3>Trade-off: key distribution</h3>
+        <p>How do two parties securely obtain the same secret key? If an attacker gets the key, they may be able to decrypt protected data or forge messages, depending on the construction and use.</p>
+
+        <h2>2. Asymmetric Cryptography</h2>
+        <p>Asymmetric cryptography uses a mathematically related key pair: a public key and a private key. The public key can be shared, while the private key must be protected.</p>
+
+        <h3>Encryption for confidentiality</h3>
+        <p>In a suitable public-key encryption scheme, someone can encrypt data using the recipient's public key. The corresponding private key is needed to decrypt it.</p>
+
+        <pre><code>Sender encrypts using recipient's PUBLIC key
+                   |
+                   v
+                Ciphertext
+                   |
+                   v
+Recipient decrypts using recipient's PRIVATE key</code></pre>
+
+        <h3>Digital signatures are different</h3>
+        <p>Asymmetric cryptography can also be used for digital signatures. The sender signs data with a private key, and the recipient verifies the signature using the corresponding public key.</p>
+
+        <pre><code>Sender signs data using PRIVATE key
+                   |
+                   v
+                Signature
+                   |
+                   v
+Recipient verifies using PUBLIC key</code></pre>
+
+        <p>A signature can help establish authenticity and integrity, assuming the public key is correctly associated with the claimed signer and the private key remains secure. It is not encryption and does not make the signed data secret.</p>
+
+        <h3>Common algorithms</h3>
+        <ul>
+            <li><strong>RSA:</strong> used for public-key encryption in suitable schemes and for digital signatures.</li>
+            <li><strong>ECDSA:</strong> elliptic-curve digital signatures.</li>
+            <li><strong>Ed25519:</strong> an elliptic-curve digital signature scheme.</li>
+            <li><strong>ECDH:</strong> a key-agreement mechanism that lets parties derive shared secret material.</li>
+        </ul>
+
+        <p>Not every asymmetric algorithm performs every operation. For example, ECDH is for key agreement, not directly for encrypting an arbitrary message.</p>
+
+        <h2>3. Comparison</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead><tr><th>Feature</th><th>Symmetric</th><th>Asymmetric</th></tr></thead>
+                <tbody>
+                <tr><td>Keys</td><td>Shared secret key</td><td>Public/private key pair</td></tr>
+                <tr><td>Typical performance</td><td>Fast</td><td>Generally more computationally expensive</td></tr>
+                <tr><td>Key distribution</td><td>Secret key must be shared securely</td><td>Public key can be shared, but its identity must be verified</td></tr>
+                <tr><td>Encryption</td><td>Yes</td><td>Some algorithms support it</td></tr>
+                <tr><td>Digital signatures</td><td>Not by itself in the public-key signature sense</td><td>Supported by appropriate signature algorithms</td></tr>
+                <tr><td>Typical role</td><td>Bulk data encryption</td><td>Key agreement, identity verification, signatures, and sometimes encryption</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>4. How HTTPS / TLS Uses Both</h2>
+        <p>Modern TLS combines public-key cryptography with symmetric encryption rather than encrypting all application traffic using an asymmetric algorithm.</p>
+
+        <pre><code>1. Client connects to server
+2. Server presents a certificate
+3. Client validates the certificate and server identity
+4. Both parties establish shared session keys
+5. Symmetric authenticated encryption protects application traffic</code></pre>
+
+        <p>In modern TLS, key agreement commonly uses ephemeral Diffie–Hellman variants, and certificates commonly authenticate the server's public key. The handshake details vary by TLS version and configuration.</p>
+
+        <p>Why use both?</p>
+        <ul>
+            <li><strong>Asymmetric cryptography:</strong> helps authenticate the server and establish shared key material without pre-sharing the same traffic key.</li>
+            <li><strong>Symmetric cryptography:</strong> efficiently encrypts the large volume of data exchanged during the session.</li>
+        </ul>
+
+        <h2>5. Encryption vs Hashing vs Encoding</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead><tr><th>Concept</th><th>Purpose</th><th>Reversible?</th><th>Example</th></tr></thead>
+                <tbody>
+                <tr><td>Encryption</td><td>Confidentiality</td><td>Yes, with the right key</td><td>AES-GCM</td></tr>
+                <tr><td>Hashing</td><td>One-way digest</td><td>Not designed to be reversed</td><td>SHA-256</td></tr>
+                <tr><td>Password hashing</td><td>Protect stored passwords against recovery</td><td>Not designed to be reversed</td><td>Argon2id</td></tr>
+                <tr><td>Encoding</td><td>Represent data in another format</td><td>Usually, without a secret key</td><td>Base64</td></tr>
+                <tr><td>Digital signature</td><td>Authenticity and integrity</td><td>Verified using a public key</td><td>Ed25519</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>Passwords should generally be stored using a dedicated password-hashing algorithm with a unique salt, not encrypted with a reversible key or stored as a plain SHA-256 hash.</p>
+
+        <h2>6. Common Misconceptions</h2>
+        <ul>
+            <li><strong>"Asymmetric encryption is always more secure."</strong> Security depends on the algorithm, key sizes, implementation, and how keys are managed.</li>
+            <li><strong>"A public key can always decrypt what its private key encrypted."</strong> Encryption and signature schemes have distinct operations; don't mix their roles.</li>
+            <li><strong>"Base64 is encryption."</strong> Base64 is encoding and provides no confidentiality.</li>
+            <li><strong>"Hashing is encryption."</strong> Hashing is designed to produce a one-way digest, not recover the original message.</li>
+            <li><strong>"HTTPS uses public-key encryption for all traffic."</strong> TLS normally uses symmetric authenticated encryption for application data after the handshake.</li>
+            <li><strong>"A public key can be trusted just because it is public."</strong> You still need a way to verify whose key it is, such as certificate validation or another trusted distribution mechanism.</li>
+        </ul>
+
+        <h2>7. What Should I Remember?</h2>
+        <ul>
+            <li><strong>Symmetric encryption:</strong> one shared secret key; fast and suitable for bulk data.</li>
+            <li><strong>Asymmetric cryptography:</strong> public/private key pairs; useful for key agreement and digital signatures, and for encryption with suitable algorithms.</li>
+            <li><strong>TLS:</strong> combines authenticated key establishment with efficient symmetric encryption.</li>
+            <li><strong>Hashing is different:</strong> use password hashing for password storage.</li>
+            <li><strong>Key management matters:</strong> strong algorithms cannot compensate for exposed keys or incorrect validation.</li>
+        </ul>
+    </article>
+</main>
+<footer class="site-footer"></footer>
+</body>
+</html>

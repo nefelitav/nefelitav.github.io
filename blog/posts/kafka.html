@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="Top Apache Kafka use cases — learn how Kafka powers event-driven architectures, real-time analytics, event-driven microservices, data pipelines, event sourcing, and more.">
+    <meta property="og:title" content="Top Kafka Use Cases – Nefeli Tavoulari">
+    <meta property="og:description" content="Practical examples of when to use Apache Kafka, how it works, and when a simpler solution is enough.">
+    <meta property="og:type" content="article">
+
+    <title>Top Kafka Use Cases – Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+        <h1>Top Kafka Use Cases</h1>
+        <time class="post-date" datetime="2026-10-15">15 October 2026</time>
+
+        <p>
+            Apache Kafka is a distributed event-streaming platform that allows applications
+            to publish, store, process, and consume streams of events. It is particularly
+            useful when many systems need to exchange large volumes of data reliably,
+            react to changes in near real time, or independently process the same events.
+        </p>
+
+        <p>
+            Kafka is not just a message queue. Unlike a traditional queue where a message
+            is commonly removed after processing, Kafka retains records according to
+            configured retention policies. Multiple consumer groups can independently
+            read the same events, and consumers can often replay historical data.
+        </p>
+
+        <p>
+            Let's explore the most useful scenarios for a backend developer to understand.
+        </p>
+
+        <h2>1. Event-Driven Microservices</h2>
+
+        <p>
+            <strong>Problem:</strong> Services depend directly on one another, making
+            the architecture difficult to change and causing failures to cascade.
+        </p>
+
+        <p>
+            Kafka allows a service to publish an event without knowing which services
+            will consume it. Producers and consumers can evolve and scale independently.
+        </p>
+
+        <h3>Example: An e-commerce order</h3>
+
+        <p>When an order is placed, the order service publishes an event:</p>
+
+        <pre><code>{
+  "eventId": "evt-123",
+  "eventType": "OrderPlaced",
+  "orderId": "order-456",
+  "customerId": "customer-789",
+  "total": 89.99,
+  "currency": "EUR"
+}</code></pre>
+
+        <p>Different consumer groups can react to the same event:</p>
+
+        <ul>
+            <li><strong>Payment service:</strong> initiates payment processing.</li>
+            <li><strong>Inventory service:</strong> reserves the ordered products.</li>
+            <li><strong>Notification service:</strong> sends an order confirmation.</li>
+            <li><strong>Analytics service:</strong> updates sales metrics.</li>
+        </ul>
+
+        <pre><code>                  Order Service
+                        |
+                        v
+                 Kafka: orders
+                  /    |     \
+                 /     |      \
+                v      v       v
+           Payments  Inventory Notifications
+                |
+                v
+             Analytics
+             (separate group)</code></pre>
+
+        <p>
+            Each consumer group maintains its own progress through the topic. The
+            notification service can process the event independently of the payment
+            service.
+        </p>
+
+        <p>
+            <strong>Use Kafka when:</strong> many services need to react to business
+            events, traffic is substantial, or events need to be retained and replayed.
+        </p>
+
+        <p>
+            <strong>Important:</strong> Kafka does not automatically make a multi-service
+            workflow atomic. Payment, inventory, and notification processing can succeed
+            or fail independently. You still need retry handling, idempotency, and
+            business-level failure recovery.
+        </p>
+
+        <h2>2. Real-Time Analytics and Dashboards</h2>
+
+        <p>
+            <strong>Problem:</strong> A business wants to understand what is happening
+            right now, but periodically querying a production database is expensive
+            and does not provide timely insights.
+        </p>
+
+        <p>
+            Kafka can collect events from applications and stream them to processing
+            systems that calculate metrics continuously.
+        </p>
+
+        <h3>Example: A shopping platform</h3>
+
+        <p>The application publishes events such as:</p>
+
+        <ul>
+            <li><code>ProductViewed</code></li>
+            <li><code>ProductAddedToCart</code></li>
+            <li><code>OrderPlaced</code></li>
+            <li><code>PaymentFailed</code></li>
+        </ul>
+
+        <p>A stream-processing application can calculate:</p>
+
+        <ul>
+            <li>Orders and revenue per minute.</li>
+            <li>Conversion rates from product views to purchases.</li>
+            <li>Payment failure rates.</li>
+            <li>Popular products and emerging trends.</li>
+        </ul>
+
+        <p>
+            The resulting aggregates can be written to a database or analytics platform
+            and displayed on a dashboard.
+        </p>
+
+        <p>
+            <strong>Use Kafka when:</strong> metrics need to update continuously, event
+            volume is high, or multiple analytical systems need access to the same data.
+        </p>
+
+        <p>
+            <strong>Not every dashboard needs Kafka.</strong> A small application with
+            modest traffic might be perfectly fine using SQL aggregation queries.
+        </p>
+
+        <h2>3. Log and Event Collection</h2>
+
+        <p>
+            <strong>Problem:</strong> Applications run across many servers and services.
+            Logs and operational events are scattered across different systems, making
+            it difficult to analyze problems or detect unusual behavior.
+        </p>
+
+        <p>
+            Kafka can act as a central stream for operational events. Applications or
+            collection agents send records to Kafka, and downstream consumers forward
+            them to log storage, monitoring systems, or analytics tools.
+        </p>
+
+        <pre><code>Application A ─┐
+Application B ─┼──> Kafka ──> Log Storage
+Application C ─┘          ├─> Alerting
+                          └─> Analytics</code></pre>
+
+        <p>Possible use cases include:</p>
+
+        <ul>
+            <li>Centralizing application logs from distributed services.</li>
+            <li>Collecting infrastructure and application metrics.</li>
+            <li>Detecting unusual spikes in errors.</li>
+            <li>Feeding security monitoring and audit analysis pipelines.</li>
+        </ul>
+
+        <p>
+            <strong>Use Kafka when:</strong> the volume of operational data is high and
+            multiple downstream systems need to consume it reliably.
+        </p>
+
+        <p>
+            Kafka is not a complete logging or monitoring solution by itself. You
+            generally still need storage, search, visualization, and alerting tools.
+        </p>
+
+        <h2>4. Data Pipelines and Data Integration</h2>
+
+        <p>
+            <strong>Problem:</strong> Several systems need to share data, but tightly
+            coupling each system to every other system creates a complicated network
+            of integrations.
+        </p>
+
+        <p>
+            Kafka can serve as a shared event backbone between applications, databases,
+            and data platforms. Producers publish data, and independent consumers
+            transform or export it to their destinations.
+        </p>
+
+        <h3>Example: Keeping systems in sync</h3>
+
+        <p>Imagine a company with:</p>
+
+        <ul>
+            <li>A transactional MySQL database.</li>
+            <li>A search engine containing product information.</li>
+            <li>A data warehouse for reporting.</li>
+            <li>A recommendation service.</li>
+        </ul>
+
+        <p>
+            Instead of building separate, tightly coupled integrations for every
+            destination, database changes can be captured and published as events.
+            Kafka consumers then update the search index, warehouse, and
+            recommendation data independently.
+        </p>
+
+        <pre><code>MySQL
+  |
+  v
+Change Data Capture (CDC)
+  |
+  v
+Kafka Topics
+  |           |             |
+  v           v             v
+Search      Warehouse   Recommendations</code></pre>
+
+        <p>
+            A common approach is <strong>Change Data Capture (CDC)</strong>, where
+            database changes are captured from a database's transaction log and
+            published to a stream. Tools such as Debezium can be used with Kafka
+            Connect to implement this pattern.
+        </p>
+
+        <p>
+            <strong>Use Kafka when:</strong> multiple systems need a reliable stream
+            of data changes, near-real-time synchronization, or independent data
+            pipelines.
+        </p>
+
+        <h2>5. Stream Processing and Real-Time Decisions</h2>
+
+        <p>
+            <strong>Problem:</strong> An application needs to transform or combine
+            events continuously instead of waiting for a scheduled batch job.
+        </p>
+
+        <p>
+            Kafka can supply the events to a stream-processing application. That
+            application can filter, aggregate, enrich, or join data and publish
+            the results to another topic or external system.
+        </p>
+
+        <h3>Example: Fraud detection</h3>
+
+        <p>
+            A payment platform publishes transaction events. A stream processor
+            examines recent transactions and identifies suspicious patterns, such
+            as many transactions from the same account within a short time window.
+        </p>
+
+        <pre><code>Transaction Events
+        |
+        v
+      Kafka
+        |
+        v
+Stream Processor
+        |
+        v
+Fraud Risk Event
+        |
+        v
+Risk Service / Alerting</code></pre>
+
+        <p>Other examples include:</p>
+
+        <ul>
+            <li>Detecting abnormal traffic patterns.</li>
+            <li>Calculating rolling averages over time windows.</li>
+            <li>Enriching events with reference data.</li>
+            <li>Tracking delivery vehicles and estimating arrival times.</li>
+            <li>Updating product recommendations as customer behavior changes.</li>
+        </ul>
+
+        <p>
+            Kafka Streams is one option for processing Kafka data in Java applications.
+            Other stream-processing frameworks can also consume Kafka topics.
+        </p>
+
+        <p>
+            <strong>Use Kafka when:</strong> data arrives continuously and decisions
+            or derived results must be produced with low latency.
+        </p>
+
+        <h2>6. Event Sourcing and Rebuilding State</h2>
+
+        <p>
+            <strong>Problem:</strong> A system stores only the latest state of an
+            entity, so it is difficult to understand how that state was reached or
+            reconstruct a projection after a bug.
+        </p>
+
+        <p>
+            In event sourcing, the application records changes as a sequence of
+            business events. Current state can be derived by applying those events
+            in order.
+        </p>
+
+        <h3>Example: An account balance</h3>
+
+        <pre><code>AccountOpened     (+0 EUR)
+MoneyDeposited    (+100 EUR)
+MoneyWithdrawn    (-30 EUR)
+MoneyDeposited    (+50 EUR)
+
+Current balance = 120 EUR</code></pre>
+
+        <p>
+            If the application maintains a projection of the current balance, it can
+            rebuild that projection by replaying the relevant events.
+        </p>
+
+        <p>
+            Kafka's durable event log and replay capabilities can support event-sourced
+            designs, but Kafka does not automatically implement event sourcing for you.
+            Your application still needs to define event schemas, ordering rules,
+            projection logic, and event evolution.
+        </p>
+
+        <p>
+            <strong>Use Kafka when:</strong> an event-driven system needs retained
+            history, multiple projections, or the ability to rebuild derived state.
+        </p>
+
+        <p>
+            <strong>Be careful:</strong> event sourcing adds complexity. It is not
+            necessary for every CRUD application, and Kafka retention settings must
+            match your history and recovery requirements.
+        </p>
+
+        <h2>7. Activity Tracking and Personalization</h2>
+
+        <p>
+            <strong>Problem:</strong> A product needs to react to user behavior
+            quickly and make activity data available to multiple systems.
+        </p>
+
+        <p>
+            Events such as searches, clicks, views, and purchases can be published
+            to Kafka. Different consumers can use the stream for different purposes.
+        </p>
+
+        <h3>Example: A streaming or shopping platform</h3>
+
+        <ul>
+            <li>A recommendation service uses recent interactions to update suggestions.</li>
+            <li>An analytics pipeline calculates popular content or products.</li>
+            <li>A marketing system builds audiences from qualifying events.</li>
+            <li>A data warehouse stores activity for long-term analysis.</li>
+        </ul>
+
+        <p>
+            The original application does not need to call all these systems every
+            time a user clicks something. It publishes an event, and the consumers
+            process it independently.
+        </p>
+
+        <p>
+            <strong>Use Kafka when:</strong> activity data is high-volume and must
+            feed several independent real-time or analytical systems.
+        </p>
+
+        <p>
+            Make sure personal data is minimized, access is controlled, and retention
+            policies reflect privacy and compliance requirements.
+        </p>
+
+        <h2>8. Buffering Traffic Spikes and Asynchronous Work</h2>
+
+        <p>
+            <strong>Problem:</strong> An application receives sudden traffic spikes,
+            and downstream systems cannot process every request immediately.
+        </p>
+
+        <p>
+            Kafka can buffer events so producers do not have to wait for consumers
+            to finish processing each event. Consumers process the backlog at a
+            sustainable rate, provided capacity and retention are configured
+            appropriately.
+        </p>
+
+        <h3>Example: Processing millions of uploaded records</h3>
+
+        <p>
+            A user imports a large CSV file. Instead of performing every operation
+            inside the HTTP request, the application publishes work items to a
+            topic. Workers consume those items and process them asynchronously.
+        </p>
+
+        <pre><code>HTTP Request
+     |
+     v
+Validate and Publish
+     |
+     v
+Kafka Topic
+     |
+     v
+Worker Consumer Group
+     |
+     v
+Process Records</code></pre>
+
+        <p>
+            This can improve responsiveness and absorb bursts of traffic. However,
+            Kafka does not remove the need for backpressure, capacity planning,
+            retry handling, and monitoring consumer lag.
+        </p>
+
+        <p>
+            <strong>Use Kafka when:</strong> workloads are high-volume, events need
+            durable buffering, and multiple consumers or replay are useful.
+        </p>
+
+        <p>
+            For ordinary background jobs, such as sending a password-reset email,
+            a simpler task queue may be easier to operate.
+        </p>
+
+        <h2>9. Cross-Service Auditing and Business History</h2>
+
+        <p>
+            <strong>Problem:</strong> Teams need a record of important business
+            actions and want to make those events available to reporting or
+            compliance systems.
+        </p>
+
+        <p>
+            Services can publish business events such as:
+        </p>
+
+        <ul>
+            <li><code>InvoiceIssued</code></li>
+            <li><code>PaymentCaptured</code></li>
+            <li><code>RefundRequested</code></li>
+            <li><code>MerchantSettingsChanged</code></li>
+        </ul>
+
+        <p>
+            These events can feed audit pipelines, reporting systems, or alerting
+            workflows without requiring each service to integrate directly with
+            every destination.
+        </p>
+
+        <p>
+            Kafka can support an audit-data pipeline, but a Kafka topic alone is
+            not automatically a compliant audit trail. You must consider access
+            control, immutability requirements, retention, event completeness,
+            and durable storage.
+        </p>
+
+        <h2>When Should You Actually Choose Kafka?</h2>
+
+        <p>
+            Kafka is most valuable when you need several of its strengths together:
+            high event throughput, durable retention, multiple independent consumers,
+            replay, and stream processing.
+        </p>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Scenario</th>
+                <th>Kafka?</th>
+                <th>Reason</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Send a password-reset email</td>
+                <td>Usually no</td>
+                <td>A simple task queue is often sufficient.</td>
+            </tr>
+            <tr>
+                <td>Distribute order events to many services</td>
+                <td>Often yes</td>
+                <td>Independent consumers and replay can be valuable.</td>
+            </tr>
+            <tr>
+                <td>Collect millions of activity events</td>
+                <td>Often yes</td>
+                <td>Designed for scalable event streams.</td>
+            </tr>
+            <tr>
+                <td>Update a search index from database changes</td>
+                <td>Often yes</td>
+                <td>Supports decoupled data pipelines and CDC.</td>
+            </tr>
+            <tr>
+                <td>Run a small CRUD application</td>
+                <td>Usually no</td>
+                <td>It may add unnecessary infrastructure and operational work.</td>
+            </tr>
+            <tr>
+                <td>Process real-time metrics and trends</td>
+                <td>Often yes</td>
+                <td>Supports continuous processing and multiple consumers.</td>
+            </tr>
+            <tr>
+                <td>Route tasks using complex queue rules</td>
+                <td>Maybe not</td>
+                <td>A broker such as RabbitMQ may be a more natural fit.</td>
+            </tr>
+            <tr>
+                <td>Need cloud-managed publish/subscribe messaging</td>
+                <td>Depends</td>
+                <td>A managed service such as Google Cloud Pub/Sub may reduce operational work.</td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h2>Kafka vs. RabbitMQ vs. Pub/Sub: A Quick Reminder</h2>
+
+        <ul>
+            <li>
+                <strong>Kafka:</strong> best known for durable event streams, replay,
+                high-throughput pipelines, and multiple independent consumers.
+            </li>
+            <li>
+                <strong>RabbitMQ:</strong> often a good fit for task queues, flexible
+                routing, acknowledgements, and traditional message-broker workflows.
+            </li>
+            <li>
+                <strong>Google Cloud Pub/Sub:</strong> managed publish/subscribe
+                messaging that reduces the need to operate your own broker infrastructure.
+            </li>
+        </ul>
+
+        <p>
+            These technologies overlap. Kafka can be used for messaging, and RabbitMQ
+            can support event-driven architectures. Choose based on delivery patterns,
+            routing needs, retention, replay, throughput, and operational requirements
+            rather than assuming one tool is universally better.
+        </p>
+
+        <h2>Important Kafka Concepts to Learn</h2>
+
+        <p>To understand these use cases properly, learn the following concepts:</p>
+
+        <ul>
+            <li>
+                <strong>Topics:</strong> named streams where events are published.
+            </li>
+            <li>
+                <strong>Partitions:</strong> split a topic into ordered logs that enable
+                parallelism and scaling.
+            </li>
+            <li>
+                <strong>Producers:</strong> applications that publish events.
+            </li>
+            <li>
+                <strong>Consumers:</strong> applications that read and process events.
+            </li>
+            <li>
+                <strong>Consumer groups:</strong> groups of consumers that share work
+                across partitions. Different groups can independently read the same topic.
+            </li>
+            <li>
+                <strong>Offsets:</strong> positions that track a consumer's progress
+                through a partition.
+            </li>
+            <li>
+                <strong>Retention:</strong> how long Kafka keeps records before deleting
+                them under the configured policy.
+            </li>
+            <li>
+                <strong>Replay:</strong> reading retained records again by resetting
+                consumer positions or using a new consumer group.
+            </li>
+            <li>
+                <strong>Consumer lag:</strong> how far a consumer is behind the latest
+                records available in a partition.
+            </li>
+            <li>
+                <strong>Delivery semantics:</strong> at-most-once, at-least-once, and
+                exactly-once processing guarantees.
+            </li>
+            <li>
+                <strong>Idempotency:</strong> making repeated processing of an event
+                safe when duplicates can occur.
+            </li>
+            <li>
+                <strong>Schema evolution:</strong> changing event formats without
+                unexpectedly breaking existing consumers.
+            </li>
+        </ul>
+
+        <h2>Common Mistakes</h2>
+
+        <ul>
+            <li>
+                <strong>Using Kafka for every background task.</strong>
+                A simpler queue can be easier and cheaper for low-volume workloads.
+            </li>
+            <li>
+                <strong>Assuming events are processed exactly once by default.</strong>
+                Consumers may process an event again after a crash or retry. Design
+                side effects to be idempotent.
+            </li>
+            <li>
+                <strong>Ignoring partition keys.</strong>
+                Events with the same key are generally routed to the same partition,
+                which helps preserve their order within that partition. Poor key choices
+                can create uneven workloads.
+            </li>
+            <li>
+                <strong>Assuming order is global.</strong>
+                Kafka guarantees ordering within a partition, not across every
+                partition in a topic.
+            </li>
+            <li>
+                <strong>Keeping events forever without a plan.</strong>
+                Retention, storage capacity, compaction, and replay requirements
+                should be deliberate choices.
+            </li>
+            <li>
+                <strong>Ignoring consumer lag.</strong>
+                A growing backlog may mean consumers are failing, slow, or unable
+                to keep up with incoming traffic.
+            </li>
+            <li>
+                <strong>Publishing events before database changes are safely recorded.</strong>
+                If a database transaction succeeds but publishing the corresponding event
+                fails, other services may never learn about the change. The transactional
+                outbox pattern is one common solution.
+            </li>
+        </ul>
+
+        <h2>Conclusion</h2>
+
+        <p>
+            Kafka is especially useful when an application needs to distribute business
+            events to multiple systems, process continuous streams of data, synchronize
+            databases and services, or retain events for replay and analytics.
+        </p>
+
+        <p>
+            The key question is not simply whether your application needs asynchronous
+            processing. It is whether you need an event-streaming platform with durable
+            retention, independent consumers, replay, and scalable processing.
+        </p>
+
+        <p>
+            Start with a concrete problem, such as distributing order events or keeping
+            a search index synchronized with a database. Introduce Kafka when its
+            capabilities justify the additional infrastructure and operational complexity.
+        </p>
+
+        <h2>Further Reading</h2>
+
+        <ul>
+            <li>
+                <a href="https://kafka.apache.org/documentation/" target="_blank" rel="noopener noreferrer">
+                    Apache Kafka Documentation
+                </a>
+            </li>
+            <li>
+                <a href="https://kafka.apache.org/getting-started/uses/" target="_blank" rel="noopener noreferrer">
+                    Apache Kafka Use Cases
+                </a>
+            </li>
+            <li>
+                <a href="https://kafka.apache.org/documentation/#streams" target="_blank" rel="noopener noreferrer">
+                    Kafka Streams Documentation
+                </a>
+            </li>
+        </ul>
+
+    </article>
+</main>
+
+<footer class="site-footer"></footer>
+
+</body>
+</html>

@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="JWT vs session-based authentication: learn how login sessions work, how tokens are validated, and how to choose securely.">
+    <meta property="og:title" content="JWT vs Session-Based Authentication – Nefeli Tavoulari">
+    <meta property="og:description" content="Understand stateless tokens, server-side sessions, revocation, cookies, and security trade-offs.">
+    <meta property="og:type" content="article">
+    <title>JWT vs Session-Based Authentication – Nefeli Tavoulari</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+<body>
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+<header><div class="container">
+    <div class="container-text"><a class="site-name" href="../../index.html">Nefeli Tavoulari</a></div>
+    <label class="switch" aria-label="Toggle dark mode">
+        <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+        <span class="slider round" aria-hidden="true"></span>
+    </label>
+</div></header>
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+    <article class="post">
+        <h1>JWT vs Session-Based Authentication</h1>
+        <time class="post-date" datetime="2026-10-15">15 October 2026</time>
+
+        <p>After a user logs in, how does the server recognize them on their next request? Two common approaches are server-side sessions and token-based authentication using JWTs.</p>
+
+        <h2>1. Session-Based Authentication</h2>
+        <p>With session-based authentication, the server creates a session and stores its state on the server side. The browser receives a session identifier, usually in a cookie.</p>
+
+        <pre><code>1. User submits credentials
+2. Server verifies credentials
+3. Server creates session: session_id = abc123
+4. Browser stores session ID in a cookie
+5. Browser sends cookie on future requests
+6. Server looks up the session and authenticates the user</code></pre>
+
+        <h3>Example cookie</h3>
+        <pre><code>Set-Cookie: session_id=abc123;
+            HttpOnly;
+            Secure;
+            SameSite=Lax</code></pre>
+
+        <p>The session ID is an opaque identifier. It should not contain user information that the server blindly trusts. The server uses it to find the corresponding session.</p>
+
+        <h3>Advantages</h3>
+        <ul>
+            <li>Sessions can be invalidated centrally, for example on logout.</li>
+            <li>Session state can be updated without issuing a new token to the browser.</li>
+            <li>Works naturally with traditional server-rendered web applications.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+        <ul>
+            <li>The application needs a session store, such as a database or Redis, when sessions are not held locally.</li>
+            <li>Multiple application instances need access to the shared session state or another compatible session strategy.</li>
+            <li>Cookie-based authentication requires appropriate CSRF protections when the browser automatically sends credentials.</li>
+        </ul>
+
+        <h2>2. JWT-Based Authentication</h2>
+        <p>JWT stands for JSON Web Token. It is a format for representing claims in a token. A JWT can be signed, allowing the receiver to verify its integrity and origin. A signed JWT is not necessarily encrypted.</p>
+
+        <p>In a common access-token setup, the server issues a token after authentication. The client sends it on later requests, and the API validates it.</p>
+
+        <pre><code>1. User authenticates
+2. Server issues an access token
+3. Client stores the token appropriately
+4. Client sends token with API requests
+5. API validates signature and relevant claims
+6. API checks authorization and processes request</code></pre>
+
+        <h3>Example JWT payload</h3>
+        <pre><code>{
+  "sub": "user_123",
+  "iss": "https://auth.example.com",
+  "aud": "invoice-api",
+  "exp": 1792000000
+}</code></pre>
+
+        <p>A JWT commonly has three Base64URL-encoded sections: header, payload, and signature. Base64URL encoding is not encryption, so don't put secrets in a normal signed JWT payload.</p>
+
+        <h3>Validation matters</h3>
+        <ul>
+            <li>Verify the signature using an explicitly allowed algorithm and trusted key.</li>
+            <li>Validate expiration and, when applicable, not-before time.</li>
+            <li>Validate issuer and audience.</li>
+            <li>Use the token only for its intended purpose.</li>
+            <li>Apply authorization checks even after authentication succeeds.</li>
+        </ul>
+
+        <h3>Advantages</h3>
+        <ul>
+            <li>A service can validate a properly signed token without looking up a session on every request.</li>
+            <li>Useful for APIs and distributed systems where multiple services need to validate tokens.</li>
+            <li>Claims can carry limited information needed by the recipient.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+        <ul>
+            <li>Revoking a JWT before it expires can be harder without a denylist or another server-side mechanism.</li>
+            <li>Long-lived tokens increase the impact of token theft.</li>
+            <li>JWTs are easy to misuse if validation rules or storage decisions are incorrect.</li>
+            <li>JWTs can become large and should not carry unnecessary claims.</li>
+        </ul>
+
+        <h2>3. Comparison</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead><tr><th>Concern</th><th>Server-side sessions</th><th>JWT access tokens</th></tr></thead>
+                <tbody>
+                <tr><td>Where state lives</td><td>Primarily on the server</td><td>Claims are carried in the token; other state may still exist</td></tr>
+                <tr><td>Request validation</td><td>Look up or validate the session</td><td>Validate token and claims</td></tr>
+                <tr><td>Immediate logout/revocation</td><td>Usually straightforward</td><td>Needs additional design if immediate revocation is required</td></tr>
+                <tr><td>Multiple services</td><td>May need a shared session store or gateway</td><td>Services can validate tokens independently if they trust the issuer and keys</td></tr>
+                <tr><td>Browser transport</td><td>Often a cookie</td><td>Often an Authorization header or a secure cookie, depending on architecture</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>4. Stateless vs Stateful</h2>
+        <p>JWT is often called stateless because a service can validate it without querying a session store. But a system using JWTs can still be stateful: it might maintain refresh-token records, revocation lists, user status, or authorization data.</p>
+
+        <p>Likewise, sessions don't require a single server. A shared Redis session store can support multiple backend instances.</p>
+
+        <h2>5. Can JWTs Be Stored in Cookies?</h2>
+        <p>Yes. JWT describes the token format, not where the browser stores it. A JWT can be stored in a cookie, and a session identifier can also be stored in a cookie.</p>
+
+        <p>For a browser application, an HttpOnly, Secure cookie can reduce direct JavaScript access to the credential. However, cookies are sent automatically in matching requests, so CSRF protection and appropriate SameSite settings remain important. Storing tokens in local storage makes them accessible to JavaScript and therefore more exposed if an XSS vulnerability occurs.</p>
+
+        <h2>6. When Would I Choose Each?</h2>
+        <h3>Choose server-side sessions when:</h3>
+        <ul>
+            <li>You are building a conventional web application with a backend.</li>
+            <li>You want simple session invalidation and centralized session control.</li>
+            <li>You don't need independently verifiable access tokens across many services.</li>
+        </ul>
+
+        <h3>Consider JWT access tokens when:</h3>
+        <ul>
+            <li>You have multiple APIs that need to validate tokens issued by a trusted identity service.</li>
+            <li>You have a defined token lifecycle and need to support service-to-service authorization.</li>
+            <li>You understand and can implement expiration, key rotation, revocation, and secure storage appropriately.</li>
+        </ul>
+
+        <h2>7. Common Mistakes</h2>
+        <ul>
+            <li><strong>Assuming a JWT is encrypted:</strong> a signed JWT payload is readable by anyone who obtains it.</li>
+            <li><strong>Making tokens last forever:</strong> use sensible expirations and a refresh strategy where needed.</li>
+            <li><strong>Assuming logout invalidates every JWT:</strong> deleting a token from the client does not invalidate a copy already stolen.</li>
+            <li><strong>Skipping authorization:</strong> authentication establishes identity; authorization determines permitted actions.</li>
+            <li><strong>Thinking JWT is always more scalable:</strong> databases, caches, network calls, and other bottlenecks still matter.</li>
+        </ul>
+
+        <h2>8. What Should I Remember?</h2>
+        <ul>
+            <li><strong>Session:</strong> a server-managed login state, commonly identified by a cookie.</li>
+            <li><strong>JWT:</strong> a token format that can carry signed claims.</li>
+            <li><strong>JWT and sessions can coexist:</strong> they're not mutually exclusive approaches.</li>
+            <li><strong>Security depends on the whole design:</strong> expiration, revocation, transport, storage, and authorization matter.</li>
+        </ul>
+        <p>For a typical server-backed web application, I'd seriously consider a secure session cookie before introducing JWT complexity. For distributed APIs, JWT access tokens may be a better fit when their benefits are actually needed.</p>
+    </article>
+</main>
+<footer class="site-footer"></footer>
+</body>
+</html>

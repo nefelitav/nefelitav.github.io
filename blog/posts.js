@@ -84,5 +84,80 @@ const POSTS = [
         title: "Database Partitioning",
         date: "2026-10-15",
         file: "database_partitioning.html"
+    },
+    {
+        title: "SQL Execution Order",
+        date: "2026-10-15",
+        file: "sql_execution_order.html"
+    },
+    {
+        title: "Java Environment",
+        date: "2026-10-15",
+        file: "java.html"
+    },
+    {
+        title: "Redis Use Cases",
+        date: "2026-10-15",
+        file: "redis.html"
+    },
+    {
+        title: "Database Types",
+        date: "2026-10-15",
+        file: "database_types.html"
+    },
+    {
+        title: "ACID Vs BASE",
+        date: "2026-10-15",
+        file: "acid_vs_base.html"
+    },
+    {
+        title: "API Architectural Styles",
+        date: "2026-10-15",
+        file: "api_architecture.html"
+    },
+    {
+        title: "Authentication",
+        date: "2026-10-15",
+        file: "auth.html"
+    },
+    {
+        title: "JWT vs Session-Based Authentication",
+        date: "2026-10-15",
+        file: "maintain_auth.html"
+    },
+    {
+        title: "Cookies vs Local Storage vs Session Storage",
+        date: "2026-10-15",
+        file: "cookies.html"
+    },
+    {
+        title: "Symmetric vs Asymmetric Encryption",
+        date: "2026-10-15",
+        file: "encryption.html"
+    },
+    {
+        title: "Docker vs Kubernetes vs Helm vs Argo CD vs VMs",
+        date: "2026-10-15",
+        file: "containers.html"
+    },
+    {
+        title: "Redis VS Memcached",
+        date: "2026-10-15",
+        file: "redis_memcached.html"
+    },
+    {
+        title: "RabbitMQ vs Kafka vs Google Cloud Pub/Sub",
+        date: "2026-10-15",
+        file: "queue_management.html"
+    },
+    {
+        title: "Kafka Use Cases",
+        date: "2026-10-15",
+        file: "kafka.html"
+    },
+    {
+        title: "Design Patterns",
+        date: "2026-10-15",
+        file: "design_patterns.html"
     }
 ];

@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cookies vs localStorage vs sessionStorage: understand browser storage, persistence, JavaScript access, and authentication security.">
+    <meta property="og:title" content="Cookies vs Local Storage vs Session Storage – Nefeli Tavoulari">
+    <meta property="og:description" content="Learn browser storage trade-offs, XSS and CSRF risks, and where to store authentication credentials.">
+    <meta property="og:type" content="article">
+    <title>Cookies vs Local Storage vs Session Storage – Nefeli Tavoulari</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+<body>
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+<header><div class="container">
+    <div class="container-text"><a class="site-name" href="../../index.html">Nefeli Tavoulari</a></div>
+    <label class="switch" aria-label="Toggle dark mode">
+        <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+        <span class="slider round" aria-hidden="true"></span>
+    </label>
+</div></header>
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+    <article class="post">
+        <h1>Cookies vs Local Storage vs Session Storage</h1>
+        <time class="post-date" datetime="2026-10-15">15 October 2026</time>
+
+        <p>Web applications need to remember information between page loads and requests. Browsers offer cookies, local storage, and session storage, but they have different behaviors and security implications.</p>
+
+        <h2>1. Quick Comparison</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead><tr><th>Feature</th><th>Cookies</th><th>Local Storage</th><th>Session Storage</th></tr></thead>
+                <tbody>
+                <tr><td>Persistence</td><td>Depends on expiration; session cookies usually end with the browser session</td><td>Persists across browser restarts until cleared</td><td>Usually lasts for the page's browser tab session</td></tr>
+                <tr><td>Sent automatically with matching HTTP requests</td><td>Yes</td><td>No</td><td>No</td></tr>
+                <tr><td>Accessible to JavaScript</td><td>Usually, unless HttpOnly</td><td>Yes</td><td>Yes</td></tr>
+                <tr><td>Typical capacity</td><td>Small, browser-limited</td><td>Larger, browser-limited</td><td>Larger, browser-limited</td></tr>
+                <tr><td>Common uses</td><td>Sessions, server-managed preferences</td><td>Non-sensitive preferences and cached UI state</td><td>Temporary per-tab state</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>2. Cookies</h2>
+        <p>Cookies are small pieces of data stored by the browser and sent automatically with matching HTTP requests according to their domain, path, security, and SameSite rules.</p>
+
+        <h3>Example</h3>
+        <pre><code>Set-Cookie: session_id=abc123; Path=/; HttpOnly; Secure; SameSite=Lax</code></pre>
+
+        <p>On a later request, the browser may send:</p>
+        <pre><code>Cookie: session_id=abc123</code></pre>
+
+        <p>The backend can use this session identifier to find the authenticated user's server-side session.</p>
+
+        <h3>Important cookie attributes</h3>
+        <ul>
+            <li><strong>HttpOnly:</strong> prevents ordinary JavaScript from reading the cookie.</li>
+            <li><strong>Secure:</strong> instructs the browser to send it only over HTTPS, except for special localhost behavior.</li>
+            <li><strong>SameSite:</strong> controls cross-site sending behavior and helps mitigate CSRF.</li>
+            <li><strong>Expires / Max-Age:</strong> determine persistence and lifetime.</li>
+            <li><strong>Domain / Path:</strong> restrict where the cookie applies. Omitting Domain creates a host-only cookie.</li>
+        </ul>
+
+        <h3>Advantages</h3>
+        <ul>
+            <li>Automatically sent with matching requests.</li>
+            <li>HttpOnly can protect session credentials from direct JavaScript reads.</li>
+            <li>Useful for browser-based session authentication.</li>
+        </ul>
+
+        <h3>Trade-offs</h3>
+        <ul>
+            <li>Cookies take up space on HTTP requests when they match.</li>
+            <li>Automatically sent credentials introduce CSRF considerations.</li>
+            <li>Domain, path, SameSite, and expiration behavior must be configured correctly.</li>
+        </ul>
+
+        <h2>3. Local Storage</h2>
+        <p>Local storage is a browser key-value store. Data persists across page reloads and browser restarts until the application or user clears it.</p>
+
+        <pre><code>// Save a preference
+localStorage.setItem("theme", "dark");
+
+// Read it
+const theme = localStorage.getItem("theme");
+
+// Remove it
+localStorage.removeItem("theme");</code></pre>
+
+        <h3>When to use it</h3>
+        <ul>
+            <li>Theme and display preferences.</li>
+            <li>Non-sensitive UI settings.</li>
+            <li>Small amounts of client-side state that should persist across visits.</li>
+        </ul>
+
+        <h3>Security concern</h3>
+        <p>Any JavaScript running in the same origin can generally read local storage. If an attacker exploits cross-site scripting (XSS), they may be able to steal a token stored there. Avoid storing long-lived sensitive credentials in local storage unless you have carefully considered the threat model.</p>
+
+        <h2>4. Session Storage</h2>
+        <p>Session storage works similarly to local storage, but it is scoped to an individual page session, generally associated with a browser tab. It is cleared when that tab's page session ends.</p>
+
+        <pre><code>// Save temporary state
+sessionStorage.setItem("checkoutStep", "payment");
+
+// Read it
+const step = sessionStorage.getItem("checkoutStep");
+
+// Remove it
+sessionStorage.removeItem("checkoutStep");</code></pre>
+
+        <h3>When to use it</h3>
+        <ul>
+            <li>Temporary multi-step form state.</li>
+            <li>Per-tab navigation state.</li>
+            <li>Short-lived UI information that should not persist across separate tab sessions.</li>
+        </ul>
+
+        <p>Session storage is still accessible to JavaScript. Its shorter lifetime does not make it a secure vault for authentication secrets.</p>
+
+        <h2>5. XSS vs CSRF</h2>
+
+        <h3>XSS — Cross-Site Scripting</h3>
+        <p>XSS occurs when an attacker can cause malicious JavaScript to run in your application's origin.</p>
+        <ul>
+            <li>JavaScript-accessible local storage and session storage can be read by injected scripts.</li>
+            <li>HttpOnly cookies cannot ordinarily be read directly by JavaScript.</li>
+            <li>HttpOnly does not prevent malicious JavaScript from making authenticated requests through the victim's browser.</li>
+        </ul>
+
+        <h3>CSRF — Cross-Site Request Forgery</h3>
+        <p>CSRF tricks a browser into making an unwanted request to a site where the browser has credentials. Cookies can be attached automatically, which is why cookie-based authentication needs CSRF-aware design.</p>
+        <ul>
+            <li>Use appropriate SameSite cookie settings.</li>
+            <li>For sensitive operations, use CSRF tokens or another suitable defense when required by your architecture.</li>
+            <li>Validate request origins where appropriate and never rely on CORS alone as a general CSRF defense.</li>
+        </ul>
+
+        <h2>6. Where Should I Store Authentication Credentials?</h2>
+        <p>There is no single answer for every architecture, but for a conventional browser application backed by your own server, an HttpOnly, Secure session cookie is often a strong default.</p>
+
+        <pre><code>Browser
+   |
+   | Cookie: session_id=...
+   v
+Backend
+   |
+   | Validate session
+   v
+Session Store</code></pre>
+
+        <p>The browser does not need to read the session identifier in JavaScript. It sends the cookie automatically when the request matches the cookie's rules.</p>
+
+        <p>For token-based architectures, decide where tokens should live based on the application's threat model. An in-memory token has different persistence trade-offs from local storage; a backend-for-frontend (BFF) can also keep OAuth tokens server-side and expose a browser session instead.</p>
+
+        <h2>7. Common Misconceptions</h2>
+        <ul>
+            <li><strong>"Cookies are always safer."</strong> Not automatically. Cookie attributes help, but CSRF and other risks still need to be addressed.</li>
+            <li><strong>"Local storage is sent to the server automatically."</strong> No. Application code must read and send it.</li>
+            <li><strong>"Session storage is safe for tokens because it disappears."</strong> It remains accessible to JavaScript and may be exposed by XSS.</li>
+            <li><strong>"HttpOnly prevents XSS."</strong> It limits cookie reading; it does not prevent XSS itself.</li>
+            <li><strong>"Cookies and JWTs are alternatives."</strong> A JWT can be stored in a cookie. Cookies are a storage and transport mechanism; JWT is a token format.</li>
+        </ul>
+
+        <h2>8. What Should I Remember?</h2>
+        <ul>
+            <li><strong>Cookies:</strong> useful for credentials sent automatically with HTTP requests.</li>
+            <li><strong>Local storage:</strong> persistent client-side storage for non-sensitive preferences and state.</li>
+            <li><strong>Session storage:</strong> temporary per-tab state.</li>
+            <li><strong>XSS:</strong> especially threatens data accessible to JavaScript.</li>
+            <li><strong>CSRF:</strong> especially relevant when credentials are sent automatically by the browser.</li>
+        </ul>
+        <p>Choose storage based on the data's sensitivity, required lifetime, and how the browser communicates with the backend. Do not choose a storage mechanism based on persistence alone.</p>
+    </article>
+</main>
+<footer class="site-footer"></footer>
+</body>
+</html>

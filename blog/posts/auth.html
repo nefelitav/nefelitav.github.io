@@ -1,0 +1,228 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Understand SSO vs OAuth 2.0 vs OpenID Connect vs SAML, how authentication and authorization differ, and when to use each.">
+    <meta property="og:title" content="SSO vs OAuth vs OIDC vs SAML – Nefeli Tavoulari">
+    <meta property="og:description" content="A practical guide to identity, authentication, authorization, and federated login.">
+    <meta property="og:type" content="article">
+    <title>SSO vs OAuth vs OIDC vs SAML – Nefeli Tavoulari</title>
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+<body>
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+    <article class="post">
+        <h1>Authentication: SSO vs OAuth vs OIDC vs SAML</h1>
+        <time class="post-date" datetime="2026-10-15">15 October 2026</time>
+
+        <p>Authentication is about establishing who a user is. Authorization is about deciding what that user is allowed to do. In modern systems, several standards work together to make login and access delegation possible.</p>
+
+        <h2>1. The Big Picture</h2>
+        <ul>
+            <li><strong>SSO (Single Sign-On):</strong> lets a user authenticate once and access multiple applications without independently logging in to each one.</li>
+            <li><strong>OAuth 2.0:</strong> lets an application obtain limited access to a resource on behalf of a user or as itself.</li>
+            <li><strong>OIDC (OpenID Connect):</strong> adds an identity layer on top of OAuth 2.0 so an application can authenticate a user.</li>
+            <li><strong>SAML:</strong> an XML-based standard for exchanging authentication and authorization-related assertions, commonly used for enterprise SSO.</li>
+        </ul>
+
+        <p>These are not four competing solutions. SSO is a capability or experience, while OAuth, OIDC, and SAML are standards that can help implement identity and access flows.</p>
+
+        <h2>2. SSO — Single Sign-On</h2>
+        <p>Imagine your company uses an internal dashboard, a ticketing tool, and a documentation platform. Instead of signing in separately to each application, you sign in through a central identity provider (IdP), and the other applications trust that provider.</p>
+
+        <pre><code>Employee
+   |
+   v
+Identity Provider
+   |
+   +----> Dashboard
+   |
+   +----> Ticketing Tool
+   |
+   +----> Documentation</code></pre>
+
+        <h3>Typical flow</h3>
+        <ol>
+            <li>The user opens an application.</li>
+            <li>The application redirects the user to the identity provider if authentication is needed.</li>
+            <li>The user authenticates with the provider.</li>
+            <li>The provider establishes an authenticated session and returns the user to the application with an appropriate response.</li>
+            <li>The application validates the response and establishes its own session.</li>
+        </ol>
+
+        <p>The exact flow depends on the protocol. The application does not simply trust arbitrary user-supplied identity information.</p>
+
+        <h3>When to use SSO</h3>
+        <ul>
+            <li>Employees access multiple company applications.</li>
+            <li>A SaaS product offers enterprise login through a customer's identity provider.</li>
+            <li>An organization wants centralized account policies and easier account deactivation.</li>
+        </ul>
+
+        <h2>3. OAuth 2.0 — Delegated Authorization</h2>
+        <p>OAuth 2.0 is primarily an authorization framework. It allows a client application to obtain an access token with specific permissions to access a resource.</p>
+
+        <p>For example, a calendar application wants permission to read your calendar without asking for your password.</p>
+
+        <pre><code>Calendar App
+    |
+    | Requests permission
+    v
+Authorization Server
+    |
+    | Issues access token
+    v
+Calendar App
+    |
+    | Authorization: Bearer &lt;access_token&gt;
+    v
+Calendar API</code></pre>
+
+        <h3>Example request</h3>
+        <pre><code>GET /api/events HTTP/1.1
+Host: calendar.example.com
+Authorization: Bearer eyJ...</code></pre>
+
+        <p>The access token represents granted access. The API validates it and checks whether it permits the requested operation.</p>
+
+        <h3>Important OAuth concepts</h3>
+        <ul>
+            <li><strong>Access token:</strong> credential used to access a protected resource.</li>
+            <li><strong>Scope:</strong> describes the permissions requested or granted, such as <code>calendar.read</code>.</li>
+            <li><strong>Authorization server:</strong> issues tokens after the relevant authorization flow.</li>
+            <li><strong>Resource server:</strong> API that accepts and validates access tokens.</li>
+            <li><strong>Refresh token:</strong> may be used to obtain new access tokens without repeating the full authorization interaction.</li>
+        </ul>
+
+        <p>For user-facing applications, Authorization Code Flow with PKCE is generally the recommended starting point. Avoid the old implicit flow and never collect a user's third-party password to obtain access to another service.</p>
+
+        <h2>4. OIDC — OpenID Connect</h2>
+        <p>OIDC builds on OAuth 2.0 and adds a standardized way for a client to verify a user's identity.</p>
+
+        <p>OAuth access tokens are for accessing resources; they should not automatically be treated as proof of a user's identity. OIDC introduces the <strong>ID token</strong> for that identity purpose.</p>
+
+        <h3>Example ID token claims</h3>
+        <pre><code>{
+  "iss": "https://identity.example.com",
+  "sub": "user_123",
+  "aud": "my-application",
+  "exp": 1792000000
+}</code></pre>
+
+        <ul>
+            <li><strong>iss:</strong> the issuer of the token.</li>
+            <li><strong>sub:</strong> the subject identifier for the user.</li>
+            <li><strong>aud:</strong> the intended audience.</li>
+            <li><strong>exp:</strong> the expiration time.</li>
+        </ul>
+
+        <p>These claims are illustrative. A real client must validate the token's signature and relevant claims, including issuer, audience, and expiration, according to the OIDC specification.</p>
+
+        <h3>Typical OIDC login</h3>
+        <ol>
+            <li>The application redirects the user to an identity provider.</li>
+            <li>The user authenticates and grants any required consent.</li>
+            <li>The application receives an authorization code.</li>
+            <li>The application exchanges the code for tokens.</li>
+            <li>The client validates the ID token and establishes a login session.</li>
+        </ol>
+
+        <h3>When to use OIDC</h3>
+        <ul>
+            <li>Adding "Sign in with Google" or another identity provider.</li>
+            <li>Enterprise login when the identity provider supports OIDC.</li>
+            <li>Authenticating users across web and mobile applications.</li>
+        </ul>
+
+        <h2>5. SAML — Enterprise Identity Federation</h2>
+        <p>SAML is an XML-based standard widely used for enterprise SSO. It allows an identity provider to issue a signed assertion about an authenticated user to a service provider.</p>
+
+        <ul>
+            <li><strong>Identity Provider (IdP):</strong> authenticates the user and issues a SAML response.</li>
+            <li><strong>Service Provider (SP):</strong> application that relies on the validated response.</li>
+            <li><strong>SAML assertion:</strong> contains statements about the user and authentication.</li>
+        </ul>
+
+        <h3>Typical flow</h3>
+        <pre><code>User -> Service Provider
+          |
+          | Redirect to IdP
+          v
+     Identity Provider
+          |
+          | User authenticates
+          v
+     SAML Response
+          |
+          v
+     Service Provider
+          |
+          v
+     Application Session</code></pre>
+
+        <p>The SAML response is commonly returned through the browser to the service provider. The service provider validates the response, including its signature, audience, destination, and time constraints, before creating a session.</p>
+
+        <h3>When to use SAML</h3>
+        <ul>
+            <li>Integrating a SaaS application with enterprise identity systems.</li>
+            <li>Supporting organizations whose existing SSO configuration is SAML-based.</li>
+            <li>Integrating with established enterprise applications that require SAML.</li>
+        </ul>
+
+        <p>SAML is not inherently insecure or obsolete. OIDC is often simpler for modern application development, but SAML remains important for enterprise interoperability.</p>
+
+        <h2>6. OAuth vs OIDC vs SAML</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead><tr><th>Feature</th><th>OAuth 2.0</th><th>OIDC</th><th>SAML</th></tr></thead>
+                <tbody>
+                <tr><td>Main purpose</td><td>Authorization</td><td>User authentication on top of OAuth</td><td>Federated identity and SSO</td></tr>
+                <tr><td>Common token/message</td><td>Access token</td><td>ID token and OAuth tokens</td><td>SAML assertion</td></tr>
+                <tr><td>Typical format</td><td>Token format varies</td><td>JWT ID token is common</td><td>XML</td></tr>
+                <tr><td>Common use</td><td>API access delegation</td><td>Modern application login</td><td>Enterprise SSO</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>7. Common Misconceptions</h2>
+        <ul>
+            <li><strong>"OAuth is a login protocol."</strong> OAuth is primarily for authorization. OIDC adds a standardized identity layer.</li>
+            <li><strong>"SSO is a protocol."</strong> SSO is a capability that can be implemented using protocols such as SAML or OIDC.</li>
+            <li><strong>"An access token and an ID token are interchangeable."</strong> They serve different purposes and have different intended audiences.</li>
+            <li><strong>"JWT means OAuth."</strong> JWT is a token format. It can be used in many contexts and is not synonymous with OAuth.</li>
+            <li><strong>"SAML is always the best enterprise option."</strong> Choose based on the identity provider and integration requirements; many support both SAML and OIDC.</li>
+        </ul>
+
+        <h2>8. What Should I Remember?</h2>
+        <ul>
+            <li><strong>SSO:</strong> sign in once to access multiple applications.</li>
+            <li><strong>OAuth 2.0:</strong> delegate access to protected resources.</li>
+            <li><strong>OIDC:</strong> standardize user authentication on top of OAuth 2.0.</li>
+            <li><strong>SAML:</strong> exchange XML-based identity assertions, often for enterprise SSO.</li>
+        </ul>
+        <p>For a new application that needs user login through an identity provider, I'd generally start by evaluating OIDC. If a customer's enterprise system requires SAML, support SAML for that integration.</p>
+    </article>
+</main>
+<footer class="site-footer"></footer>
+</body>
+</html>

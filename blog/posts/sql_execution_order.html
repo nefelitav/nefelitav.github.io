@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description" content="SQL Execution Order — understand how SQL clauses are processed, learn the differences between JOIN types, and write better SQL queries.">
+    <meta property="og:title" content="SQL Execution Order">
+    <meta property="og:description" content="Learn SQL logical execution order, WHERE vs. HAVING, subqueries, and the six main SQL JOIN types with practical examples.">
+    <meta property="og:type" content="article">
+
+    <title>SQL Execution Order | Nefeli Tavoulari</title>
+
+    <link rel="stylesheet" href="../../styles.css">
+    <script src="../../script.js" defer></script>
+</head>
+
+<body>
+
+<script>
+    if (localStorage.getItem('darkMode') === '1') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<header>
+    <div class="container">
+        <div class="container-text">
+            <a class="site-name" href="../../index.html">Nefeli Tavoulari</a>
+        </div>
+
+        <label class="switch" aria-label="Toggle dark mode">
+            <input type="checkbox" id="toggle" aria-label="Toggle dark mode">
+            <span class="slider round" aria-hidden="true"></span>
+        </label>
+    </div>
+</header>
+
+<main>
+    <a class="back-link" href="../index.html">← Back to blog</a>
+
+    <article class="post">
+        <h1>SQL Execution Order</h1>
+        <p class="post-date">October 15, 2026</p>
+
+        <p>
+            When writing SQL queries, we usually start with
+            <code>SELECT</code> because we first think about which
+            columns we want to retrieve. However, SQL does not
+            logically process clauses in the order they appear.
+        </p>
+
+        <p>
+            Understanding <strong>SQL execution order</strong> helps
+            explain common surprises, such as why an alias defined
+            in <code>SELECT</code> cannot normally be used in
+            <code>WHERE</code>, and how joins combine data from
+            multiple tables.
+        </p>
+
+        <h2>1. The Logical Execution Order</h2>
+
+        <p>
+            For a typical query, the logical processing order is:
+        </p>
+
+        <pre><code>FROM / JOIN
+WHERE
+GROUP BY
+HAVING
+SELECT
+DISTINCT
+ORDER BY
+LIMIT / OFFSET</code></pre>
+
+        <p>
+            This is the logical order, not necessarily the physical
+            order in which the database executes operations. The
+            query optimizer may choose a different execution plan
+            to improve performance.
+        </p>
+
+        <h2>2. What Happens at Each Step?</h2>
+
+        <ul>
+            <li>
+                <strong>FROM / JOIN:</strong>
+                Identifies the tables and combines their rows.
+            </li>
+            <li>
+                <strong>WHERE:</strong>
+                Filters individual rows before grouping.
+            </li>
+            <li>
+                <strong>GROUP BY:</strong>
+                Groups rows for aggregate calculations.
+            </li>
+            <li>
+                <strong>HAVING:</strong>
+                Filters groups after aggregation.
+            </li>
+            <li>
+                <strong>SELECT:</strong>
+                Determines which columns and expressions to return.
+            </li>
+            <li>
+                <strong>DISTINCT:</strong>
+                Removes duplicate result rows.
+            </li>
+            <li>
+                <strong>ORDER BY:</strong>
+                Sorts the resulting rows.
+            </li>
+            <li>
+                <strong>LIMIT / OFFSET:</strong>
+                Restricts the number of rows returned and can skip rows.
+            </li>
+        </ul>
+
+        <h2>3. Understanding SQL JOINs</h2>
+
+        <p>
+            A <strong>JOIN</strong> combines rows from two tables
+            based on a related column or another join condition.
+            Different join types determine which matching and
+            non-matching rows are included in the result.
+        </p>
+
+        <p>
+            Imagine we have the following tables.
+        </p>
+
+        <h3>Employees</h3>
+
+        <pre><code>id | name  | department_id
+---|-------|--------------
+1  | Alice | 10
+2  | Bob   | 20
+3  | Carol | NULL</code></pre>
+
+        <h3>Departments</h3>
+
+        <pre><code>id | department
+---|------------
+10 | Engineering
+20 | Finance
+30 | Marketing</code></pre>
+
+        <h3>INNER JOIN</h3>
+
+        <p>
+            Returns only rows that have a match in both tables.
+        </p>
+
+        <pre><code>SELECT e.name, d.department
+FROM employees e
+INNER JOIN departments d
+    ON e.department_id = d.id;</code></pre>
+
+        <p>Result:</p>
+
+        <pre><code>Alice | Engineering
+Bob   | Finance</code></pre>
+
+        <p>
+            Carol is excluded because she has no matching department.
+            Marketing is excluded because it has no matching employee.
+        </p>
+
+        <h3>LEFT JOIN (LEFT OUTER JOIN)</h3>
+
+        <p>
+            Returns every row from the left table and matching rows
+            from the right table. If there is no match, the right-side
+            columns contain <code>NULL</code>.
+        </p>
+
+        <pre><code>SELECT e.name, d.department
+FROM employees e
+LEFT JOIN departments d
+    ON e.department_id = d.id;</code></pre>
+
+        <p>Result:</p>
+
+        <pre><code>Alice | Engineering
+Bob   | Finance
+Carol | NULL</code></pre>
+
+        <p>
+            Use this when you want to keep every employee, even if
+            they do not belong to a department.
+        </p>
+
+        <h3>RIGHT JOIN (RIGHT OUTER JOIN)</h3>
+
+        <p>
+            Returns every row from the right table and matching rows
+            from the left table. Unmatched left-side columns contain
+            <code>NULL</code>.
+        </p>
+
+        <pre><code>SELECT e.name, d.department
+FROM employees e
+RIGHT JOIN departments d
+    ON e.department_id = d.id;</code></pre>
+
+        <p>Result:</p>
+
+        <pre><code>Alice | Engineering
+Bob   | Finance
+NULL  | Marketing</code></pre>
+
+        <p>
+            Use this when you want every department, even those
+            without employees. You can usually rewrite a RIGHT JOIN
+            as a LEFT JOIN by swapping the table positions.
+        </p>
+
+        <h3>FULL OUTER JOIN</h3>
+
+        <p>
+            Returns all rows from both tables. Matching rows are
+            combined, while unmatched rows from either table are
+            also included with <code>NULL</code> values for the
+            missing side.
+        </p>
+
+        <pre><code>SELECT e.name, d.department
+FROM employees e
+FULL OUTER JOIN departments d
+    ON e.department_id = d.id;</code></pre>
+
+        <p>Result:</p>
+
+        <pre><code>Alice | Engineering
+Bob   | Finance
+Carol | NULL
+NULL  | Marketing</code></pre>
+
+        <p>
+            MySQL does not directly support FULL OUTER JOIN.
+            It can be emulated with a combination of LEFT JOIN,
+            RIGHT JOIN or UNION-based queries.
+        </p>
+
+        <h3>CROSS JOIN</h3>
+
+        <p>
+            Returns every possible combination of rows from both
+            tables. This is called a <strong>Cartesian product</strong>.
+        </p>
+
+        <pre><code>SELECT e.name, d.department
+FROM employees e
+CROSS JOIN departments d;</code></pre>
+
+        <p>
+            With three employees and three departments, the result
+            contains nine rows.
+        </p>
+
+        <p>
+            Use it when you intentionally need every combination,
+            such as generating all product-and-size combinations.
+            Be careful: the result can grow very quickly.
+        </p>
+
+        <h3>SELF JOIN</h3>
+
+        <p>
+            A self join joins a table to itself. It is useful when
+            rows in the same table are related.
+        </p>
+
+        <p>
+            For example, imagine an employees table with a
+            <code>manager_id</code> column referencing another
+            employee's <code>id</code>.
+        </p>
+
+        <pre><code>SELECT
+    e.name AS employee,
+    m.name AS manager
+FROM employees e
+LEFT JOIN employees m
+    ON e.manager_id = m.id;</code></pre>
+
+        <p>
+            This retrieves employees together with their managers.
+            A LEFT JOIN also keeps employees who do not have a
+            manager, such as the most senior person in the hierarchy.
+        </p>
+
+        <p>
+            A SELF JOIN is not a separate join operator like
+            INNER or LEFT JOIN. It describes joining a table
+            to itself, and it can use different join types.
+        </p>
+
+        <h3>JOIN Types at a Glance</h3>
+
+        <ul>
+            <li>
+                <strong>INNER JOIN:</strong>
+                Only matching rows from both tables.
+            </li>
+            <li>
+                <strong>LEFT JOIN:</strong>
+                All left rows and matching right rows.
+            </li>
+            <li>
+                <strong>RIGHT JOIN:</strong>
+                All right rows and matching left rows.
+            </li>
+            <li>
+                <strong>FULL OUTER JOIN:</strong>
+                All rows from both tables, matched where possible.
+            </li>
+            <li>
+                <strong>CROSS JOIN:</strong>
+                Every possible combination of rows.
+            </li>
+            <li>
+                <strong>SELF JOIN:</strong>
+                A table joined to itself using a chosen join type.
+            </li>
+        </ul>
+
+        <h2>4. JOIN vs. Subquery</h2>
+
+        <p>
+            A subquery is a query nested inside another query.
+            Both JOINs and subqueries can retrieve related data,
+            but they express the problem differently.
+        </p>
+
+        <p>
+            Suppose we want to retrieve each order with its
+            customer's name.
+        </p>
+
+        <h3>Using a JOIN</h3>
+
+        <pre><code>SELECT
+    o.id,
+    c.name
+FROM orders o
+JOIN customers c
+    ON c.id = o.customer_id;</code></pre>
+
+        <h3>Using a scalar subquery</h3>
+
+        <pre><code>SELECT
+    o.id,
+    (
+        SELECT c.name
+        FROM customers c
+        WHERE c.id = o.customer_id
+    ) AS customer_name
+FROM orders o;</code></pre>
+
+        <p>
+            Both can return the same results when the customer
+            relationship and data satisfy the necessary conditions.
+            The JOIN is often easier to read when combining columns
+            from related tables.
+        </p>
+
+        <p>
+            A scalar subquery must return at most one row for each
+            outer row. If multiple matching customers exist, the
+            query may fail, while a JOIN can return multiple rows.
+        </p>
+
+        <h3>Can a subquery be slower?</h3>
+
+        <p>
+            Sometimes. A correlated subquery may require repeated
+            lookups for many outer rows. However, modern database
+            optimizers can transform some subqueries into efficient
+            execution strategies, including semi-joins.
+        </p>
+
+        <p>
+            Do not assume that JOINs are always faster. Compare
+            execution plans and measure performance with realistic
+            data before choosing an alternative.
+        </p>
+
+        <h2>5. Why Can't WHERE Use a SELECT Alias?</h2>
+
+        <p>
+            Imagine an orders table with an amount column. We want
+            to retrieve orders whose amount including VAT exceeds 100.
+        </p>
+
+        <pre><code>SELECT
+    amount * 1.21 AS amount_with_vat
+FROM orders
+WHERE amount_with_vat > 100;</code></pre>
+
+        <p>
+            In many SQL databases, this fails because WHERE is
+            logically processed before SELECT. The alias
+            <code>amount_with_vat</code> has not been defined yet.
+        </p>
+
+        <p>Instead, repeat the expression in WHERE:</p>
+
+        <pre><code>SELECT
+    amount * 1.21 AS amount_with_vat
+FROM orders
+WHERE amount * 1.21 > 100;</code></pre>
+
+        <p>
+            Alternatively, use a subquery to make the calculated
+            column available to the outer query.
+        </p>
+
+        <pre><code>SELECT *
+FROM (
+    SELECT amount * 1.21 AS amount_with_vat
+    FROM orders
+) AS calculated_orders
+WHERE amount_with_vat > 100;</code></pre>
+
+        <p>
+            Some databases allow SELECT aliases in additional
+            clauses, such as ORDER BY. Exact rules vary by database.
+        </p>
+
+        <h2>6. WHERE vs. HAVING</h2>
+
+        <p>
+            Both clauses filter data, but they operate at different
+            stages.
+        </p>
+
+        <ul>
+            <li>
+                <strong>WHERE:</strong>
+                Filters individual rows before grouping.
+            </li>
+            <li>
+                <strong>HAVING:</strong>
+                Filters groups after aggregation.
+            </li>
+        </ul>
+
+        <p>
+            For example, find customers whose total spending
+            on paid orders exceeds 500.
+        </p>
+
+        <pre><code>SELECT
+    customer_id,
+    SUM(amount) AS total_spent
+FROM orders
+WHERE status = 'paid'
+GROUP BY customer_id
+HAVING SUM(amount) > 500
+ORDER BY total_spent DESC;</code></pre>
+
+        <p>Logically, the database:</p>
+
+        <ol>
+            <li>Reads the orders table.</li>
+            <li>Keeps only paid orders.</li>
+            <li>Groups the remaining orders by customer.</li>
+            <li>Calculates each customer's total spending.</li>
+            <li>Keeps groups with spending above 500.</li>
+            <li>Returns the selected columns and sorts by total spending.</li>
+        </ol>
+
+        <h2>7. Why Does Execution Order Matter?</h2>
+
+        <p>Understanding logical execution order helps you:</p>
+
+        <ul>
+            <li>Understand why aliases are unavailable in WHERE.</li>
+            <li>Choose between WHERE and HAVING.</li>
+            <li>Understand when grouping and aggregation happen.</li>
+            <li>Choose the correct JOIN type for your requirements.</li>
+            <li>Understand how DISTINCT, sorting, and pagination affect results.</li>
+            <li>Debug queries that return unexpected results.</li>
+        </ul>
+
+        <p>
+            Remember that logical execution order explains query
+            semantics, not necessarily performance. To understand
+            how a database physically executes a query, inspect
+            its execution plan with EXPLAIN.
+        </p>
+
+        <h2>8. Summary</h2>
+
+        <p>The logical SQL execution order is:</p>
+
+        <pre><code>FROM → WHERE → GROUP BY → HAVING
+     → SELECT → DISTINCT
+     → ORDER BY → LIMIT / OFFSET</code></pre>
+
+        <p>The key concepts to remember are:</p>
+
+        <ul>
+            <li>
+                <strong>JOINs</strong> combine rows from related tables.
+            </li>
+            <li>
+                <strong>INNER JOIN</strong> returns matching rows,
+                while LEFT, RIGHT, and FULL OUTER JOIN preserve
+                unmatched rows from one or both sides.
+            </li>
+            <li>
+                <strong>CROSS JOIN</strong> generates every possible
+                combination of rows.
+            </li>
+            <li>
+                <strong>SELF JOIN</strong> joins a table to itself.
+            </li>
+            <li>
+                <strong>Subqueries</strong> can retrieve related values
+                or create intermediate results. They are not
+                automatically slower than JOINs.
+            </li>
+            <li>
+                <strong>WHERE</strong> filters rows before grouping,
+                while <strong>HAVING</strong> filters groups after
+                aggregation.
+            </li>
+            <li>
+                <strong>EXPLAIN</strong> helps you inspect how the
+                database plans to execute a query.
+            </li>
+        </ul>
+
+        <p>
+            The goal is to understand what result you need first,
+            write a query that produces the correct result, and
+            then optimize it based on the actual execution plan.
+        </p>
+    </article>
+</main>
+
+</body>
+</html>
