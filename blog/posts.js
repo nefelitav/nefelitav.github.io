@@ -26,7 +26,7 @@ const POSTS = [
         file: "webhooks_queues_events.html"
     },
     {
-        title: "Confused terminology",
+        title: "Terminology",
         date: "2026-10-04",
         file: "network_and_concurrency_term_explanation.html"
     },

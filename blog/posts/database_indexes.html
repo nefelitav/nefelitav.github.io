@@ -94,8 +94,6 @@
         </p>
 
         <pre><code>SELECT *
-
-
 FROM users
 WHERE email = '[alice@example.com](mailto:alice@example.com)';</code></pre>
 
@@ -110,10 +108,7 @@ WHERE email = '[alice@example.com](mailto:alice@example.com)';</code></pre>
             data structure that can be searched efficiently.
         </p>
 
-        <pre><code>CREATE INDEX idx_users_email
-
-
-ON users(email);</code></pre>
+        <pre><code>CREATE INDEX idx_users_email ON users(email);</code></pre>
 
         
         <p>
@@ -128,8 +123,6 @@ ON users(email);</code></pre>
         </p>
 
         <pre><code>Row 1 → Does email match?
-
-
 Row 2 → Does email match?
 Row 3 → Does email match?
 Row 4 → Does email match?
@@ -182,14 +175,12 @@ row</code></pre>
 
         <pre><code>WHERE id = 123
 
-
 WHERE created_at >= '2026-01-01'
 
 WHERE price BETWEEN 10 AND 100
 
 ORDER BY created_at</code></pre>
 
-        
         <p>
             The database can navigate through the tree rather than scanning
             every row.
@@ -206,7 +197,6 @@ ORDER BY created_at</code></pre>
   email VARCHAR(255)
 );</code></pre>
 
-        
         <p>
             This allows queries such as:
         </p>

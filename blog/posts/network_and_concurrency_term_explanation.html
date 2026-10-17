@@ -11,7 +11,7 @@
     <meta property="og:description" content="A concise guide to essential networking and concurrency concepts and how they differ.">
     <meta property="og:type" content="article">
 
-    <title>Confused Terminology: Networking &amp; Concurrency – Nefeli Tavoulari</title>
+    <title>Terminology: Networking &amp; Concurrency – Nefeli Tavoulari</title>
 
     <link rel="stylesheet" href="../../styles.css">
     <script src="../../script.js" defer></script>
@@ -49,7 +49,7 @@
     
     <article class="post">
 
-        <h1>Confused Terminology: Networking &amp; Concurrency</h1>
+        <h1>Terminology: Networking &amp; Concurrency</h1>
 
         <time class="post-date" datetime="2026-10-06">
             6 October 2026
@@ -342,40 +342,6 @@ HTTP request / response</code></pre>
             During the TLS handshake, the server presents a certificate,
             the client verifies it, and both sides establish cryptographic
             keys for the connection.
-        </p>
-
-        <h2>How They Fit Together</h2>
-
-        <p>
-            These concepts are different layers of the same overall process.
-        </p>
-
-        <pre><code>https://example.com
-│
-▼
-  DNS
-│
-▼
-IP address
-│
-▼
-TCP / QUIC
-│
-▼
-TLS
-│
-▼
-HTTP
-│
-▼
-Server</code></pre>
-
-        
-        <p>
-            Meanwhile, inside the operating system and applications,
-            <strong>processes and threads</strong> execute the work, while
-            <strong>concurrency, parallelism, locks and synchronization</strong>
-            determine how that work happens safely and efficiently.
         </p>
 
         <h2>What Should I Remember?</h2>
