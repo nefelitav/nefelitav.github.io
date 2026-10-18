@@ -311,8 +311,6 @@ department_name</code></pre>
 id BIGINT PRIMARY KEY,
 name VARCHAR(255),
 email VARCHAR(255)
-
-
 );</code></pre>
 
         
@@ -329,8 +327,6 @@ id BIGINT PRIMARY KEY,
 customer_id BIGINT,
 FOREIGN KEY (customer_id)
     REFERENCES customers(id)
-
-
 );</code></pre>
 
         
@@ -425,9 +421,8 @@ addresses</code></pre>
         <pre><code>orders
 | id | customer_id | customer_name | shipping_country         |
 | -- | ----------- | ------------- | ------------------------ |
-| 1  | 100         | Alice         | Netherlands</code></pre> |
-
-        
+| 1  | 100         | Alice         | Netherlands              |
+</code></pre>
         <p>
             This introduces duplication, but may reduce expensive joins
             for specific workloads.
@@ -476,8 +471,8 @@ countries</code></pre>
 | -- | ------------- | --------------- |
 | 1  | Alice         | NL              |
 | 2  | Alice         | NL              |
-| 3  | Bob           | GR</code></pre> |
-
+| 3  | Bob           | GR              |
+</code></pre>
         <p>
             The right design depends on the workload and business requirements.
         </p>
@@ -500,7 +495,6 @@ JOIN customers
 ON orders.customer_id = customers.id
 WHERE customers.email = '[alice@example.com](mailto:alice@example.com)';</code></pre>
 
-        
         <p>
             An index on the relevant columns can make this query efficient.
         </p>
@@ -523,8 +517,8 @@ WHERE customers.email = '[alice@example.com](mailto:alice@example.com)';</code><
         <pre><code>customers
 | id | email                                                      |
 | -- | ---------------------------------------------------------- |
-| 1  | [alice@example.com](mailto:alice@example.com)</code></pre> |
-
+| 1  | [alice@example.com](mailto:alice@example.com)              |
+</code></pre>
         
         <p>
             If Alice changes her email, there is one row to update.
